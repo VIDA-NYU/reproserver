@@ -1,0 +1,28 @@
+version: "2"
+services:
+  rabbitmq:
+    image: "rabbitmq:3.6.9-management"
+    container_name: rs-rabbit
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: hackme
+    ports:
+      - "8080:15672"
+  web:
+    build: web
+    depends_on:
+      - rabbitmq
+    container_name: rs-web
+    ports:
+      - "8000:8000"
+  builder:
+    build: builder
+    depends_on:
+      - rabbitmq
+  runner:
+    build: runner
+    depends_on:
+      - rabbitmq
+  registry:
+    image: "registry:2.6"
+    container_name: rs-registry
