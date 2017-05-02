@@ -1,5 +1,6 @@
 import pika
+import time
 
 
 def main():
-    pass
+    time.sleep(100000)
