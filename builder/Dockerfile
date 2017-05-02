@@ -1,5 +1,7 @@
 FROM python:2.7
 
-COPY run.py /usr/src/app/
 WORKDIR /usr/src/app
-ENTRYPOINT python run.py
+COPY requirements.txt /usr/src/app
+RUN pip install -r requirements.txt
+COPY builder /usr/src/app/builder
+ENTRYPOINT ["python", "-m", "builder"]

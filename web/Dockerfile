@@ -1,6 +1,7 @@
 FROM python:2.7
 
-RUN pip install flask
-COPY run.py /usr/src/app/
 WORKDIR /usr/src/app
-ENTRYPOINT python run.py
+COPY requirements.txt /usr/src/app
+RUN pip install -r requirements.txt
+COPY web /usr/src/app/web
+ENTRYPOINT ["python", "-m", "web"]
