@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Select a package to unpack</h1>
+
+<form method="POST" action="/unpack" enctype="multipart/form-data">
+    <input type="file" name="rpz_file" />
+    <input type="submit" value="Unpack" />
+</form>
+
+{% endblock content %}

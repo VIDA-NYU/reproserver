@@ -34,3 +34,8 @@ services:
     volumes:
       - minio-data:/export
     command: server /export
+    environment:
+      MINIO_ACCESS_KEY: admin
+      MINIO_SECRET_KEY: hackmehackme
+    ports:
+      - "9000:9000"
