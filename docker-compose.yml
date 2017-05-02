@@ -1,8 +1,13 @@
 version: "2"
+volumes:
+  rabbit-data:
+  minio-data:
 services:
   rabbitmq:
     image: "rabbitmq:3.6.9-management"
     container_name: rs-rabbit
+    volumes:
+      - rabbit-data:/var/lib/rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: admin
       RABBITMQ_DEFAULT_PASS: hackme
@@ -12,7 +17,6 @@ services:
     build: web
     depends_on:
       - rabbitmq
-    container_name: rs-web
     ports:
       - "8000:8000"
   builder:
@@ -27,4 +31,6 @@ services:
     image: "registry:2.6"
   minio:
     image: "minio/minio:RELEASE.2017-04-29T00-40-27Z"
+    volumes:
+      - minio-data:/export
     command: server /export
