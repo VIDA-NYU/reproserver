@@ -76,7 +76,8 @@ def task_push():
 def task_pull():
     for image in ['rabbitmq:3.6.9-management',
                   'minio/minio:RELEASE.2017-04-29T00-40-27Z',
-                  'registry:2.6']:
+                  'registry:2.6',
+                  'postgres:9.6']:
         yield {
             'name': image.split(':', 1)[0].split('/', 1)[-1],
             'actions': ['docker pull {0}'.format(image)],
@@ -86,7 +87,7 @@ def task_pull():
 
 
 def task_volume():
-    for name in ['rabbitmq', 'minio']:
+    for name in ['rabbitmq', 'minio', 'postgres']:
         volume = PREFIX + name
         yield {
             'name': name,
@@ -169,6 +170,14 @@ services = [
     ('registry', {
         'image': 'registry:2.6',
         'deps': ['pull:registry'],
+    }),
+    ('postgres', {
+        'image': 'postgres:9.6',
+        'volumes': ['postgres:/var/lib/postgresql/data'],
+        'deps': ['pull:postgres', 'volume:postgres'],
+        'env': {'PGDATA': '/var/lib/postgresql/data/pgdata',
+                'POSTGRES_USER': 'reproserver',
+                'POSTGRES_PASSWORD': 'hackmehackme'},
     }),
 ]
 
