@@ -71,8 +71,11 @@ def reproduce():
         filehash = permanent_id[:sep]
         filename = permanent_id[sep + 1:]
 
-    # Look up file in database
-    record = db_get(filehash)  # Also updates last access
+        # Look up file in database
+        record = db_get(filehash)  # Also updates last access
+    else:
+        record = None
+
     if record is None:
         return render_template(404, 'setup_notfound.html',
                                filename=filename)

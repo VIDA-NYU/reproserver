@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Package {{ filename }}</h1>
+
+{% if built %}
+
+{% if error %}
+
+<p>Error extracting package!</p>
+
+<p>Build log:</p>
+<pre>{% for line in log %}{{ line }}
+{% endfor %}</pre>
+
+{% endif %}
+
+<details>
+  <summary>Build log</summary>
+  <pre>{% for line in log %}{{ line }}
+{% endfor %}</pre>
+</details>
+
+{% if not error %}
+
+<form action="/run/{{ experiment_id }}" method="POST">
+{% for param in params %}
+<p>{{ param.name }} <input type="text" name="param_{{ param.name }}" /></p>
+{% endfor %}
+<p><input type="submit" value="Run" /></p>
+</form>
+
+{% endif %}
+
+{% else %}
+
+<p>Waiting for package extraction, please wait...</p>
+
+{% if log %}
+
+<p>Waiting for an available builder...</p>
+
+{% else %}
+
+<pre>{% for line in log %}{{ line }}
+{% endfor %}</pre>
+
+{% endif %}
+
+{% endif %}
+
+{% endblock content %}
