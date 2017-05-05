@@ -1,4 +1,5 @@
 from doit import get_var
+import json
 import os
 import subprocess
 
@@ -18,6 +19,18 @@ def exists(object, type):
                             stderr=subprocess.PIPE)
     _, _ = proc.communicate()
     return proc.wait() == 0
+
+
+def inspect(object, type):
+    proc = subprocess.Popen(['docker', 'inspect', '--type={0}'.format(type),
+                             object],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    stdout, _ = proc.communicate()
+    if proc.wait() != 0:
+        return None
+    else:
+        return json.loads(stdout.decode('ascii'))
 
 
 def list_files(*directories):
@@ -45,8 +58,8 @@ def task_build():
 
 def task_pull():
     for image in ['rabbitmq:3.6.9-management',
-                  'registry:2.6',
-                  'minio/minio:RELEASE.2017-04-29T00-40-27Z']:
+                  'minio/minio:RELEASE.2017-04-29T00-40-27Z',
+                  'registry:2.6']:
         yield {
             'name': image.split(':', 1)[0].split('/', 1)[-1],
             'actions': ['docker pull {0}'.format(image)],
@@ -72,3 +85,85 @@ def task_network():
         'uptodate': [exists('reproserver', 'network')],
         'clean': ['docker network rm reproserver'],
     }
+
+
+def container_running(container):
+    info = inspect(container, 'container')
+    return info and info[0]['State']['Running']
+
+
+def run(name, dct):
+    container = PREFIX + name
+    info = inspect(container, 'container')
+    if info and info[0]['State']['Running']:
+        return
+    elif info:
+        subprocess.check_call('docker rm {0}'.format(container),
+                              shell=True)
+    else:
+        subprocess.check_call('docker run -d --name {0} '
+                              '--network reproserver {2} {3} {4} '
+                              '{1} {5}'.format(
+                                  container,
+                                  dct['image'],
+                                  ' '.join('-v {0}'.format(v)
+                                           for v in dct.get('volumes', [])),
+                                  ' '.join('-e {0}={1}'.format(*e)
+                                           for e in dct.get('env', {}).items()),
+                                  ' '.join('-p {0}'.format(p)
+                                           for p in dct.get('ports', [])),
+                                  dct.get('command', '')),
+                              shell=True)
+
+
+services = [
+    ('web', {
+        'image': PREFIX + 'web',
+        'deps': ['start:rabbitmq', 'build:web'],
+        'ports': ['8000:8000'],
+    }),
+    ('builder', {
+        'image': PREFIX + 'builder',
+        'deps': ['start:rabbitmq', 'start:registry', 'start:minio',
+                 'build:builder'],
+    }),
+    ('runner', {
+        'image': PREFIX + 'runner',
+        'deps': ['start:rabbitmq', 'start:registry', 'start:minio',
+                 'build:runner'],
+    }),
+    ('rabbitmq', {
+        'image': 'rabbitmq:3.6.9-management',
+        'volumes': ['rabbitmq:/var/lib/rabbitmq'],
+        'deps': ['pull:rabbitmq', 'volume:rabbitmq'],
+        'env': {'RABBITMQ_DEFAULT_USER': 'admin',
+                'RABBITMQ_DEFAULT_PASS': 'hackme'},
+        'ports': ['8080:15672'],
+    }),
+    ('minio', {
+        'image': 'minio/minio:RELEASE.2017-04-29T00-40-27Z',
+        'volumes': ['minio:/export'],
+        'deps': ['pull:minio', 'volume:minio'],
+        'command': 'server /export',
+        'env': {'MINIO_ACCESS_KEY': 'admin',
+                'MINIO_SECRET_KEY': 'hackmehackme'},
+        'ports': ['9000:9000'],
+    }),
+    ('registry', {
+        'image': 'registry:2.6',
+        'deps': ['pull:registry'],
+    }),
+]
+
+
+def task_start():
+    for name, dct in services:
+        container = PREFIX + name
+        yield {
+            'name': name,
+            'actions': [(run, [name, dct])],
+            'uptodate': [container_running(container)],
+            'task_dep': ['network'] + dct.get('deps', []),
+            'clean': ['docker stop {0} || true'.format(container),
+                      'docker rm {0} || true'.format(container)],
+        }
