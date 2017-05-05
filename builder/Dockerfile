@@ -4,4 +4,4 @@ WORKDIR /usr/src/app
 COPY builder/requirements.txt /usr/src/app
 RUN pip install -r requirements.txt
 COPY builder/builder /usr/src/app/builder
-ENTRYPOINT ["python", "-m", "builder"]
+CMD ["python", "-m", "builder"]

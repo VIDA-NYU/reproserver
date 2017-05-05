@@ -118,20 +118,19 @@ def run(name, dct):
     elif info:
         subprocess.check_call('docker rm {0}'.format(container),
                               shell=True)
-    else:
-        subprocess.check_call('docker run -d --name {0} '
-                              '--network reproserver {2} {3} {4} '
-                              '{1} {5}'.format(
-                                  container,
-                                  dct['image'],
-                                  ' '.join('-v {0}'.format(v)
-                                           for v in dct.get('volumes', [])),
-                                  ' '.join('-e {0}={1}'.format(*e)
-                                           for e in dct.get('env', {}).items()),
-                                  ' '.join('-p {0}'.format(p)
-                                           for p in dct.get('ports', [])),
-                                  dct.get('command', '')),
-                              shell=True)
+    subprocess.check_call('docker run -d --name {0} '
+                          '--network reproserver {2} {3} {4} '
+                          '{1} {5}'.format(
+                              container,
+                              dct['image'],
+                              ' '.join('-v {0}'.format(v)
+                                       for v in dct.get('volumes', [])),
+                              ' '.join('-e {0}={1}'.format(*e)
+                                       for e in dct.get('env', {}).items()),
+                              ' '.join('-p {0}'.format(p)
+                                       for p in dct.get('ports', [])),
+                              dct.get('command', '')),
+                          shell=True)
 
 
 services = [

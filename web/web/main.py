@@ -1,5 +1,6 @@
 import base64
 import boto3
+import database
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 from hashlib import sha256
 import logging
@@ -12,7 +13,9 @@ app = Flask(__name__,
             template_folder=os.path.join(os.path.dirname(__file__),
                                          'templates'))
 
-channel = None
+SQLSession = None
+amqp = None
+s3 = None
 
 
 @app.route('/')
@@ -47,9 +50,6 @@ def unpack():
     uploaded_file.seek(0, 0)
 
     # Check for existence on S3
-    s3 = boto3.resource('s3', endpoint_url='http://minio:9000',
-                        aws_access_key_id='admin',
-                        aws_secret_access_key='hackmehackme')
     if db_update_last_access(filehash):
         app.logger.info("File exists in storage")
     else:
@@ -112,8 +112,8 @@ def reproduce():
         else:
             if record.status == 'NOBUILD':
                 db_set_queued(filehash)  # set status = 'QUEUED'
-                channel.basic_publish('', routing_key='build_queue',
-                                      body=filehash)
+                amqp.basic_publish('', routing_key='build_queue',
+                                   body=filehash)
             return render_template('setup.html', filename=filename,
                                    built=False)
 
@@ -146,13 +146,23 @@ def run():
 def main():
     logging.basicConfig(level=logging.INFO)
 
+    logging.info("Connecting to SQL database")
+    global SQLSession
+    SQLSession = database.connect()
+
     logging.info("Connecting to AMQP broker")
     connection = pika.BlockingConnection(pika.ConnectionParameters(
-        host='rabbitmq', credentials=pika.PlainCredentials('admin', 'hackme')))
-    global channel
-    channel = connection.channel()
+        host='reproserver_rabbitmq',
+        credentials=pika.PlainCredentials('admin', 'hackme')))
+    global amqp
+    amqp = connection.channel()
 
-    channel.queue_declare(queue='build_queue', durable=True)
+    amqp.queue_declare(queue='build_queue', durable=True)
 
     app.logger.info("web running")
     app.run(host="0.0.0.0", port=8000, debug=True)
+
+    global s3
+    s3 = boto3.resource('s3', endpoint_url='http://reproserver_minio:9000',
+                        aws_access_key_id='admin',
+                        aws_secret_access_key='hackmehackme')
