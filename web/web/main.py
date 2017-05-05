@@ -1,5 +1,7 @@
+import base64
 import boto3
-from flask import Flask, render_template, request
+from flask import Flask, jsonify, redirect, render_template, request, url_for
+from hashlib import sha256
 import logging
 import os
 import pika
@@ -33,11 +35,16 @@ def unpack():
     filename = secure_filename(uploaded_file.filename)
 
     # Hash it
-    filehash = shahash(uploaded_file)
+    hasher = sha256()
+    chunk = uploaded_file.read(4096)
+    while chunk:
+        hasher.update(chunk)
+        chunk = uploaded_file.read(4096)
+    filehash = hasher.hexdigest()
     app.logger.info("Computed hash: %s", filehash)
 
     # Rewind it
-    uploaded_file.seek(0, SEEK_SET)
+    uploaded_file.seek(0, 0)
 
     # Check for existence on S3
     s3 = boto3.resource('s3', endpoint_url='http://minio:9000',
@@ -57,10 +64,10 @@ def unpack():
     permanent_id = base64.urlsafe_b64encode(filehash + '|' + filename)
 
     # Redirect to build page
-    return redirect(TEMPORARY, '/reproduce/' + permanent_id)
+    return redirect(url_for('reproduce', experiment=permanent_id), 302)
 
 
-@app.route('/reproduce/(?P<experiment>[A-Za-z0-9_-]+)')
+@app.route('/reproduce/<experiment>')
 def reproduce():
     """Show build log and ask for run parameters.
     """
@@ -81,11 +88,11 @@ def reproduce():
                                filename=filename)
 
     # JSON endpoint, returns data for the page's JavaScript to update itself
-    if accept_json:
+    if request.accept_mimetypes.accept_json:
         log_from = request.args.get('log_from', 0)
-        return json({'status': record.status,
-                     'log': record.log(log_from),
-                     'params': record.params})
+        return jsonify({'status': record.status,
+                       'log': record.log(log_from),
+                       'params': record.params})
     # HTML view, return the page
     else:
         # If it's done building, send build log and run form
@@ -111,7 +118,7 @@ def reproduce():
                                    built=False)
 
 
-@app.route('/run/(?P<experiment>[A-Za-z0-9_-]+)', methods=['POST'])
+@app.route('/run/<experiment>', methods=['POST'])
 def run():
     """Gets the run parameters POSTed to from /reproduce.
 
