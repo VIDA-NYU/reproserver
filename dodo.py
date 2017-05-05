@@ -56,6 +56,23 @@ def task_build():
         }
 
 
+def task_push():
+    for name in ['web', 'builder', 'runner']:
+        args = dict(prefix=PREFIX, image=name,
+                    registry=get_var('registry', 'unset.example.org'),
+                    tag=get_var('tag', 'git'))
+        yield {
+            'name': name,
+            'actions': [
+                'docker tag {prefix}{image} {registry}/{image}:{tag}'
+                .format(**args),
+                'docker push {registry}/{image}:{tag}'
+                .format(**args),
+            ],
+            'task_dep': ['build:{0}'.format(name)],
+        }
+
+
 def task_pull():
     for image in ['rabbitmq:3.6.9-management',
                   'minio/minio:RELEASE.2017-04-29T00-40-27Z',
