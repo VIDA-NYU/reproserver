@@ -12,7 +12,7 @@ def main():
 
     logging.info("Connecting to AMQP broker")
     connection = pika.BlockingConnection(pika.ConnectionParameters(
-        host='reproserver_rabbitmq',
+        host='reproserver-rabbitmq',
         credentials=pika.PlainCredentials('admin', 'hackme')))
     channel = connection.channel()
 

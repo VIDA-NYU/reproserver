@@ -116,7 +116,7 @@ def connect():
     """Connect to the database using an environment variable.
     """
     engine = create_engine('postgresql://reproserver:hackmehackme@'
-                           'reproserver_postgres',
+                           'reproserver-postgres',
                            echo=True)
 
     return sessionmaker(bind=engine)

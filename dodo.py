@@ -9,7 +9,7 @@ DOIT_CONFIG = {
     'continue': True,
 }
 
-PREFIX = get_var('prefix', 'reproserver_')
+PREFIX = get_var('prefix', 'reproserver-')
 
 
 def exists(object, type):

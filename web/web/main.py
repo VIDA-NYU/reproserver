@@ -152,7 +152,7 @@ def main():
 
     logging.info("Connecting to AMQP broker")
     connection = pika.BlockingConnection(pika.ConnectionParameters(
-        host='reproserver_rabbitmq',
+        host='reproserver-rabbitmq',
         credentials=pika.PlainCredentials('admin', 'hackme')))
     global amqp
     amqp = connection.channel()
@@ -163,6 +163,6 @@ def main():
     app.run(host="0.0.0.0", port=8000, debug=True)
 
     global s3
-    s3 = boto3.resource('s3', endpoint_url='http://reproserver_minio:9000',
+    s3 = boto3.resource('s3', endpoint_url='http://reproserver-minio:9000',
                         aws_access_key_id='admin',
                         aws_secret_access_key='hackmehackme')
