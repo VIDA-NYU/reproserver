@@ -86,57 +86,57 @@ def reproduce(code):
     filename = None
     try:
         permanent_id = base64.urlsafe_b64decode(code.encode('ascii'))
+        sep = permanent_id.index('|')
     except Exception:
-        pass
-    else:
-        sep = permanent_id.find('|')
-        if sep != -1:
-            filehash = permanent_id[:sep]
-            filename = permanent_id[sep + 1:]
-
-            # Look up file in database
-            session = SQLSession()
-            experiment = session.query(database.Experiment).get(filehash)
-            if experiment:
-                # Also updates last access
-                experiment.last_access = functions.now()
-            session.commit()
-
-    if experiment is None:
         return render_template('setup_notfound.html'), 404
 
-    # JSON endpoint, returns data for the page's JavaScript to update itself
-    if (request.accept_mimetypes.best_match(['application/json',
-                                             'text/html']) ==
-            'application/json'):
-        log_from = request.args.get('log_from', 0)
-        return jsonify({'status': experiment.status,
-                        'log': experiment.get_log(log_from),
-                        'params': experiment.parameters})
-    # HTML view, return the page
+    filehash = permanent_id[:sep]
+    filename = permanent_id[sep + 1:]
+
+    # Look up file in database
+    session = SQLSession()
+    experiment = session.query(database.Experiment).get(filehash)
+    if experiment:
+        # Also updates last access
+        experiment.last_access = functions.now()
     else:
-        # If it's done building, send build log and run form
-        if experiment.status == 'BUILT':
-            return render_template('setup.html', filename=filename,
-                                   built=True, error=False,
-                                   log=experiment.get_log(0),
-                                   params=experiment.parameters)
-        if experiment.status == 'ERROR':
-            return render_template('setup.html', filename=filename,
-                                   built=True, error=True,
-                                   log=experiment.get_log(0))
-        # If it's currently building, show the log
-        elif experiment.status == 'BUILDING':
-            return render_template('setup.html', filename=filename,
-                                   built=False, log=experiment.get_log(0))
-        # Else, trigger the build
+        return render_template('setup_notfound.html'), 404
+
+    try:
+        # JSON endpoint, returns data for JavaScript to update the page
+        if (request.accept_mimetypes.best_match(['application/json',
+                                                 'text/html']) ==
+                'application/json'):
+            log_from = request.args.get('log_from', 0)
+            return jsonify({'status': experiment.status,
+                            'log': experiment.get_log(log_from),
+                            'params': experiment.parameters})
+        # HTML view, return the page
         else:
-            if experiment.status == 'NOBUILD':
-                # db_set_queued(filehash)  # set status = 'QUEUED'
-                amqp.basic_publish('', routing_key='build_queue',
-                                   body=filehash)
-            return render_template('setup.html', filename=filename,
-                                   built=False)
+            # If it's done building, send build log and run form
+            if experiment.status == 'BUILT':
+                return render_template('setup.html', filename=filename,
+                                       built=True, error=False,
+                                       log=experiment.get_log(0),
+                                       params=experiment.parameters)
+            if experiment.status == 'ERROR':
+                return render_template('setup.html', filename=filename,
+                                       built=True, error=True,
+                                       log=experiment.get_log(0))
+            # If it's currently building, show the log
+            elif experiment.status == 'BUILDING':
+                return render_template('setup.html', filename=filename,
+                                       built=False, log=experiment.get_log(0))
+            # Else, trigger the build
+            else:
+                if experiment.status == 'NOBUILD':
+                    experiment.status = 'QUEUED'
+                    amqp.basic_publish('', routing_key='build_queue',
+                                       body=filehash)
+                return render_template('setup.html', filename=filename,
+                                       built=False)
+    finally:
+        session.commit()
 
 
 @app.route('/run/<experiment>', methods=['POST'])
@@ -172,7 +172,7 @@ def data():
     return render_template(
         'data.html',
         experiments=session.query(database.Experiment).all(),
-        )
+    )
 
 
 def main():
