@@ -3,15 +3,25 @@ image: "python:3"
 services:
   - docker:dind
 
-before_script:
-  - pip install doit
-  - curl -Lo /tmp/docker.tgz https://get.docker.com/builds/Linux/x86_64/docker-17.05.0-ce.tgz && tar -xf /tmp/docker.tgz -C /usr/local && rm /tmp/docker.tgz
-  - "export PATH=\"/usr/local/docker:$PATH\""
-  - export DOCKER_HOST=docker
+stages:
+  - codecheck
+  - deploy
 
-build:
-  stage: build
+flake8:
+  stage: codecheck
+  before_script:
+    - pip install flake8
+  script:
+    - flake8 dodo.py common builder runner web
+
+make_images:
+  stage: deploy
   when: manual
+  before_script:
+    - pip install doit
+    - curl -Lo /tmp/docker.tgz https://get.docker.com/builds/Linux/x86_64/docker-17.05.0-ce.tgz && tar -xf /tmp/docker.tgz -C /usr/local && rm /tmp/docker.tgz
+    - "export PATH=\"/usr/local/docker:$PATH\""
+    - export DOCKER_HOST=docker
   script:
     - doit -v 2 build
     - docker login -u "gitlab-ci-token" -p "$CI_JOB_TOKEN" "$CI_REGISTRY"

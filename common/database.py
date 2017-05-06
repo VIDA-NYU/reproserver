@@ -55,7 +55,7 @@ class Upload(Base):
 
 class Parameter(Base):
     """An experiment parameter.
-    
+
     Once the experiment has been built, the builder adds the list of its
     parameters to the database, that it extracted from the package metadata.
     Those are displayed to the user when running the experiment.
@@ -72,7 +72,7 @@ class Parameter(Base):
 
 class Run(Base):
     """A run.
-    
+
     This is created when a user submits parameters and triggers the run of an
     experiment. It contains logs and the location of output files.
     """
@@ -95,7 +95,7 @@ class Run(Base):
 
 class BuildLogLine(Base):
     """A line of build log.
-    
+
     TODO: Storing this in the database is not a great idea.
     """
     __tablename__ = 'build_logs'

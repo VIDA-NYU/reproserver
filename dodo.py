@@ -14,8 +14,8 @@ PREFIX = get_var('prefix', 'reproserver-')
 
 def exists(object, type):
     def wrapped():
-        proc = subprocess.Popen(['docker', 'inspect', '--type={0}'.format(type),
-                                 object],
+        proc = subprocess.Popen(['docker', 'inspect',
+                                 '--type={0}'.format(type), object],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
         _, _ = proc.communicate()

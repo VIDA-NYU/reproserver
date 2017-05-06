@@ -1,4 +1,3 @@
-import pika
 import time
 
 
