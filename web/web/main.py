@@ -58,7 +58,7 @@ def unpack():
         app.logger.info("File exists in storage")
     else:
         # Insert it on S3
-        s3.Object('uploads', filename).put(Body=uploaded_file)
+        s3.Object('experiments', filename).put(Body=uploaded_file)
         app.logger.info("Inserted file in storage")
 
         # Insert it in database
@@ -203,6 +203,13 @@ def main():
     s3 = boto3.resource('s3', endpoint_url='http://reproserver-minio:9000',
                         aws_access_key_id='admin',
                         aws_secret_access_key='hackmehackme')
+
+    it = iter(s3.buckets.all())
+    try:
+        next(it)
+    except StopIteration:
+        for name in ['experiments', 'inputs', 'outputs']:
+            s3.create_bucket(Bucket=name)
 
     # Start webserver
     app.logger.info("web running")
