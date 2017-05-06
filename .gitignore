@@ -1,0 +1,5 @@
+.doit.db.db
+*.py[co]
+.DS_Store
+*.swp
+.idea
