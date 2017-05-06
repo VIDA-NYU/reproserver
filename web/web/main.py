@@ -26,7 +26,7 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/unpack', methods=['POST'])
+@app.route('/upload', methods=['POST'])
 def unpack():
     """Target of the landing page.
 
