@@ -1,7 +1,7 @@
-import os
 from sqlalchemy import Column, ForeignKey, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.sql import functions
 from sqlalchemy.types import Boolean, DateTime, Integer, String
 
 
@@ -20,11 +20,17 @@ class Experiment(Base):
     __tablename__ = 'experiments'
 
     hash = Column(String, primary_key=True)
-    status = Column(String)
+    status = Column(String, default='NOBUILD')
     docker_image = Column(String)
+    last_access = Column(DateTime, server_default=functions.now())
 
     uploads = relationship('Upload', back_populates='experiment')
     runs = relationship('Run', back_populates='experiment')
+    parameters = relationship('Parameter', back_populates='experiment')
+    log = relationship('BuildLogLine', back_populates='experiment')
+
+    def get_log(self, from_line=0):
+        return self.log[from_line:]
 
 
 class Upload(Base):
@@ -39,11 +45,12 @@ class Upload(Base):
     __tablename__ = 'uploads'
 
     id = Column(Integer, primary_key=True)
-    experiment_hash = Column(String, ForeignKey('experiment.id'))
+    filename = Column(String)
+    experiment_hash = Column(String, ForeignKey('experiments.hash'))
     experiment = relationship('Experiment', uselist=False,
                               back_populates='uploads')
     submitted_ip = Column(String)
-    timestamp = Column(DateTime)
+    timestamp = Column(DateTime, server_default=functions.now())
 
 
 class Parameter(Base):
@@ -56,9 +63,9 @@ class Parameter(Base):
     __tablename__ = 'parameters'
 
     id = Column(Integer, primary_key=True)
-    experiment_hash = Column(String, ForeignKey('experiment.id'))
+    experiment_hash = Column(String, ForeignKey('experiments.hash'))
     experiment = relationship('Experiment', uselist=False,
-                              back_populates='uploads')
+                              back_populates='parameters')
     name = Column(String)
     optional = Column(Boolean)
 
@@ -72,29 +79,47 @@ class Run(Base):
     __tablename__ = 'runs'
 
     id = Column(Integer, primary_key=True)
-    experiment_hash = Column(String, ForeignKey('experiment.id'))
+    experiment_hash = Column(String, ForeignKey('experiments.hash'))
     experiment = relationship('Experiment', uselist=False,
-                              back_populates='uploads')
-    submitted = Column(DateTime)
+                              back_populates='runs')
+    submitted = Column(DateTime, server_default=functions.now())
     started = Column(DateTime)
     done = Column(DateTime)
 
-    logs = relationship('LogLine', back_populates='run')
+    log = relationship('RunLogLine', back_populates='run')
     output_files = relationship('OutputFile', back_populates='run')
 
+    def get_log(self, from_line=0):
+        return self.log[from_line:]
 
-class LogLine(Base):
-    """A line of log.
+
+class BuildLogLine(Base):
+    """A line of build log.
     
     TODO: Storing this in the database is not a great idea.
     """
-    __tablename__ = 'logs'
+    __tablename__ = 'build_logs'
 
     id = Column(Integer, primary_key=True)
-    experiment_hash = Column(String, ForeignKey('experiment.id'))
+    experiment_id = Column(String, ForeignKey('experiments.hash'))
     experiment = relationship('Experiment', uselist=False,
-                              back_populates='uploads')
-    timestamp = Column(DateTime)
+                              back_populates='log')
+    timestamp = Column(DateTime, server_default=functions.now())
+    line = Column(String)
+
+
+class RunLogLine(Base):
+    """A line of run log.
+
+    TODO: Storing this in the database is not a great idea.
+    """
+    __tablename__ = 'run_logs'
+
+    id = Column(Integer, primary_key=True)
+    run_id = Column(Integer, ForeignKey('runs.id'))
+    run = relationship('Run', uselist=False,
+                       back_populates='log')
+    timestamp = Column(DateTime, server_default=functions.now())
     line = Column(String)
 
 
@@ -105,18 +130,18 @@ class OutputFile(Base):
 
     id = Column(Integer, primary_key=True)
     hash = Column(String)
-    experiment_hash = Column(String, ForeignKey('experiment.id'))
-    experiment = relationship('Experiment', uselist=False,
-                              back_populates='uploads')
+    run_id = Column(Integer, ForeignKey('runs.id'))
+    run = relationship('Run', uselist=False,
+                       back_populates='output_files')
     name = Column(String)
     size = Column(Integer)
 
 
-def connect():
+def connect(url=None):
     """Connect to the database using an environment variable.
     """
-    engine = create_engine('postgresql://reproserver:hackmehackme@'
-                           'reproserver-postgres',
-                           echo=True)
+    if url is None:
+        url = 'postgresql://reproserver:hackmehackme@reproserver-postgres'
+    engine = create_engine(url, echo=True)
 
-    return sessionmaker(bind=engine)
+    return engine, sessionmaker(bind=engine)

@@ -177,6 +177,7 @@ services = [
         'env': {'PGDATA': '/var/lib/postgresql/data/pgdata',
                 'POSTGRES_USER': 'reproserver',
                 'POSTGRES_PASSWORD': 'hackmehackme'},
+        'ports': ['5432:5432'],
     }),
 ]
 

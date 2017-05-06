@@ -6,6 +6,7 @@ from hashlib import sha256
 import logging
 import os
 import pika
+from sqlalchemy.sql import functions
 from werkzeug.utils import secure_filename
 
 
@@ -49,8 +50,11 @@ def unpack():
     # Rewind it
     uploaded_file.seek(0, 0)
 
-    # Check for existence on S3
-    if db_update_last_access(filehash):
+    # Check for existence of experiment
+    session = SQLSession()
+    experiment = session.query(database.Experiment).get(filehash)
+    if experiment:
+        experiment.last_access = functions.now()
         app.logger.info("File exists in storage")
     else:
         # Insert it on S3
@@ -58,59 +62,76 @@ def unpack():
         app.logger.info("Inserted file in storage")
 
         # Insert it in database
-        db_insert(filehash, filename)
+        experiment = database.Experiment(hash=filehash)
+        session.add(experiment)
+    session.add(database.Upload(experiment=experiment,
+                                filename=filename,
+                                submitted_ip=request.remote_addr))
+    session.commit()
 
     # Encode hash + filename for permanent URL
     permanent_id = base64.urlsafe_b64encode(filehash + '|' + filename)
 
     # Redirect to build page
-    return redirect(url_for('reproduce', experiment=permanent_id), 302)
+    return redirect(url_for('reproduce', code=permanent_id), 302)
 
 
-@app.route('/reproduce/<experiment>')
-def reproduce():
+@app.route('/reproduce/<code>')
+def reproduce(code):
     """Show build log and ask for run parameters.
     """
     # Decode info from URL
-    permanent_id = base64.urlsafe_b64decode(request.args['experiment'])
-    sep = permanent_id.find('|')
-    if sep != -1:
-        filehash = permanent_id[:sep]
-        filename = permanent_id[sep + 1:]
-
-        # Look up file in database
-        record = db_get(filehash)  # Also updates last access
+    app.logger.info("Decoding %r", code)
+    experiment = None
+    filename = None
+    try:
+        permanent_id = base64.urlsafe_b64decode(code.encode('ascii'))
+    except Exception:
+        pass
     else:
-        record = None
+        sep = permanent_id.find('|')
+        if sep != -1:
+            filehash = permanent_id[:sep]
+            filename = permanent_id[sep + 1:]
 
-    if record is None:
-        return render_template(404, 'setup_notfound.html',
-                               filename=filename)
+            # Look up file in database
+            session = SQLSession()
+            experiment = session.query(database.Experiment).get(filehash)
+            if experiment:
+                # Also updates last access
+                experiment.last_access = functions.now()
+            session.commit()
+
+    if experiment is None:
+        return render_template('setup_notfound.html'), 404
 
     # JSON endpoint, returns data for the page's JavaScript to update itself
-    if request.accept_mimetypes.accept_json:
+    if (request.accept_mimetypes.best_match(['application/json',
+                                             'text/html']) ==
+            'application/json'):
         log_from = request.args.get('log_from', 0)
-        return jsonify({'status': record.status,
-                       'log': record.log(log_from),
-                       'params': record.params})
+        return jsonify({'status': experiment.status,
+                        'log': experiment.get_log(log_from),
+                        'params': experiment.parameters})
     # HTML view, return the page
     else:
         # If it's done building, send build log and run form
-        if record.status == 'BUILT':
+        if experiment.status == 'BUILT':
             return render_template('setup.html', filename=filename,
                                    built=True, error=False,
-                                   log=record.log(0), params=record.params)
-        if record.status == 'ERROR':
+                                   log=experiment.get_log(0),
+                                   params=experiment.parameters)
+        if experiment.status == 'ERROR':
             return render_template('setup.html', filename=filename,
                                    built=True, error=True,
-                                   log=record.log(0))
+                                   log=experiment.get_log(0))
         # If it's currently building, show the log
-        elif record.status == 'BUILDING':
+        elif experiment.status == 'BUILDING':
             return render_template('setup.html', filename=filename,
-                                   built=False, log=record.log(0))
+                                   built=False, log=experiment.get_log(0))
         # Else, trigger the build
         else:
-            if record.status == 'NOBUILD':
+            if experiment.status == 'NOBUILD':
                 db_set_queued(filehash)  # set status = 'QUEUED'
                 amqp.basic_publish('', routing_key='build_queue',
                                    body=filehash)
@@ -143,26 +164,46 @@ def run():
                           for k, v in params.iteritems()))
 
 
+@app.route('/data')
+def data():
+    """Print some system information.
+    """
+    session = SQLSession()
+    return render_template(
+        'data.html',
+        experiments=session.query(database.Experiment).all(),
+        )
+
+
 def main():
     logging.basicConfig(level=logging.INFO)
 
-    logging.info("Connecting to SQL database")
+    # SQL database
     global SQLSession
-    SQLSession = database.connect()
+    logging.info("Connecting to SQL database")
+    engine, SQLSession = database.connect()
 
+    if not engine.dialect.has_table(engine.connect(), 'experiments'):
+        logging.warning("The tables don't seem to exist; creating")
+        from database import Base
+        Base.metadata.create_all(bind=engine)
+
+    # AMQP
+    global amqp
     logging.info("Connecting to AMQP broker")
     connection = pika.BlockingConnection(pika.ConnectionParameters(
         host='reproserver-rabbitmq',
         credentials=pika.PlainCredentials('admin', 'hackme')))
-    global amqp
     amqp = connection.channel()
 
     amqp.queue_declare(queue='build_queue', durable=True)
 
-    app.logger.info("web running")
-    app.run(host="0.0.0.0", port=8000, debug=True)
-
+    # Object storage
     global s3
     s3 = boto3.resource('s3', endpoint_url='http://reproserver-minio:9000',
                         aws_access_key_id='admin',
                         aws_secret_access_key='hackmehackme')
+
+    # Start webserver
+    app.logger.info("web running")
+    app.run(host="0.0.0.0", port=8000, debug=True)
