@@ -13,12 +13,15 @@ PREFIX = get_var('prefix', 'reproserver-')
 
 
 def exists(object, type):
-    proc = subprocess.Popen(['docker', 'inspect', '--type={0}'.format(type),
-                             object],
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-    _, _ = proc.communicate()
-    return proc.wait() == 0
+    def wrapped():
+        proc = subprocess.Popen(['docker', 'inspect', '--type={0}'.format(type),
+                                 object],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        _, _ = proc.communicate()
+        return proc.wait() == 0
+
+    return wrapped
 
 
 def inspect(object, type):
@@ -105,17 +108,26 @@ def task_network():
     }
 
 
-def container_running(container):
-    info = inspect(container, 'container')
-    return info and info[0]['State']['Running']
+def container_uptodate(container, image):
+    def wrapped():
+        container_info = inspect(container, 'container')
+        if not container_info or not container_info[0]['State']['Running']:
+            return False
+        image_info = inspect(image, 'image')
+        if not image_info:  # Shouldn't happen, container is running
+            return False
+        return container_info[0]['Image'] == image_info[0]['Id']
+
+    return wrapped
 
 
 def run(name, dct):
     container = PREFIX + name
     info = inspect(container, 'container')
     if info and info[0]['State']['Running']:
-        return
-    elif info:
+        subprocess.check_call('docker stop {0}'.format(container),
+                              shell=True)
+    if info:
         subprocess.check_call('docker rm {0}'.format(container),
                               shell=True)
     subprocess.check_call('docker run -d --name {0} '
@@ -188,7 +200,7 @@ def task_start():
         yield {
             'name': name,
             'actions': [(run, [name, dct])],
-            'uptodate': [container_running(container)],
+            'uptodate': [container_uptodate(container, dct['image'])],
             'task_dep': ['network'] + dct.get('deps', []),
             'clean': ['docker stop {0} || true'.format(container),
                       'docker rm {0} || true'.format(container)],
