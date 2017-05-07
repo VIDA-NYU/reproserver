@@ -1,4 +1,5 @@
 boto3~=1.4
+enum34
 flask~=0.12
 pika~=0.10
 psycopg2~=2.7

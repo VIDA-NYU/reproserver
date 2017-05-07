@@ -39,12 +39,12 @@
 
 {% if log %}
 
-<p>Waiting for an available builder...</p>
+<pre>{% for line in log %}{{ line }}
+{% endfor %}</pre>
 
 {% else %}
 
-<pre>{% for line in log %}{{ line }}
-{% endfor %}</pre>
+<p>Waiting for an available builder...</p>
 
 {% endif %}
 

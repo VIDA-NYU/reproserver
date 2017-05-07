@@ -1,11 +1,20 @@
+import enum
 from sqlalchemy import Column, ForeignKey, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.sql import functions
-from sqlalchemy.types import Boolean, DateTime, Integer, String
+from sqlalchemy.types import Boolean, DateTime, Enum, Integer, String
 
 
 Base = declarative_base()
+
+
+class Status(enum.Enum):
+    NOBUILD = 1
+    QUEUED = 2
+    BUILDING = 3
+    BUILT = 4
+    ERROR = 0
 
 
 class Experiment(Base):
@@ -20,9 +29,10 @@ class Experiment(Base):
     __tablename__ = 'experiments'
 
     hash = Column(String, primary_key=True)
-    status = Column(String, default='NOBUILD')
-    docker_image = Column(String)
-    last_access = Column(DateTime, server_default=functions.now())
+    status = Column(Enum(Status), nullable=False, default=Status.NOBUILD)
+    docker_image = Column(String, nullable=True)
+    last_access = Column(DateTime, nullable=False,
+                         server_default=functions.now())
 
     uploads = relationship('Upload', back_populates='experiment')
     runs = relationship('Run', back_populates='experiment')
@@ -30,7 +40,7 @@ class Experiment(Base):
     log = relationship('BuildLogLine', back_populates='experiment')
 
     def get_log(self, from_line=0):
-        return self.log[from_line:]
+        return [log.line for log in self.log[from_line:]]
 
 
 class Upload(Base):
@@ -45,12 +55,14 @@ class Upload(Base):
     __tablename__ = 'uploads'
 
     id = Column(Integer, primary_key=True)
-    filename = Column(String)
-    experiment_hash = Column(String, ForeignKey('experiments.hash'))
+    filename = Column(String, nullable=False)
+    experiment_hash = Column(String, ForeignKey('experiments.hash',
+                                                ondelete='CASCADE'))
     experiment = relationship('Experiment', uselist=False,
                               back_populates='uploads')
-    submitted_ip = Column(String)
-    timestamp = Column(DateTime, server_default=functions.now())
+    submitted_ip = Column(String, nullable=False)
+    timestamp = Column(DateTime, nullable=False,
+                       server_default=functions.now())
 
 
 class Parameter(Base):
@@ -63,11 +75,12 @@ class Parameter(Base):
     __tablename__ = 'parameters'
 
     id = Column(Integer, primary_key=True)
-    experiment_hash = Column(String, ForeignKey('experiments.hash'))
+    experiment_hash = Column(String, ForeignKey('experiments.hash',
+                                                ondelete='CASCADE'))
     experiment = relationship('Experiment', uselist=False,
                               back_populates='parameters')
-    name = Column(String)
-    optional = Column(Boolean)
+    name = Column(String, nullable=False)
+    optional = Column(Boolean, nullable=False)
 
 
 class Run(Base):
@@ -79,12 +92,14 @@ class Run(Base):
     __tablename__ = 'runs'
 
     id = Column(Integer, primary_key=True)
-    experiment_hash = Column(String, ForeignKey('experiments.hash'))
+    experiment_hash = Column(String, ForeignKey('experiments.hash',
+                                                ondelete='CASCADE'))
     experiment = relationship('Experiment', uselist=False,
                               back_populates='runs')
-    submitted = Column(DateTime, server_default=functions.now())
-    started = Column(DateTime)
-    done = Column(DateTime)
+    submitted = Column(DateTime, nullable=False,
+                       server_default=functions.now())
+    started = Column(DateTime, nullable=True)
+    done = Column(DateTime, nullable=True)
 
     log = relationship('RunLogLine', back_populates='run')
     output_files = relationship('OutputFile', back_populates='run')
@@ -101,11 +116,13 @@ class BuildLogLine(Base):
     __tablename__ = 'build_logs'
 
     id = Column(Integer, primary_key=True)
-    experiment_id = Column(String, ForeignKey('experiments.hash'))
+    experiment_hash = Column(String, ForeignKey('experiments.hash',
+                                                ondelete='CASCADE'))
     experiment = relationship('Experiment', uselist=False,
                               back_populates='log')
-    timestamp = Column(DateTime, server_default=functions.now())
-    line = Column(String)
+    timestamp = Column(DateTime, nullable=False,
+                       server_default=functions.now())
+    line = Column(String, nullable=False)
 
 
 class RunLogLine(Base):
@@ -116,11 +133,11 @@ class RunLogLine(Base):
     __tablename__ = 'run_logs'
 
     id = Column(Integer, primary_key=True)
-    run_id = Column(Integer, ForeignKey('runs.id'))
-    run = relationship('Run', uselist=False,
-                       back_populates='log')
-    timestamp = Column(DateTime, server_default=functions.now())
-    line = Column(String)
+    run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'))
+    run = relationship('Run', uselist=False, back_populates='log')
+    timestamp = Column(DateTime, nullable=False,
+                       server_default=functions.now())
+    line = Column(String, nullable=False)
 
 
 class OutputFile(Base):
@@ -129,12 +146,20 @@ class OutputFile(Base):
     __tablename__ = 'output_files'
 
     id = Column(Integer, primary_key=True)
-    hash = Column(String)
-    run_id = Column(Integer, ForeignKey('runs.id'))
+    hash = Column(String, nullable=False)
+    run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'))
     run = relationship('Run', uselist=False,
                        back_populates='output_files')
-    name = Column(String)
-    size = Column(Integer)
+    name = Column(String, nullable=False)
+    size = Column(Integer, nullable=False)
+
+
+def purge(url=None):
+    _, Session = connect(url)
+
+    session = Session()
+    session.query(Experiment).delete()
+    session.commit()
 
 
 def connect(url=None):
@@ -142,6 +167,6 @@ def connect(url=None):
     """
     if url is None:
         url = 'postgresql://reproserver:hackmehackme@reproserver-postgres'
-    engine = create_engine(url, echo=True)
+    engine = create_engine(url, echo=False)
 
     return engine, sessionmaker(bind=engine)

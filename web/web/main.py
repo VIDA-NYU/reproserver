@@ -4,15 +4,12 @@ import database
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 from hashlib import sha256
 import logging
-import os
 import pika
 from sqlalchemy.sql import functions
 from werkzeug.utils import secure_filename
 
 
-app = Flask(__name__,
-            template_folder=os.path.join(os.path.dirname(__file__),
-                                         'templates'))
+app = Flask(__name__)
 
 SQLSession = None
 amqp = None
@@ -58,7 +55,7 @@ def unpack():
         app.logger.info("File exists in storage")
     else:
         # Insert it on S3
-        s3.Object('experiments', filename).put(Body=uploaded_file)
+        s3.Object('experiments', filehash).put(Body=uploaded_file)
         app.logger.info("Inserted file in storage")
 
         # Insert it in database
@@ -93,14 +90,13 @@ def reproduce(code):
     filehash = permanent_id[:sep]
     filename = permanent_id[sep + 1:]
 
-    # Look up file in database
+    # Look up the experiment in database
     session = SQLSession()
     experiment = session.query(database.Experiment).get(filehash)
-    if experiment:
-        # Also updates last access
-        experiment.last_access = functions.now()
-    else:
+    if not experiment:
         return render_template('setup_notfound.html'), 404
+    # Also updates last access
+    experiment.last_access = functions.now()
 
     try:
         # JSON endpoint, returns data for JavaScript to update the page
@@ -114,23 +110,27 @@ def reproduce(code):
         # HTML view, return the page
         else:
             # If it's done building, send build log and run form
-            if experiment.status == 'BUILT':
+            if experiment.status == database.Status.BUILT:
+                app.logger.info("Experiment already built")
                 return render_template('setup.html', filename=filename,
                                        built=True, error=False,
                                        log=experiment.get_log(0),
                                        params=experiment.parameters)
-            if experiment.status == 'ERROR':
+            if experiment.status == database.Status.ERROR:
+                app.logger.info("Experiment is errored")
                 return render_template('setup.html', filename=filename,
                                        built=True, error=True,
                                        log=experiment.get_log(0))
             # If it's currently building, show the log
-            elif experiment.status == 'BUILDING':
+            elif experiment.status == database.Status.BUILDING:
+                app.logger.info("Experiment is currently building")
                 return render_template('setup.html', filename=filename,
                                        built=False, log=experiment.get_log(0))
             # Else, trigger the build
             else:
-                if experiment.status == 'NOBUILD':
-                    experiment.status = 'QUEUED'
+                if experiment.status == database.Status.NOBUILD:
+                    app.logger.info("Triggering a build, sending message")
+                    experiment.status = database.Status.QUEUED
                     amqp.basic_publish('', routing_key='build_queue',
                                        body=filehash)
                 return render_template('setup.html', filename=filename,
@@ -213,4 +213,4 @@ def main():
 
     # Start webserver
     app.logger.info("web running")
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    app.run(host="0.0.0.0", port=8000, debug=True, use_reloader=False)

@@ -24,3 +24,17 @@ From the experiment file, builds a Docker image and cache it for the runnners.
 ### Runner
 
 From the cached Docker image, input files, and parameters, run the experiment and store the results.
+
+How to use
+----------
+
+This doesn't use docker-compose, because it sucks. To have better control over the build, and to have efficient & automatic builds, [pydoit](http://pydoit.org/) is used to drive Docker.
+
+Using `doit build` will build the images (`reproserver-*`). Using `doit start` will start all the containers locally. You can use `doit auto start` to automatically rebuild and restart containers when you change their code.
+
+The ports are:
+
+  - [`8000`](http://localhost:8000/) is the frontend web server;
+  - [`8080`](http://localhost:8080/) is RabbitMQ's web interface;
+  - [`9000`](http://localhost:9000/) is Minio's web interface;
+  - `5432` is PostgreSQL, but using the ORM from the `web` container is probably easier (`docker exec -ti reproserver-web python`).

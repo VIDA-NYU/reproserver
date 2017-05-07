@@ -135,7 +135,7 @@ def run(name, dct):
                           '{1} {5}'.format(
                               container,
                               dct['image'],
-                              ' '.join('-v {0}'.format(v)
+                              ' '.join('-v {0}'.format(PREFIX + v)
                                        for v in dct.get('volumes', [])),
                               ' '.join('-e {0}={1}'.format(*e)
                                        for e in dct.get('env', {}).items()),
