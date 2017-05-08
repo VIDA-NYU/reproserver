@@ -5,8 +5,24 @@
 <h1>Select a package to unpack</h1>
 
 <form method="POST" action="/upload" enctype="multipart/form-data">
-    <input type="file" name="rpz_file" />
-    <input type="submit" value="Unpack" />
+  <div class="form-group">
+    <label for="rpz_file">Upload a file</label>
+    <input type="file" class="form-control" id="rpz_file" name="rpz_file" placeholder="experiment.rpz">
+  </div>
+  <div class="form-group">
+    <label for="rpz_url">or provide a package's URL</label>
+    <input type="text" class="form-control" id="rpz_url" name="rpz_url" placeholder="http://experiment.rpz">
+  </div>
+  <button type="submit" class="btn btn-default">Unpack</button>
 </form>
+
+<hr/>
+
+<h2>How to Use This Site</h2>
+<p>This site allows you to run reproducible experiments packaged with ReproZip directly from your browser. Paste the URL to a package above or upload one directly to start.<br/>
+You can also choose one of the examples below.</p>
+
+<h2>Examples</h2>
+<p>TODO: Some examples here for people to try out</p>
 
 {% endblock content %}
