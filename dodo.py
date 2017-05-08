@@ -149,6 +149,7 @@ services = [
     ('web', {
         'image': PREFIX + 'web',
         'deps': ['start:rabbitmq', 'build:web'],
+        'command': 'debug',
         'ports': ['8000:8000'],
     }),
     ('builder', {

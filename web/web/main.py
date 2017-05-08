@@ -11,9 +11,37 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-SQLSession = None
-amqp = None
-s3 = None
+
+# SQL database
+logging.info("Connecting to SQL database")
+engine, SQLSession = database.connect()
+
+if not engine.dialect.has_table(engine.connect(), 'experiments'):
+    logging.warning("The tables don't seem to exist; creating")
+    from database import Base
+
+    Base.metadata.create_all(bind=engine)
+
+# AMQP
+logging.info("Connecting to AMQP broker")
+connection = pika.BlockingConnection(pika.ConnectionParameters(
+    host='reproserver-rabbitmq',
+    credentials=pika.PlainCredentials('admin', 'hackme')))
+amqp = connection.channel()
+
+amqp.queue_declare(queue='build_queue', durable=True)
+
+# Object storage
+s3 = boto3.resource('s3', endpoint_url='http://reproserver-minio:9000',
+                    aws_access_key_id='admin',
+                    aws_secret_access_key='hackmehackme')
+
+it = iter(s3.buckets.all())
+try:
+    next(it)
+except StopIteration:
+    for name in ['experiments', 'inputs', 'outputs']:
+        s3.create_bucket(Bucket=name)
 
 
 @app.route('/')
@@ -176,41 +204,6 @@ def data():
 
 
 def main():
-    logging.basicConfig(level=logging.INFO)
-
-    # SQL database
-    global SQLSession
-    logging.info("Connecting to SQL database")
-    engine, SQLSession = database.connect()
-
-    if not engine.dialect.has_table(engine.connect(), 'experiments'):
-        logging.warning("The tables don't seem to exist; creating")
-        from database import Base
-        Base.metadata.create_all(bind=engine)
-
-    # AMQP
-    global amqp
-    logging.info("Connecting to AMQP broker")
-    connection = pika.BlockingConnection(pika.ConnectionParameters(
-        host='reproserver-rabbitmq',
-        credentials=pika.PlainCredentials('admin', 'hackme')))
-    amqp = connection.channel()
-
-    amqp.queue_declare(queue='build_queue', durable=True)
-
-    # Object storage
-    global s3
-    s3 = boto3.resource('s3', endpoint_url='http://reproserver-minio:9000',
-                        aws_access_key_id='admin',
-                        aws_secret_access_key='hackmehackme')
-
-    it = iter(s3.buckets.all())
-    try:
-        next(it)
-    except StopIteration:
-        for name in ['experiments', 'inputs', 'outputs']:
-            s3.create_bucket(Bucket=name)
-
     # Start webserver
     app.logger.info("web running")
     app.run(host="0.0.0.0", port=8000, debug=True, use_reloader=False)
