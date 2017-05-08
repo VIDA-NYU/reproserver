@@ -95,26 +95,24 @@ def unpack():
     session.commit()
 
     # Encode hash + filename for permanent URL
-    permanent_id = base64.urlsafe_b64encode(filehash + '|' + filename)
+    experiment_code = base64.urlsafe_b64encode(filehash + '|' + filename)
 
     # Redirect to build page
-    return redirect(url_for('reproduce', code=permanent_id), 302)
+    return redirect(url_for('reproduce', experiment_code=experiment_code), 302)
 
 
-@app.route('/reproduce/<code>')
-def reproduce(code):
+@app.route('/reproduce/<experiment_code>')
+def reproduce(experiment_code):
     """Show build log and ask for run parameters.
     """
     # Decode info from URL
-    app.logger.info("Decoding %r", code)
-    experiment = None
-    filename = None
+    app.logger.info("Decoding %r", experiment_code)
     try:
-        permanent_id = base64.urlsafe_b64decode(code.encode('ascii'))
+        permanent_id = base64.urlsafe_b64decode(
+            experiment_code.encode('ascii'))
         sep = permanent_id.index('|')
     except Exception:
         return render_template('setup_notfound.html'), 404
-
     filehash = permanent_id[:sep]
     filename = permanent_id[sep + 1:]
 
@@ -143,17 +141,20 @@ def reproduce(code):
                 return render_template('setup.html', filename=filename,
                                        built=True, error=False,
                                        log=experiment.get_log(0),
-                                       params=experiment.parameters)
+                                       params=experiment.parameters,
+                                       experiment_code=experiment_code)
             if experiment.status == database.Status.ERROR:
                 app.logger.info("Experiment is errored")
                 return render_template('setup.html', filename=filename,
                                        built=True, error=True,
-                                       log=experiment.get_log(0))
+                                       log=experiment.get_log(0),
+                                       experiment_code=experiment_code)
             # If it's currently building, show the log
             elif experiment.status == database.Status.BUILDING:
                 app.logger.info("Experiment is currently building")
                 return render_template('setup.html', filename=filename,
-                                       built=False, log=experiment.get_log(0))
+                                       built=False, log=experiment.get_log(0),
+                                       experiment_code=experiment_code)
             # Else, trigger the build
             else:
                 if experiment.status == database.Status.NOBUILD:
@@ -162,20 +163,28 @@ def reproduce(code):
                     amqp.basic_publish('', routing_key='build_queue',
                                        body=filehash)
                 return render_template('setup.html', filename=filename,
-                                       built=False)
+                                       built=False,
+                                       experiment_code=experiment_code)
     finally:
         session.commit()
 
 
-@app.route('/run/<experiment>', methods=['POST'])
-def run():
+@app.route('/run/<experiment_code>', methods=['POST'])
+def run(experiment_code):
     """Gets the run parameters POSTed to from /reproduce.
 
     Triggers the run and redirects to the results page.
     """
-    # Get experiment info
-    filehash = request.args['filehash']
-    filename = request.args['filename']
+    # Decode info from URL
+    app.logger.info("Decoding %r", experiment_code)
+    try:
+        permanent_id = base64.urlsafe_b64decode(
+            experiment_code.encode('ascii'))
+        sep = permanent_id.index('|')
+    except Exception:
+        return render_template('setup_notfound.html'), 404
+    filehash = permanent_id[:sep]
+    filename = permanent_id[sep + 1:]
 
     # Get run parameters
     params = {}
