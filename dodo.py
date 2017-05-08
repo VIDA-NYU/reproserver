@@ -135,7 +135,8 @@ def run(name, dct):
                           '{1} {5}'.format(
                               container,
                               dct['image'],
-                              ' '.join('-v {0}'.format(PREFIX + v)
+                              ' '.join('-v {0}'.format(v.format(p=PREFIX,
+                                                                d=os.getcwd()))
                                        for v in dct.get('volumes', [])),
                               ' '.join('-e {0}={1}'.format(*e)
                                        for e in dct.get('env', {}).items()),
@@ -150,6 +151,8 @@ services = [
         'image': PREFIX + 'web',
         'deps': ['start:rabbitmq', 'build:web'],
         'command': 'debug',
+        'volumes': ['{d}/web/static:/usr/src/app/static',
+                    '{d}/web/web:/usr/src/app/web'],
         'ports': ['8000:8000'],
     }),
     ('builder', {
@@ -164,17 +167,17 @@ services = [
     }),
     ('rabbitmq', {
         'image': 'rabbitmq:3.6.9-management',
-        'volumes': ['rabbitmq:/var/lib/rabbitmq'],
         'deps': ['pull:rabbitmq', 'volume:rabbitmq'],
+        'volumes': ['{p}rabbitmq:/var/lib/rabbitmq'],
         'env': {'RABBITMQ_DEFAULT_USER': 'admin',
                 'RABBITMQ_DEFAULT_PASS': 'hackme'},
         'ports': ['8080:15672'],
     }),
     ('minio', {
         'image': 'minio/minio:RELEASE.2017-04-29T00-40-27Z',
-        'volumes': ['minio:/export'],
         'deps': ['pull:minio', 'volume:minio'],
         'command': 'server /export',
+        'volumes': ['{p}minio:/export'],
         'env': {'MINIO_ACCESS_KEY': 'admin',
                 'MINIO_SECRET_KEY': 'hackmehackme'},
         'ports': ['9000:9000'],
@@ -185,8 +188,8 @@ services = [
     }),
     ('postgres', {
         'image': 'postgres:9.6',
-        'volumes': ['postgres:/var/lib/postgresql/data'],
         'deps': ['pull:postgres', 'volume:postgres'],
+        'volumes': ['{p}postgres:/var/lib/postgresql/data'],
         'env': {'PGDATA': '/var/lib/postgresql/data/pgdata',
                 'POSTGRES_USER': 'reproserver',
                 'POSTGRES_PASSWORD': 'hackmehackme'},
