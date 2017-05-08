@@ -201,6 +201,11 @@ def run(experiment_code):
                           for k, v in params.iteritems()))
 
 
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+
 @app.route('/data')
 def data():
     """Print some system information.
