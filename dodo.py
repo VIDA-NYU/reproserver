@@ -50,7 +50,7 @@ def task_build():
         image = PREFIX + name
         yield {
             'name': name,
-            'actions': ['tar -c {0} common | '
+            'actions': ['tar -cX {0}/.tarignore {0} common | '
                         'docker build -f {0}/Dockerfile -t {1} -'
                         .format(name, image)],
             'uptodate': [exists(image, 'image')],
