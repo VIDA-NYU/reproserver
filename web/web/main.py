@@ -5,7 +5,9 @@ from flask import Flask, jsonify, redirect, render_template, request, url_for
 from hashlib import sha256
 import logging
 import pika
+import pika.exceptions
 from sqlalchemy.sql import functions
+import time
 from werkzeug.utils import secure_filename
 
 
@@ -22,14 +24,35 @@ if not engine.dialect.has_table(engine.connect(), 'experiments'):
 
     Base.metadata.create_all(bind=engine)
 
-# AMQP
-logging.info("Connecting to AMQP broker")
-connection = pika.BlockingConnection(pika.ConnectionParameters(
-    host='reproserver-rabbitmq',
-    credentials=pika.PlainCredentials('admin', 'hackme')))
-amqp = connection.channel()
 
-amqp.queue_declare(queue='build_queue', durable=True)
+# AMQP
+class AMQP(object):
+    def __init__(self):
+        self._connect()
+
+    def _connect(self):
+        logging.info("Connecting to AMQP broker")
+        self.connection = pika.BlockingConnection(pika.ConnectionParameters(
+            host='reproserver-rabbitmq',
+            credentials=pika.PlainCredentials('admin', 'hackme')))
+        self.channel = self.connection.channel()
+
+        self.channel.queue_declare(queue='build_queue', durable=True)
+
+    def publish_build_task(self, body):
+        while True:
+            try:
+                self.channel.basic_publish('', routing_key='build_queue',
+                                           body=body)
+                return
+            except pika.exceptions.ConnectionClosed:
+                logging.exception("AMQP connection is down...")
+                time.sleep(1)
+            self._connect()
+
+
+amqp = AMQP()
+
 
 # Object storage
 s3 = boto3.resource('s3', endpoint_url='http://reproserver-minio:9000',
@@ -160,8 +183,7 @@ def reproduce(experiment_code):
                 if experiment.status == database.Status.NOBUILD:
                     app.logger.info("Triggering a build, sending message")
                     experiment.status = database.Status.QUEUED
-                    amqp.basic_publish('', routing_key='build_queue',
-                                       body=filehash)
+                    amqp.publish_build_task(filehash)
                 return render_template('setup.html', filename=filename,
                                        built=False,
                                        experiment_code=experiment_code)

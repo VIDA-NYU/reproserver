@@ -10,7 +10,7 @@ elif [ "$1" = "server" ]; then
         --processes 1 \
         --threads 8
 elif [ "$1" = "debug" ]; then
-    exec python -m web
+    PYTHONPATH=. exec python -m web
 else
     exec "$@"
 fi

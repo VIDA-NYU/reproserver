@@ -37,4 +37,5 @@ The ports are:
   - [`8000`](http://localhost:8000/) is the frontend web server;
   - [`8080`](http://localhost:8080/) is RabbitMQ's web interface;
   - [`9000`](http://localhost:9000/) is Minio's web interface;
+  - [`5000`](http://localhost:5000/) is the Docker registry;
   - `5432` is PostgreSQL, but using the ORM from the `web` container is probably easier (`docker exec -ti reproserver-web python`).

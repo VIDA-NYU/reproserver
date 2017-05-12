@@ -1,9 +1,9 @@
-import logging
 import os
 import sys
+from utils import setup_logging
 
 
-logging.basicConfig(level=logging.INFO)
+setup_logging('REPROSERVER-WEB')
 
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))

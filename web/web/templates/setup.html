@@ -6,15 +6,15 @@
 
 {% if built %}
 
-{% if error %}
+  {% if error %}
 
-<p>Error extracting package!</p>
+    <p>Error extracting package!</p>
 
-<p>Build log:</p>
-<pre>{% for line in log %}{{ line }}
+    <p>Build log:</p>
+    <pre>{% for line in log %}{{ line }}
 {% endfor %}</pre>
 
-{% endif %}
+  {% else %}
 
 <div class="panel panel-default" id="panel1">
   <div class="panel-heading">
@@ -33,36 +33,34 @@
   </div>
 </div>
 
-{% if not error %}
-
 <h2>Run the experiment</h2>
 
 <form action="/run/{{ experiment_id }}" method="POST">
 {% for param in params %}
   <div class="form-group">
     <label for="param_{{ param.name }}">{{ param.name }}</label>
-    <input type="text" class="form-control" id="param_{{ param.name }}" name="param_{{ param.name }}" placeholder="value">
+    <input type="text" class="form-control" id="param_{{ param.name }}" name="param_{{ param.name }}" value="{{ param.default }}" placeholder="value">
   </div>
 {% endfor %}
   <button type="submit" class="btn btn-default">Run</button>
 </form>
 
-{% endif %}
+  {% endif %}
 
 {% else %}
 
 <p>Waiting for package extraction, please wait...</p>
 
-{% if log %}
+  {% if log %}
 
 <pre>{% for line in log %}{{ line }}
 {% endfor %}</pre>
 
-{% else %}
+  {% else %}
 
 <p>Waiting for an available builder...</p>
 
-{% endif %}
+  {% endif %}
 
 {% endif %}
 

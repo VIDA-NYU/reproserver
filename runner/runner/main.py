@@ -1,5 +1,6 @@
 import logging
 import pika
+from utils import setup_logging
 
 
 def run(channel, method, properties, body):
@@ -8,7 +9,7 @@ def run(channel, method, properties, body):
 
 
 def main():
-    logging.basicConfig(level=logging.INFO)
+    setup_logging('REPROSERVER-RUNNER')
 
     logging.info("Connecting to AMQP broker")
     connection = pika.BlockingConnection(pika.ConnectionParameters(

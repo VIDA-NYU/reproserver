@@ -37,6 +37,7 @@ class Experiment(Base):
     uploads = relationship('Upload', back_populates='experiment')
     runs = relationship('Run', back_populates='experiment')
     parameters = relationship('Parameter', back_populates='experiment')
+    paths = relationship('Path', back_populates='experiment')
     log = relationship('BuildLogLine', back_populates='experiment')
 
     def get_log(self, from_line=0):
@@ -81,6 +82,22 @@ class Parameter(Base):
                               back_populates='parameters')
     name = Column(String, nullable=False)
     optional = Column(Boolean, nullable=False)
+    default = Column(String, nullable=True)
+
+
+class Path(Base):
+    """Path to an input/output file in the experiment.
+    """
+    __tablename__ = 'paths'
+
+    id = Column(Integer, primary_key=True)
+    experiment_hash = Column(String, ForeignKey('experiments.hash',
+                                                ondelete='CASCADE'))
+    experiment = relationship('Experiment', uselist=False,
+                              back_populates='paths')
+    is_input = Column(Boolean, nullable=False)
+    is_output = Column(Boolean, nullable=False)
+    path = Column(String, nullable=False)
 
 
 class Run(Base):

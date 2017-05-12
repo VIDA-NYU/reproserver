@@ -1,15 +1,21 @@
 import boto3
 import database
+import json
 import logging
 import os
 import pika
+from utils import setup_logging, shell_escape
 import shutil
+import subprocess
 import tempfile
-import time
 
 
 SQLSession = None
 s3 = None
+
+
+# IP as understood by Docker daemon, not this container
+DOCKER_REPOSITORY = 'localhost:5000'
 
 
 def build(channel, method, properties, body):
@@ -18,7 +24,7 @@ def build(channel, method, properties, body):
     Lookup the experiment in the database, and the file on S3. Then, do the
     build, upload the log, and fill in the parameters in the database.
     """
-    logging.info("Build request received: %r, %r", body, properties)
+    logging.info("Build request received: %r", body)
 
     # Look up the experiment in the database
     session = SQLSession()
@@ -41,47 +47,124 @@ def build(channel, method, properties, body):
     # Make build directory
     directory = tempfile.mkdtemp('build_%s' % experiment.hash)
 
+    def set_error(msg):
+        logging.warning("Got error: %s", msg)
+        experiment.status = database.Status.ERROR
+        session.add(database.BuildLogLine(experiment_hash=experiment.hash,
+                                          line=msg))
+        session.commit()
+        channel.basic_ack(delivery_tag=method.delivery_tag)
+
     try:
         # Get experiment file
         logging.info("Downloading file...")
         local_path = os.path.join(directory, 'experiment.rpz')
+        build_dir = os.path.join(directory, 'build_dir')
         s3.Bucket('experiments').download_file(experiment.hash, local_path)
         logging.info("Got file, %d bytes", os.stat(local_path).st_size)
 
-        # TODO: Build the experiment
-        session.add(database.BuildLogLine(experiment_hash=experiment.hash,
-                                          line="Preparing the build"))
-        session.commit()
-        time.sleep(10)
-        session.add(database.BuildLogLine(experiment_hash=experiment.hash,
-                                          line="Finishing the build"))
-        session.commit()
-        # Add parameters
-        session.add(database.Parameter(experiment_hash=experiment.hash,
-                                       name="One", optional=False))
-        session.add(database.Parameter(experiment_hash=experiment.hash,
-                                       name="Two", optional=True))
+        # Get metadata
+        info_proc = subprocess.Popen(['reprounzip', 'info', '--json',
+                                      local_path],
+                                     stdout=subprocess.PIPE)
+        info_stdout, _ = info_proc.communicate()
+        if info_proc.wait() != 0:
+            return set_error("Error getting info from package")
+        info = json.loads(info_stdout.decode('utf-8'))
+        logging.info("Got metadata, %d runs", len(info['runs']))
 
-        logging.info("Build over, finishing up")
+        # Remove previous build log
+        (session.query(database.BuildLogLine)
+         .filter(database.BuildLogLine.experiment_hash == experiment.hash)
+         .delete())
+
+        # Build the experiment
+        image_name = 'rpuz_exp_%s' % experiment.hash
+        fq_image_name = '%s/%s' % (DOCKER_REPOSITORY, image_name)
+        logging.info("Building image %s...", fq_image_name)
+        session.add(database.BuildLogLine(
+            experiment_hash=experiment.hash,
+            line='reprounzip -v docker setup {pkg} {dir}'.format(
+                pkg=local_path, dir=build_dir)))
+        session.commit()
+        build_proc = subprocess.Popen(['reprounzip', '-v', 'docker', 'setup',
+                                       '--image-name', fq_image_name,
+                                       local_path, build_dir],
+                                      stdin=subprocess.PIPE,
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.STDOUT)
+        build_proc.stdin.close()
+        try:
+            for line in iter(build_proc.stdout.readline, ''):
+                session.add(database.BuildLogLine(
+                    experiment_hash=experiment.hash,
+                    line=line.rstrip()))
+                session.commit()
+            ret = build_proc.wait()
+            if ret != 0:
+                return set_error("Build returned %d" % build_proc)
+        except IOError:
+            return set_error("Got IOError during the build")
+
+        session.add(database.BuildLogLine(experiment_hash=experiment.hash,
+                                          line="Build successful"))
+        experiment.docker_image = image_name
+        session.commit()
+        logging.info("Build over, pushing image")
+
+        # Push image to Docker repository
+        subprocess.check_call(['docker', 'push', fq_image_name])
+        logging.info("Push complete, finishing up")
+
+        # Add parameters
+        # Command-line of each run
+        for run in info['runs']:
+            cmdline = ' '.join(shell_escape(a) for a in run['argv'])
+            session.add(database.Parameter(experiment_hash=experiment.hash,
+                                           name="cmdline_%s" % run['id'],
+                                           optional=False, default=cmdline))
+        # Input/output files
+        for name, iofile in info.get('inputs_outputs', ()).iteritems():
+            path = iofile['path']
+
+            # It's an input if it's read before it is written
+            if iofile['read_runs'] and iofile['write_runs']:
+                first_write = min(iofile['write_runs'])
+                first_read = min(iofile['read_runs'])
+                is_input = first_read <= first_write
+            else:
+                is_input = bool(iofile['read_runs'])
+
+            # It's an output if it's ever written
+            is_output = bool(iofile['write_runs'])
+
+            session.add(database.Path(experiment_hash=experiment.hash,
+                                      is_input=is_input,
+                                      is_output=is_output,
+                                      path=path))
+
         # Set status
         experiment.status = database.Status.BUILT
         # ACK
-        channel.basic_ack(delivery_tag=method.delivery_tag)
         session.commit()
+        channel.basic_ack(delivery_tag=method.delivery_tag)
         logging.info("Done!")
     except Exception:
         logging.exception("Error processing build!")
-        # Set database status back to QUEUED
-        experiment.status = database.Status.QUEUED
-        session.commit()
-        # NACK the task in RabbitMQ
-        channel.basic_nack(delivery_tag=method.delivery_tag)
+        if True:
+            set_error("Internal error!")
+        else:
+            # Set database status back to QUEUED
+            experiment.status = database.Status.QUEUED
+            session.commit()
+            # NACK the task in RabbitMQ
+            channel.basic_nack(delivery_tag=method.delivery_tag)
         # Remove build directory
         shutil.rmtree(directory)
 
 
 def main():
-    logging.basicConfig(level=logging.INFO)
+    setup_logging('REPROSERVER-BUILDER')
 
     # SQL database
     global SQLSession
@@ -91,7 +174,7 @@ def main():
     # AMQP
     logging.info("Connecting to AMQP broker")
     connection = pika.BlockingConnection(pika.ConnectionParameters(
-        host='reproserver-rabbitmq', heartbeat_interval=5,
+        host='reproserver-rabbitmq',
         credentials=pika.PlainCredentials('admin', 'hackme')))
     channel = connection.channel()
 

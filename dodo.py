@@ -160,6 +160,7 @@ services = [
         'deps': ['start:rabbitmq', 'start:registry', 'start:minio',
                  'build:builder'],
         'volumes': ['/var/run/docker.sock:/var/run/docker.sock'],
+        'env': {'REPROZIP_USAGE_STATS': 'off'},
     }),
     ('runner', {
         'image': PREFIX + 'runner',
@@ -186,6 +187,7 @@ services = [
     ('registry', {
         'image': 'registry:2.6',
         'deps': ['pull:registry'],
+        'ports': ['5000:5000'],
     }),
     ('postgres', {
         'image': 'postgres:9.6',
