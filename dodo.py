@@ -159,6 +159,7 @@ services = [
         'image': PREFIX + 'builder',
         'deps': ['start:rabbitmq', 'start:registry', 'start:minio',
                  'build:builder'],
+        'volumes': ['/var/run/docker.sock:/var/run/docker.sock'],
     }),
     ('runner', {
         'image': PREFIX + 'runner',
