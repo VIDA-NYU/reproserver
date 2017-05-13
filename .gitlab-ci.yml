@@ -12,12 +12,14 @@ flake8:
   before_script:
     - pip install flake8
   script:
-    - flake8 dodo.py common builder runner web
+    - flake8 dodo.py common/common builder/builder runner/runner web/web
 
 make_images:
   stage: deploy
   when: manual
   before_script:
+    - git submodule sync --recursive
+    - git submodule update --init --recursive
     - pip install doit
     - curl -Lo /tmp/docker.tgz https://get.docker.com/builds/Linux/x86_64/docker-17.05.0-ce.tgz && tar -xf /tmp/docker.tgz -C /usr/local && rm /tmp/docker.tgz
     - "export PATH=\"/usr/local/docker:$PATH\""
