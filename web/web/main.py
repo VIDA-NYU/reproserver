@@ -183,12 +183,16 @@ def run(experiment_code):
             params[k[6:]] = v
 
     # TODO: Trigger run
-    return ("Not yet implemented: run experiment {filehash} {filename}\n"
-            "Parameters:\n{params}\n").format(
-                filehash=filehash, filename=filename,
-                params="  (no parameters)" if not params else
-                '\n'.join("  - {k}: {v}".format(k=k, v=v)
-                          for k, v in params.iteritems()))
+    return (
+        "Not yet implemented: run experiment {filehash} {filename}\n"
+        "Parameters:\n{params}\n".format(
+            filehash=filehash, filename=filename,
+            params=("  (no parameters)" if not params else
+                    '\n'.join("  - {k}: {v}".format(k=k, v=v)
+                              for k, v in params.iteritems()))),
+        200,
+        {'Content-Type': 'text/plain'},
+    )
 
 
 @app.route('/about')
