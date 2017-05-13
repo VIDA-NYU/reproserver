@@ -1,4 +1,6 @@
 import enum
+import logging
+import os
 from sqlalchemy import Column, ForeignKey, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
@@ -182,8 +184,14 @@ def purge(url=None):
 def connect(url=None):
     """Connect to the database using an environment variable.
     """
+    logging.info("Connecting to SQL database")
     if url is None:
-        url = 'postgresql://reproserver:hackmehackme@reproserver-postgres'
+        url = 'postgresql://{user}:{password}@{host}/{database}'.format(
+            user=os.environ['POSTGRES_USER'],
+            password=os.environ['POSTGRES_PASSWORD'],
+            host=os.environ['POSTGRES_HOST'],
+            database=os.environ['POSTGRES_DB'],
+        )
     engine = create_engine(url, echo=False)
 
     return engine, sessionmaker(bind=engine)

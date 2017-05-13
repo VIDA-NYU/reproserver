@@ -1,13 +1,9 @@
 import base64
-import boto3
-import database
+from common import database, TaskQueues, get_object_store
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 from hashlib import sha256
 import logging
-import pika
-import pika.exceptions
 from sqlalchemy.sql import functions
-import time
 from werkzeug.utils import secure_filename
 
 
@@ -15,56 +11,28 @@ app = Flask(__name__)
 
 
 # SQL database
-logging.info("Connecting to SQL database")
 engine, SQLSession = database.connect()
 
 if not engine.dialect.has_table(engine.connect(), 'experiments'):
     logging.warning("The tables don't seem to exist; creating")
-    from database import Base
+    from common.database import Base
 
     Base.metadata.create_all(bind=engine)
 
 
 # AMQP
-class AMQP(object):
-    def __init__(self):
-        self._connect()
-
-    def _connect(self):
-        logging.info("Connecting to AMQP broker")
-        self.connection = pika.BlockingConnection(pika.ConnectionParameters(
-            host='reproserver-rabbitmq',
-            credentials=pika.PlainCredentials('admin', 'hackme')))
-        self.channel = self.connection.channel()
-
-        self.channel.queue_declare(queue='build_queue', durable=True)
-
-    def publish_build_task(self, body):
-        while True:
-            try:
-                self.channel.basic_publish('', routing_key='build_queue',
-                                           body=body)
-                return
-            except pika.exceptions.ConnectionClosed:
-                logging.exception("AMQP connection is down...")
-                time.sleep(1)
-            self._connect()
-
-
-amqp = AMQP()
+tasks = TaskQueues()
 
 
 # Object storage
-s3 = boto3.resource('s3', endpoint_url='http://reproserver-minio:9000',
-                    aws_access_key_id='admin',
-                    aws_secret_access_key='hackmehackme')
+object_store = get_object_store()
 
-it = iter(s3.buckets.all())
+it = iter(object_store.buckets.all())
 try:
     next(it)
 except StopIteration:
     for name in ['experiments', 'inputs', 'outputs']:
-        s3.create_bucket(Bucket=name)
+        object_store.create_bucket(Bucket=name)
 
 
 @app.route('/')
@@ -106,7 +74,7 @@ def unpack():
         app.logger.info("File exists in storage")
     else:
         # Insert it on S3
-        s3.Object('experiments', filehash).put(Body=uploaded_file)
+        object_store.Object('experiments', filehash).put(Body=uploaded_file)
         app.logger.info("Inserted file in storage")
 
         # Insert it in database
@@ -183,7 +151,7 @@ def reproduce(experiment_code):
                 if experiment.status == database.Status.NOBUILD:
                     app.logger.info("Triggering a build, sending message")
                     experiment.status = database.Status.QUEUED
-                    amqp.publish_build_task(filehash)
+                    tasks.publish_build_task(filehash)
                 return render_template('setup.html', filename=filename,
                                        built=False,
                                        experiment_code=experiment_code)

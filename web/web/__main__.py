@@ -1,6 +1,6 @@
 import os
 import sys
-from utils import setup_logging
+from common.utils import setup_logging
 
 
 setup_logging('REPROSERVER-WEB')

@@ -1,1 +1,5 @@
+boto3~=1.4
+enum34
 pika~=0.10
+psycopg2~=2.7
+SQLAlchemy~=1.1

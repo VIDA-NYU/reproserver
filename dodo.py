@@ -2,6 +2,7 @@ from doit import get_var
 import json
 import os
 import subprocess
+import sys
 
 
 DOIT_CONFIG = {
@@ -10,6 +11,39 @@ DOIT_CONFIG = {
 }
 
 PREFIX = get_var('prefix', 'reproserver-')
+
+
+CONFIG = {
+    'ADMIN_USER': 'reproserver',
+    'ADMIN_PASSWORD': 'hackmehackme',
+    'AMQP_HOST': '%srabbitmq' % PREFIX,
+    'S3_URL': 'http://%sminio:9000' % PREFIX,
+    'POSTGRES_HOST': '%spostgres' % PREFIX,
+    'POSTGRES_DB': 'reproserver',
+}
+if os.path.exists('config.py'):
+    with open('config.py') as f:
+        code = compile(f.read(), 'config.py', 'exec')
+        exec(code, CONFIG, CONFIG)
+else:
+    sys.stderr.write("config.py doesn't exist, using default values\n")
+AMQP_USER = CONFIG.get('AMQP_USER') or CONFIG['ADMIN_USER']
+AMQP_PASSWORD = CONFIG.get('AMQP_PASSWORD') or CONFIG['ADMIN_PASSWORD']
+AMQP_HOST = CONFIG['AMQP_HOST']
+S3_KEY = CONFIG.get('S3_KEY') or CONFIG['ADMIN_USER']
+S3_SECRET = CONFIG.get('S3_SECRET') or CONFIG['ADMIN_PASSWORD']
+S3_URL = CONFIG['S3_URL']
+POSTGRES_USER = CONFIG.get('POSTGRES_USER') or CONFIG['ADMIN_USER']
+POSTGRES_PASSWORD = CONFIG.get('POSTGRES_PASSWORD') or CONFIG['ADMIN_PASSWORD']
+POSTGRES_HOST = CONFIG['POSTGRES_HOST']
+POSTGRES_DB = CONFIG['POSTGRES_DB']
+
+
+def merge(*args):
+    ret = {}
+    for dct in args:
+        ret.update(dct)
+    return ret
 
 
 def exists(object, type):
@@ -130,29 +164,51 @@ def run(name, dct):
     if info:
         subprocess.check_call('docker rm {0}'.format(container),
                               shell=True)
-    subprocess.check_call('docker run -d --name {0} '
-                          '--network reproserver {2} {3} {4} '
-                          '{1} {5}'.format(
-                              container,
-                              dct['image'],
-                              ' '.join('-v {0}'.format(v.format(p=PREFIX,
-                                                                d=os.getcwd()))
-                                       for v in dct.get('volumes', [])),
-                              ' '.join('-e {0}={1}'.format(*e)
-                                       for e in dct.get('env', {}).items()),
-                              ' '.join('-p {0}'.format(p)
-                                       for p in dct.get('ports', [])),
-                              dct.get('command', '')),
-                          shell=True)
+    command = ['docker', 'run', '-d',
+               '--name', container,
+               '--network', 'reproserver']
+    for v in dct.get('volumes', []):
+        command.extend(['-v', v.format(p=PREFIX, d=os.getcwd())])
+    env = dict(dct.get('env', {}))
+    for k, v in dct.get('env_map', {}).items():
+        if isinstance(v, str):
+            v = [v]
+        for l in v:
+            if l in CONFIG:
+                env[k] = CONFIG[l]
+                break
+        else:
+            raise ValueError("Missing variable from config: %s" % v[-1])
+    for e in env.items():
+        command.extend(['-e', '{0}={1}'.format(*e)])
+    for p in dct.get('ports', []):
+        command.extend(['-p', p])
+    command.append(dct['image'])
+    if 'command' in dct:
+        command.extend(dct['command'])
+    subprocess.check_call(command)
 
 
+common_env = {
+    'AMQP_USER': AMQP_USER,
+    'AMQP_PASSWORD': AMQP_PASSWORD,
+    'AMQP_HOST': AMQP_HOST,
+    'S3_KEY': S3_KEY,
+    'S3_SECRET': S3_SECRET,
+    'S3_URL': S3_URL,
+    'POSTGRES_USER': POSTGRES_USER,
+    'POSTGRES_PASSWORD': POSTGRES_PASSWORD,
+    'POSTGRES_HOST': POSTGRES_HOST,
+    'POSTGRES_DB': POSTGRES_DB,
+}
 services = [
     ('web', {
         'image': PREFIX + 'web',
         'deps': ['start:rabbitmq', 'build:web'],
-        'command': 'debug',
+        'command': ['debug'],
         'volumes': ['{d}/web/static:/usr/src/app/static',
                     '{d}/web/web:/usr/src/app/web'],
+        'env': common_env,
         'ports': ['8000:8000'],
     }),
     ('builder', {
@@ -160,28 +216,29 @@ services = [
         'deps': ['start:rabbitmq', 'start:registry', 'start:minio',
                  'build:builder'],
         'volumes': ['/var/run/docker.sock:/var/run/docker.sock'],
-        'env': {'REPROZIP_USAGE_STATS': 'off'},
+        'env': merge(common_env, {'REPROZIP_USAGE_STATS': 'off'}),
     }),
     ('runner', {
         'image': PREFIX + 'runner',
         'deps': ['start:rabbitmq', 'start:registry', 'start:minio',
                  'build:runner'],
+        'env': common_env,
     }),
     ('rabbitmq', {
         'image': 'rabbitmq:3.6.9-management',
         'deps': ['pull:rabbitmq', 'volume:rabbitmq'],
         'volumes': ['{p}rabbitmq:/var/lib/rabbitmq'],
-        'env': {'RABBITMQ_DEFAULT_USER': 'admin',
-                'RABBITMQ_DEFAULT_PASS': 'hackme'},
+        'env': {'RABBITMQ_DEFAULT_USER': AMQP_USER,
+                'RABBITMQ_DEFAULT_PASS': AMQP_PASSWORD},
         'ports': ['8080:15672'],
     }),
     ('minio', {
         'image': 'minio/minio:RELEASE.2017-04-29T00-40-27Z',
         'deps': ['pull:minio', 'volume:minio'],
-        'command': 'server /export',
+        'command': ['server', '/export'],
         'volumes': ['{p}minio:/export'],
-        'env': {'MINIO_ACCESS_KEY': 'admin',
-                'MINIO_SECRET_KEY': 'hackmehackme'},
+        'env': {'MINIO_ACCESS_KEY': S3_KEY,
+                'MINIO_SECRET_KEY': S3_SECRET},
         'ports': ['9000:9000'],
     }),
     ('registry', {
@@ -194,8 +251,8 @@ services = [
         'deps': ['pull:postgres', 'volume:postgres'],
         'volumes': ['{p}postgres:/var/lib/postgresql/data'],
         'env': {'PGDATA': '/var/lib/postgresql/data/pgdata',
-                'POSTGRES_USER': 'reproserver',
-                'POSTGRES_PASSWORD': 'hackmehackme'},
+                'POSTGRES_USER': POSTGRES_USER,
+                'POSTGRES_PASSWORD': POSTGRES_PASSWORD},
         'ports': ['5432:5432'],
     }),
 ]

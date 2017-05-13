@@ -1,10 +1,8 @@
-import boto3
-import database
+from common import database, TaskQueues, get_object_store
+from common.utils import setup_logging, shell_escape
 import json
 import logging
 import os
-import pika
-from utils import setup_logging, shell_escape
 import shutil
 import subprocess
 import tempfile
@@ -172,23 +170,12 @@ def main():
     engine, SQLSession = database.connect()
 
     # AMQP
-    logging.info("Connecting to AMQP broker")
-    connection = pika.BlockingConnection(pika.ConnectionParameters(
-        host='reproserver-rabbitmq',
-        credentials=pika.PlainCredentials('admin', 'hackme')))
-    channel = connection.channel()
-
-    channel.queue_declare(queue='build_queue', durable=True)
-
-    channel.basic_qos(prefetch_count=1)
-    channel.basic_consume(build, queue='build_queue')
+    tasks = TaskQueues()
 
     # Object storage
     global s3
-    s3 = boto3.resource('s3', endpoint_url='http://reproserver-minio:9000',
-                        aws_access_key_id='admin',
-                        aws_secret_access_key='hackmehackme')
+    s3 = get_object_store()
 
     # Wait for tasks
     logging.info("Ready, listening for requests")
-    channel.start_consuming()
+    tasks.consume_build_tasks(build)

@@ -1,6 +1,6 @@
+from common import TaskQueues
+from common.utils import setup_logging
 import logging
-import pika
-from utils import setup_logging
 
 
 def run(channel, method, properties, body):
@@ -11,16 +11,8 @@ def run(channel, method, properties, body):
 def main():
     setup_logging('REPROSERVER-RUNNER')
 
-    logging.info("Connecting to AMQP broker")
-    connection = pika.BlockingConnection(pika.ConnectionParameters(
-        host='reproserver-rabbitmq',
-        credentials=pika.PlainCredentials('admin', 'hackme')))
-    channel = connection.channel()
-
-    channel.queue_declare(queue='run_queue', durable=True)
-
-    channel.basic_qos(prefetch_count=1)
-    channel.basic_consume(run, queue='run_queue')
+    # AMQP
+    tasks = TaskQueues()
 
     logging.info("Ready, listening for requests")
-    channel.start_consuming()
+    tasks.consume_run_tasks(run)
