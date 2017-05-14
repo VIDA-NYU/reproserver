@@ -11,7 +11,7 @@
     {% for upload in experiment.uploads %}
 
         <p>Uploaded by {{ upload.submitted_ip }} at {{ upload.timestamp }}
-        as {{ upload.filename }}</p>
+        as <a href="/reproduce/{{ upload.experiment_code }}">{{ upload.filename }}</a></p>
 
     {% endfor %}
 

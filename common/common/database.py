@@ -1,3 +1,4 @@
+import base64
 import enum
 import logging
 import os
@@ -66,6 +67,9 @@ class Upload(Base):
     submitted_ip = Column(String, nullable=False)
     timestamp = Column(DateTime, nullable=False,
                        server_default=functions.now())
+
+    def experiment_code(self):
+        base64.urlsafe_b64encode(self.experiment_hash + '|' + self.filename)
 
 
 class Parameter(Base):
