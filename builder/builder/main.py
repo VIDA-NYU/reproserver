@@ -13,7 +13,7 @@ s3 = None
 
 
 # IP as understood by Docker daemon, not this container
-DOCKER_REPOSITORY = 'localhost:5000'
+DOCKER_REGISTRY = os.environ.get('REGISTRY', 'localhost:5000')
 
 
 def build(channel, method, properties, body):
@@ -79,7 +79,7 @@ def build(channel, method, properties, body):
 
         # Build the experiment
         image_name = 'rpuz_exp_%s' % experiment.hash
-        fq_image_name = '%s/%s' % (DOCKER_REPOSITORY, image_name)
+        fq_image_name = '%s/%s' % (DOCKER_REGISTRY, image_name)
         logging.info("Building image %s...", fq_image_name)
         session.add(database.BuildLogLine(
             experiment_hash=experiment.hash,

@@ -32,7 +32,7 @@ AMQP_PASSWORD = CONFIG.get('AMQP_PASSWORD') or CONFIG['ADMIN_PASSWORD']
 AMQP_HOST = CONFIG['AMQP_HOST']
 S3_KEY = CONFIG.get('S3_KEY') or CONFIG['ADMIN_USER']
 S3_SECRET = CONFIG.get('S3_SECRET') or CONFIG['ADMIN_PASSWORD']
-S3_URL = CONFIG['S3_URL']
+S3_URL = CONFIG.get('S3_URL')
 POSTGRES_USER = CONFIG.get('POSTGRES_USER') or CONFIG['ADMIN_USER']
 POSTGRES_PASSWORD = CONFIG.get('POSTGRES_PASSWORD') or CONFIG['ADMIN_PASSWORD']
 POSTGRES_HOST = CONFIG['POSTGRES_HOST']
@@ -169,18 +169,9 @@ def run(name, dct):
                '--network', 'reproserver']
     for v in dct.get('volumes', []):
         command.extend(['-v', v.format(p=PREFIX, d=os.getcwd())])
-    env = dict(dct.get('env', {}))
-    for k, v in dct.get('env_map', {}).items():
-        if isinstance(v, str):
-            v = [v]
-        for l in v:
-            if l in CONFIG:
-                env[k] = CONFIG[l]
-                break
-        else:
-            raise ValueError("Missing variable from config: %s" % v[-1])
-    for e in env.items():
-        command.extend(['-e', '{0}={1}'.format(*e)])
+    for k, v in dct.get('env', {}).items():
+        if v is not None:
+            command.extend(['-e', '{0}={1}'.format(k, v)])
     for p in dct.get('ports', []):
         command.extend(['-p', p])
     command.append(dct['image'])
