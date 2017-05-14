@@ -75,6 +75,7 @@ def build(channel, method, properties, body):
         (session.query(database.BuildLogLine)
          .filter(database.BuildLogLine.experiment_hash == experiment.hash)
          .delete())
+        session.commit()
 
         # Build the experiment
         image_name = 'rpuz_exp_%s' % experiment.hash
