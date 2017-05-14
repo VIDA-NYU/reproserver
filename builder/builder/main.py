@@ -100,7 +100,7 @@ def build(channel, method, properties, body):
                 session.commit()
             ret = build_proc.wait()
             if ret != 0:
-                return set_error("Build returned %d" % build_proc)
+                return set_error("Build returned %d" % build_proc.returncode)
         except IOError:
             return set_error("Got IOError during the build")
 
