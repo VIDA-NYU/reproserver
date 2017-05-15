@@ -1,4 +1,5 @@
-from common import database, TaskQueues, get_object_store
+from common import database
+from common import TaskQueues, get_object_store
 from common.utils import setup_logging, shell_escape
 import json
 import logging
@@ -158,6 +159,7 @@ def build(channel, method, properties, body):
             session.commit()
             # NACK the task in RabbitMQ
             channel.basic_nack(delivery_tag=method.delivery_tag)
+    finally:
         # Remove build directory
         shutil.rmtree(directory)
 
