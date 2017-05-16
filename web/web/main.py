@@ -178,7 +178,7 @@ def run(experiment_code):
 
     # Get run parameters
     params = {}
-    for k, v in request.args.iteritems():
+    for k, v in request.form.iteritems():
         if k.startswith('param_'):
             params[k[6:]] = v
 
