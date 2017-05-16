@@ -11,6 +11,7 @@ DOIT_CONFIG = {
 }
 
 PREFIX = get_var('prefix', 'reproserver-')
+TAG = ':%s' % (get_var('tag', '') or 'latest')
 
 
 CONFIG = {
@@ -81,7 +82,7 @@ def list_files(*directories):
 
 def task_build():
     for name in ['web', 'builder', 'runner']:
-        image = PREFIX + name
+        image = PREFIX + name + TAG
         yield {
             'name': name,
             'actions': ['tar -cX {0}/.tarignore {0} common | '
@@ -97,13 +98,13 @@ def task_push():
     for name in ['web', 'builder', 'runner']:
         args = dict(prefix=PREFIX, image=name,
                     registry=get_var('registry', 'unset.example.org'),
-                    tag=get_var('tag', 'git'))
+                    tag=TAG)
         yield {
             'name': name,
             'actions': [
-                'docker tag {prefix}{image} {registry}/{image}:{tag}'
+                'docker tag {prefix}{image} {registry}/{image}{tag}'
                 .format(**args),
-                'docker push {registry}/{image}:{tag}'
+                'docker push {registry}/{image}{tag}'
                 .format(**args),
             ],
             'task_dep': ['build:{0}'.format(name)],
@@ -194,7 +195,7 @@ common_env = {
 }
 services = [
     ('web', {
-        'image': PREFIX + 'web',
+        'image': PREFIX + 'web' + TAG,
         'deps': ['start:rabbitmq', 'build:web'],
         'command': ['debug'],
         'volumes': ['{d}/web/static:/usr/src/app/static',
@@ -203,14 +204,14 @@ services = [
         'ports': ['8000:8000'],
     }),
     ('builder', {
-        'image': PREFIX + 'builder',
+        'image': PREFIX + 'builder' + TAG,
         'deps': ['start:rabbitmq', 'start:registry', 'start:minio',
                  'build:builder'],
         'volumes': ['/var/run/docker.sock:/var/run/docker.sock'],
         'env': merge(common_env, {'REPROZIP_USAGE_STATS': 'off'}),
     }),
     ('runner', {
-        'image': PREFIX + 'runner',
+        'image': PREFIX + 'runner' + TAG,
         'deps': ['start:rabbitmq', 'start:registry', 'start:minio',
                  'build:runner'],
         'volumes': ['/var/run/docker.sock:/var/run/docker.sock'],
