@@ -35,7 +35,7 @@
 
 <h2>Run the experiment</h2>
 
-<form action="/run/{{ experiment_code }}" method="POST">
+<form method="POST" action="{{ url_for('run', experiment_code=experiment_code) }}">
 {% for param in params %}
   <div class="form-group">
     <label for="param_{{ param.name }}">{{ param.name }}</label>

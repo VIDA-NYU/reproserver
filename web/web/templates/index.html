@@ -4,7 +4,7 @@
 
 <h1>Select a package to unpack</h1>
 
-<form method="POST" action="/upload" enctype="multipart/form-data">
+<form method="POST" action="{{ url_for('unpack') }}" enctype="multipart/form-data">
   <div class="form-group">
     <label for="rpz_file">Upload a file</label>
     <input type="file" class="form-control" id="rpz_file" name="rpz_file" placeholder="experiment.rpz">

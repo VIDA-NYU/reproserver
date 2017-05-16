@@ -4,35 +4,35 @@
 
 {% for experiment in experiments %}
 
-    <h1>Experiment: {{ experiment.hash }}</h1>
+  <h1>Experiment: {{ experiment.hash }}</h1>
 
-    <p>Status: {{ experiment.status }}</p>
+  <p>Status: {{ experiment.status }}</p>
 
-    {% for upload in experiment.uploads %}
+  {% for upload in experiment.uploads %}
 
-        <p>Uploaded by {{ upload.submitted_ip }} at {{ upload.timestamp }}
-        as <a href="/reproduce/{{ upload.experiment_code }}">{{ upload.filename }}</a></p>
+  <p>Uploaded by {{ upload.submitted_ip }} at {{ upload.timestamp }}
+  as <a href="{{ url_for('reproduce', experiment_code=upload.experiment_code) }}">{{ upload.filename }}</a></p>
 
-    {% endfor %}
+  {% endfor %}
 
-    {% for parameter in experiment.parameter %}
+  {% for parameter in experiment.parameter %}
 
-        <p>Parameter: {{ parameter.name }}
-        ({% if parameter.optional %}optional{% else %}required{% endif %})</p>
+  <p>Parameter: {{ parameter.name }}
+  ({% if parameter.optional %}optional{% else %}required{% endif %})</p>
 
-    {% endfor %}
+  {% endfor %}
 
-    {% for run in experiment.runs %}
+  {% for run in experiment.runs %}
 
-        <h2>Run {{ run.id }} submitted at {{ run.submitted }}</h2>
+  <h2>Run {{ run.id }} submitted at {{ run.submitted }}</h2>
 
-        <p>Started: {{ run.started }}<br/>
-        Done: {{ run.done }}</p>
+  <p>Started: {{ run.started }}<br/>
+  Done: {{ run.done }}</p>
 
-        <pre>{% for line in run.log %}{{ line }}
+  <pre>{% for line in run.log %}{{ line }}
 {% endfor %}</pre>
 
-    {% endfor %}
+  {% endfor %}
 
 {% endfor %}
 
