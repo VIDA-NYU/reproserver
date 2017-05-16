@@ -103,6 +103,7 @@ class Path(Base):
                               back_populates='paths')
     is_input = Column(Boolean, nullable=False)
     is_output = Column(Boolean, nullable=False)
+    name = Column(String, nullable=False)
     path = Column(String, nullable=False)
 
 

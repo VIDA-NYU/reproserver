@@ -141,6 +141,7 @@ def build(channel, method, properties, body):
             session.add(database.Path(experiment_hash=experiment.hash,
                                       is_input=is_input,
                                       is_output=is_output,
+                                      name=name,
                                       path=path))
 
         # Set status
