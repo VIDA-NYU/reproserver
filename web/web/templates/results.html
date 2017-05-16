@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Package <a href="{{ url_for('reproduce', experiment_code=experiment_code) }}">{{ run.experiment_filename }}</a>, run #{{ run.id }}</h1>
+
+<div class="panel panel-default" id="panel1">
+  <div class="panel-heading">
+    <h4 class="panel-title">
+      <a data-toggle="collapse" data-target="#runlog"
+         href="#runlog" class="collapsed">
+        Run log
+      </a>
+    </h4>
+  </div>
+  <div id="runlog" class="panel-collapse collapse">
+    <div class="panel-body">
+      <pre>{% for line in log %}{{ line }}
+{% endfor %}</pre>
+    </div>
+  </div>
+</div>
+
+<h2>Output files:</h2>
+
+{% if run.output_files %}
+
+  <ul>
+
+  {% for file in run.output_files %}
+
+    <li><a href="{{ url_for('output_file', id=file.id) }}">{{ file.name }}</a>, {{ file.size }} bytes</li>
+
+  {% endfor %}
+
+  </ul>
+
+{% else %}
+
+<p>No output files</p>
+
+{% endif %}
+
+{% endblock content %}

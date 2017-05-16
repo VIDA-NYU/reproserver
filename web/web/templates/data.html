@@ -8,6 +8,8 @@
 
   <p>Status: {{ experiment.status }}</p>
 
+  <p>Image: {{ experiment.docker_image }}</p>
+
   {% for upload in experiment.uploads %}
 
   <p>Uploaded by {{ upload.submitted_ip }} at {{ upload.timestamp }}
@@ -37,19 +39,19 @@
 
     {% for param_value in run.parameter_values %}
 
-    <p>{{ param_value.name }} = {{ param_value.value }}</p>
+    <p>Param: {{ param_value.name }} = {{ param_value.value }}</p>
 
     {% endfor %}
 
     {% for file in run.input_files %}
 
-    <p>{{ file.name }}: {{ file.hash }}, {{ file.size }} bytes</p>
+    <p>Input: {{ file.name }}: {{ file.hash }}, {{ file.size }} bytes</p>
 
     {% endfor %}
 
     {% for file in run.output_files %}
 
-    <p>{{ file.name }}: {{ file.hash }}, {{ file.size }} bytes</p>
+    <p>Output: {{ file.name }}: {{ file.hash }}, {{ file.size }} bytes</p>
 
     {% endfor %}
 

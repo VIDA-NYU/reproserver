@@ -20,10 +20,6 @@ DOCKER_REGISTRY = os.environ.get('REGISTRY', 'localhost:5000')
 
 
 def run_cmd_and_log(session, run_id, cmd):
-    session.add(database.RunLogLine(
-        run_id=run_id,
-        line=' '.join(cmd)))
-    session.commit()
     proc = subprocess.Popen(cmd,
                             stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE,
@@ -132,7 +128,7 @@ def run(channel, method, properties, body):
         logging.info("Creating container %s with image %s",
                      container, run.experiment.docker_image)
         # TODO: Turn parameters into a command-line
-        subprocess.check_call(['docker', 'create', '-ti', '--name', container,
+        subprocess.check_call(['docker', 'create', '-i', '--name', container,
                                fq_image_name])
 
         for input_file, path in inputs:
@@ -166,6 +162,7 @@ def run(channel, method, properties, body):
         session.add(database.RunLogLine(
             run_id=run.id,
             line="Done, experiment returned %d" % ret))
+        logging.info("Container done, returned %d", ret)
 
         # Get output files
         for path in run.experiment.paths:

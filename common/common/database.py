@@ -136,7 +136,7 @@ class Run(Base):
     output_files = relationship('OutputFile', back_populates='run')
 
     def get_log(self, from_line=0):
-        return self.log[from_line:]
+        return [log.line for log in self.log[from_line:]]
 
 
 class BuildLogLine(Base):

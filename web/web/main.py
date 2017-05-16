@@ -1,8 +1,11 @@
 import base64
 from common import database, TaskQueues, get_object_store
-from flask import Flask, jsonify, redirect, render_template, request, url_for
+from flask import Flask, jsonify, redirect, render_template, request, \
+    url_for, send_file
 from hashlib import sha256
+import io
 import logging
+from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import functions
 from werkzeug.utils import secure_filename
 
@@ -265,16 +268,62 @@ def run(experiment_code):
         raise
 
 
-@app.route('/results/<run_id>')
+@app.route('/results/<int:run_id>')
 def results(run_id):
     """Shows the results of a run, whether it's done or in progress.
     """
-    # TODO: /results view
-    return (
-        "Not yet implemented: results for run #{run}\n".format(run=run_id),
-        200,
-        {'Content-Type': 'text/plain'},
-    )
+    # Look up the run in the database
+    session = SQLSession()
+    run = (session.query(database.Run)
+           .options(joinedload(database.Run.experiment),
+                    joinedload(database.Run.parameter_values),
+                    joinedload(database.Run.input_files),
+                    joinedload(database.Run.output_files))
+           .get(run_id))
+    if not run:
+        return render_template('results_notfound.html'), 404
+    # Update last access
+    run.experiment.last_access = functions.now()
+    session.commit()
+
+    # JSON endpoint, returns data for JavaScript to update the page
+    if (request.accept_mimetypes.best_match(['application/json',
+                                             'text/html']) ==
+            'application/json'):
+        log_from = request.args.get('log_from', 0)
+        return jsonify({'started': bool(run.started),
+                        'done': bool(run.done),
+                        'log': run.get_log(log_from)})
+    # HTML view, return the page
+    else:
+        experiment_code = base64.urlsafe_b64encode(run.experiment_hash +
+                                                   '|' +
+                                                   run.experiment_filename)
+        return render_template('results.html', run=run,
+                               log=run.get_log(0),
+                               started=bool(run.started),
+                               done=bool(run.done),
+                               experiment_code=experiment_code)
+
+
+@app.route('/output_file/<id>')
+def output_file(id):
+    """Gets an output file from S3 and send it with the correct filename.
+    """
+    # Look up the file in the database
+    session = SQLSession()
+    outputfile = session.query(database.OutputFile).get(id)
+    if not outputfile:
+        return "File not found", 404, {'Content-Type': 'text/plain'}
+
+    # Download the file from S3
+    obj = io.BytesIO()
+    object_store.Bucket('outputs').download_fileobj(outputfile.hash, obj)
+    obj.seek(0, 0)
+
+    # Serve the file
+    return send_file(obj, cache_timeout=31536000,
+                     as_attachment=True, attachment_filename=outputfile.name)
 
 
 @app.route('/about')
