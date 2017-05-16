@@ -39,7 +39,7 @@ def run_cmd_and_log(session, run_id, cmd):
 
 def run(channel, method, properties, body):
     """Process a run task.
-    
+
     Lookup a run in the database, get the input files from S3, then do the run
     from the Docker image, upload the log and the output files.
     """

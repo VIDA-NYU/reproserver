@@ -132,7 +132,7 @@ def reproduce(experiment_code):
                 input_files = (
                     session.query(database.Path)
                     .filter(database.Path.experiment_hash == experiment.hash)
-                    .filter(database.Path.is_input == True)).all()
+                    .filter(database.Path.is_input)).all()
                 return render_template('setup.html', filename=filename,
                                        built=True, error=False,
                                        log=experiment.get_log(0),
@@ -189,7 +189,8 @@ def run(experiment_code):
 
     # New run entry
     try:
-        run = database.Run(experiment_hash=filehash, experiment_filename=filename)
+        run = database.Run(experiment_hash=filehash,
+                           experiment_filename=filename)
         session.add(run)
 
         # Get list of parameters
@@ -217,7 +218,7 @@ def run(experiment_code):
         # Get list of input files
         input_files = set(p.name for p in session.query(database.Path)
                           .filter(database.Path.experiment_hash == filehash)
-                          .filter(database.Path.is_input == True).all())
+                          .filter(database.Path.is_input).all())
 
         # Get input files
         for k, uploaded_file in request.files.iteritems():
@@ -244,7 +245,8 @@ def run(experiment_code):
             uploaded_file.seek(0, 0)
 
             # Insert it on S3
-            object_store.Object('inputs', inputfilehash).put(Body=uploaded_file)
+            object_store.Object('inputs', inputfilehash).put(
+                Body=uploaded_file)
             app.logger.info("Inserted file in storage")
 
             # Insert it in database

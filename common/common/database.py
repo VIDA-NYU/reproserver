@@ -70,7 +70,9 @@ class Upload(Base):
 
     @property
     def experiment_code(self):
-        return base64.urlsafe_b64encode(self.experiment_hash + '|' + self.filename)
+        return base64.urlsafe_b64encode(self.experiment_hash +
+                                        '|' +
+                                        self.filename)
 
 
 class Parameter(Base):
