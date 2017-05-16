@@ -22,6 +22,12 @@
 
   {% endfor %}
 
+  {% for path in experiment.paths %}
+
+  <p>Path: {% if path.is_input and path.is_output %}input and output{% elif path.is_input %}input{% else %}output{% endif %} {{ path.name }}, {{ path.path }}</p>
+
+  {% endfor %}
+
   {% for run in experiment.runs %}
 
   <h2>Run {{ run.id }} submitted at {{ run.submitted }}</h2>
@@ -29,8 +35,23 @@
   <p>Started: {{ run.started }}<br/>
   Done: {{ run.done }}</p>
 
-  <pre>{% for line in run.log %}{{ line }}
-{% endfor %}</pre>
+    {% for param_value in run.parameter_values %}
+
+    <p>{{ param_value.name }} = {{ param_value.value }}</p>
+
+    {% endfor %}
+
+    {% for file in run.input_files %}
+
+    <p>{{ file.name }}: {{ file.hash }}, {{ file.size }} bytes</p>
+
+    {% endfor %}
+
+    {% for file in run.output_files %}
+
+    <p>{{ file.name }}: {{ file.hash }}, {{ file.size }} bytes</p>
+
+    {% endfor %}
 
   {% endfor %}
 

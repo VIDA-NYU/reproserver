@@ -129,10 +129,15 @@ def reproduce(experiment_code):
             # If it's done building, send build log and run form
             if experiment.status == database.Status.BUILT:
                 app.logger.info("Experiment already built")
+                input_files = (
+                    session.query(database.Path)
+                    .filter(database.Path.experiment_hash == experiment.hash)
+                    .filter(database.Path.is_input == True)).all()
                 return render_template('setup.html', filename=filename,
                                        built=True, error=False,
                                        log=experiment.get_log(0),
                                        params=experiment.parameters,
+                                       input_files=input_files,
                                        experiment_code=experiment_code)
             if experiment.status == database.Status.ERROR:
                 app.logger.info("Experiment is errored")
@@ -176,20 +181,95 @@ def run(experiment_code):
     filehash = permanent_id[:sep]
     filename = permanent_id[sep + 1:]
 
-    # Get run parameters
-    params = {}
-    for k, v in request.form.iteritems():
-        if k.startswith('param_'):
-            params[k[6:]] = v
+    # Look up the experiment in database
+    session = SQLSession()
+    experiment = session.query(database.Experiment).get(filehash)
+    if not experiment:
+        return render_template('setup_notfound.html'), 404
 
-    # TODO: Trigger run
+    # New run entry
+    try:
+        run = database.Run(experiment_hash=filehash, experiment_filename=filename)
+        session.add(run)
+
+        # Get list of parameters
+        params = set()
+        params_unset = set()
+        for param in experiment.parameters:
+            if not param.optional:
+                params_unset.add(param.name)
+            params.add(param.name)
+
+        # Get run parameters
+        for k, v in request.form.iteritems():
+            if k.startswith('param_'):
+                name = k[6:]
+                if name not in params:
+                    raise ValueError("Unknown parameter %s" % k)
+                run.parameter_values.append(database.ParameterValue(name=name,
+                                                                    value=v))
+                params_unset.discard(name)
+
+        if params_unset:
+            raise ValueError("Missing value for parameters: %s" %
+                             ", ".join(params_unset))
+
+        # Get list of input files
+        input_files = set(p.name for p in session.query(database.Path)
+                          .filter(database.Path.experiment_hash == filehash)
+                          .filter(database.Path.is_input == True).all())
+
+        # Get input files
+        for k, uploaded_file in request.files.iteritems():
+            if not uploaded_file:
+                continue
+
+            if not k.startswith('inputfile_') or k[10:] not in input_files:
+                raise ValueError("Unknown input file %s" % k)
+
+            name = k[10:]
+            app.logger.info("Incoming input file: %s", name)
+
+            # Hash file
+            hasher = sha256()
+            chunk = uploaded_file.read(4096)
+            while chunk:
+                hasher.update(chunk)
+                chunk = uploaded_file.read(4096)
+            inputfilehash = hasher.hexdigest()
+            app.logger.info("Computed hash: %s", inputfilehash)
+
+            # Rewind it
+            filesize = uploaded_file.tell()
+            uploaded_file.seek(0, 0)
+
+            # Insert it on S3
+            object_store.Object('inputs', inputfilehash).put(Body=uploaded_file)
+            app.logger.info("Inserted file in storage")
+
+            # Insert it in database
+            input_file = database.InputFile(hash=inputfilehash, name=name,
+                                            size=filesize)
+            run.input_files.append(input_file)
+
+        # Trigger run
+        session.commit()
+        tasks.publish_run_task(str(run.id))
+
+        # Redirect to results page
+        return redirect(url_for('results', run_id=run.id), 302)
+    except Exception:
+        session.rollback()
+        raise
+
+
+@app.route('/results/<run_id>')
+def results(run_id):
+    """Shows the results of a run, whether it's done or in progress.
+    """
+    # TODO: /results view
     return (
-        "Not yet implemented: run experiment {filehash} {filename}\n"
-        "Parameters:\n{params}\n".format(
-            filehash=filehash, filename=filename,
-            params=("  (no parameters)" if not params else
-                    '\n'.join("  - {k}: {v}".format(k=k, v=v)
-                              for k, v in params.iteritems()))),
+        "Not yet implemented: results for run #{run}\n".format(run=run_id),
         200,
         {'Content-Type': 'text/plain'},
     )

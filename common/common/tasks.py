@@ -37,6 +37,12 @@ class TaskQueues(object):
                                                routing_key='build_queue',
                                                body=body))
 
+    def publish_run_task(self, body):
+        self._retry(
+            lambda: self.channel.basic_publish('',
+                                               routing_key='run_queue',
+                                               body=body))
+
     def consume_build_tasks(self, callback):
         self.channel.basic_consume(callback, queue='build_queue')
         self._retry(self.channel.start_consuming)

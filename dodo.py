@@ -213,6 +213,7 @@ services = [
         'image': PREFIX + 'runner',
         'deps': ['start:rabbitmq', 'start:registry', 'start:minio',
                  'build:runner'],
+        'volumes': ['/var/run/docker.sock:/var/run/docker.sock'],
         'env': common_env,
     }),
     ('rabbitmq', {

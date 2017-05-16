@@ -121,10 +121,14 @@ class Run(Base):
                                                 ondelete='CASCADE'))
     experiment = relationship('Experiment', uselist=False,
                               back_populates='runs')
+    experiment_filename = Column(String, nullable=False)
     submitted = Column(DateTime, nullable=False,
                        server_default=functions.now())
     started = Column(DateTime, nullable=True)
     done = Column(DateTime, nullable=True)
+
+    parameter_values = relationship('ParameterValue', back_populates='run')
+    input_files = relationship('InputFile', back_populates='run')
 
     log = relationship('RunLogLine', back_populates='run')
     output_files = relationship('OutputFile', back_populates='run')
@@ -136,7 +140,7 @@ class Run(Base):
 class BuildLogLine(Base):
     """A line of build log.
 
-    TODO: Storing this in the database is not a great idea.
+    FIXME: Storing this in the database is not a great idea.
     """
     __tablename__ = 'build_logs'
 
@@ -153,7 +157,7 @@ class BuildLogLine(Base):
 class RunLogLine(Base):
     """A line of run log.
 
-    TODO: Storing this in the database is not a great idea.
+    FIXME: Storing this in the database is not a great idea.
     """
     __tablename__ = 'run_logs'
 
@@ -163,6 +167,32 @@ class RunLogLine(Base):
     timestamp = Column(DateTime, nullable=False,
                        server_default=functions.now())
     line = Column(String, nullable=False)
+
+
+class ParameterValue(Base):
+    """A value for a parameter in a run.
+    """
+    __tablename__ = 'run_parameters'
+
+    id = Column(Integer, primary_key=True)
+    run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'))
+    run = relationship('Run', uselist=False, back_populates='parameter_values')
+    name = Column(String, nullable=False)
+    value = Column(String, nullable=False)
+
+
+class InputFile(Base):
+    """An input file for a run.
+    """
+    __tablename__ = 'input_files'
+
+    id = Column(Integer, primary_key=True)
+    hash = Column(String, nullable=False)
+    run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'))
+    run = relationship('Run', uselist=False,
+                       back_populates='input_files')
+    name = Column(String, nullable=False)
+    size = Column(Integer, nullable=False)
 
 
 class OutputFile(Base):

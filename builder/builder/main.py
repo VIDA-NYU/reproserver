@@ -17,6 +17,29 @@ s3 = None
 DOCKER_REGISTRY = os.environ.get('REGISTRY', 'localhost:5000')
 
 
+def run_cmd_and_log(session, experiment_hash, cmd):
+    session.add(database.BuildLogLine(
+        experiment_hash=experiment_hash,
+        line=' '.join(cmd)))
+    session.commit()
+    proc = subprocess.Popen(cmd,
+                            stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT)
+    proc.stdin.close()
+    try:
+        for line in iter(proc.stdout.readline, ''):
+            session.add(database.BuildLogLine(
+                experiment_hash=experiment_hash,
+                line=line.rstrip()))
+            session.commit()
+        ret = proc.wait()
+        if ret != 0:
+            return "Process returned %d" % proc.returncode
+    except IOError:
+        return "Got IOError"
+
+
 def build(channel, method, properties, body):
     """Process a build task.
 
@@ -73,38 +96,19 @@ def build(channel, method, properties, body):
         logging.info("Got metadata, %d runs", len(info['runs']))
 
         # Remove previous build log
-        (session.query(database.BuildLogLine)
-         .filter(database.BuildLogLine.experiment_hash == experiment.hash)
-         .delete())
+        experiment.log[:] = []
         session.commit()
 
         # Build the experiment
         image_name = 'rpuz_exp_%s' % experiment.hash
         fq_image_name = '%s/%s' % (DOCKER_REGISTRY, image_name)
         logging.info("Building image %s...", fq_image_name)
-        session.add(database.BuildLogLine(
-            experiment_hash=experiment.hash,
-            line='reprounzip -v docker setup {pkg} {dir}'.format(
-                pkg=local_path, dir=build_dir)))
-        session.commit()
-        build_proc = subprocess.Popen(['reprounzip', '-v', 'docker', 'setup',
-                                       '--image-name', fq_image_name,
-                                       local_path, build_dir],
-                                      stdin=subprocess.PIPE,
-                                      stdout=subprocess.PIPE,
-                                      stderr=subprocess.STDOUT)
-        build_proc.stdin.close()
-        try:
-            for line in iter(build_proc.stdout.readline, ''):
-                session.add(database.BuildLogLine(
-                    experiment_hash=experiment.hash,
-                    line=line.rstrip()))
-                session.commit()
-            ret = build_proc.wait()
-            if ret != 0:
-                return set_error("Build returned %d" % build_proc.returncode)
-        except IOError:
-            return set_error("Got IOError during the build")
+        err = run_cmd_and_log(session, experiment.hash,
+                              ['reprounzip', '-v', 'docker', 'setup',
+                               '--image-name', fq_image_name,
+                               local_path, build_dir])
+        if err is not None:
+            return set_error(err)
 
         session.add(database.BuildLogLine(experiment_hash=experiment.hash,
                                           line="Build successful"))

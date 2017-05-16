@@ -8,4 +8,4 @@ COPY runner/requirements.txt /usr/src/app
 RUN pip install -r requirements.txt
 COPY runner/runner /usr/src/app/runner
 COPY common/ /usr/src/app/
-CMD ["python", "-m", "runner"]
+CMD ["/bin/sh", "-c", "PATH=\"/usr/local/docker:$PATH\" python -m runner"]
