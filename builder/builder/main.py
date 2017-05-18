@@ -29,6 +29,7 @@ def run_cmd_and_log(session, experiment_hash, cmd):
     proc.stdin.close()
     try:
         for line in iter(proc.stdout.readline, ''):
+            logging.info("> %s", line)
             session.add(database.BuildLogLine(
                 experiment_hash=experiment_hash,
                 line=line.rstrip()))

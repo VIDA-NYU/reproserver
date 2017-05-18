@@ -22,6 +22,7 @@ if 'WEB_BEHIND_PROXY' in os.environ:
 
     # Fix SCRIPT_NAME to allow the app to run under a subdirectory
     old_app = app.wsgi_app
+
     def wsgi_app(environ, start_response):
         script_name = environ.get('HTTP_X_SCRIPT_NAME', '')
         if script_name:

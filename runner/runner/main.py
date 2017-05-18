@@ -26,6 +26,7 @@ def run_cmd_and_log(session, run_id, cmd):
                             stderr=subprocess.STDOUT)
     proc.stdin.close()
     for line in iter(proc.stdout.readline, ''):
+        logging.info("> %s", line)
         session.add(database.RunLogLine(
             run_id=run_id,
             line=line.rstrip()))
