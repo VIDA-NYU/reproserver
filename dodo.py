@@ -273,7 +273,7 @@ def make_k8s_def():
                           "example `tier=dev` or `tier=stable`")
 
     env = jinja2.Environment(loader=jinja2.FileSystemLoader('.'))
-    template = env.get_template('k8s.yml.tpl')
+    template = env.get_template('k8s.tpl.yml')
     with open('k8s.yml', 'w') as out:
         out.write(template.render(
             tier=tier,
@@ -284,6 +284,6 @@ def make_k8s_def():
 def task_k8s():
     return {
         'actions': [make_k8s_def],
-        'file_dep': ['k8s.yml.tpl'],
+        'file_dep': ['k8s.tpl.yml'],
         'targets': ['k8s.yml'],
     }
