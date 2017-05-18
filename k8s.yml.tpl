@@ -95,10 +95,10 @@ spec:
         env:
         - name: REPROZIP_USAGE_STATS
           value: "off"
-        - name: DOCKER_API_VERSION
-          value: "1.23"
         - name: REGISTRY
-          value: "localhost:30500"
+          value: "reproserver-registry-{{ tier }}:5000"
+        - name: DOCKER_HOST
+          value: 127.0.0.1:2375
         - name: AMQP_USER
           valueFrom:
             secretKeyRef:
@@ -137,13 +137,13 @@ spec:
           value: reproserver-postgres-{{ tier }}
         - name: POSTGRES_DB
           value: reproserver
-        volumeMounts:
-        - mountPath: /var/run/docker.sock
-          name: docker-socket
-      volumes:
-      - name: docker-socket
-        hostPath:
-          path: /var/run/docker.sock
+      - name: docker
+        image: docker:dind
+        securityContext:
+          privileged: true
+        args:
+        - "--storage-driver=aufs"
+        - "--insecure-registry=reproserver-registry-{{ tier }}:5000"
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -168,10 +168,10 @@ spec:
         image: reproserver-runner{{ tag }}
         imagePullPolicy: Never
         env:
-        - name: DOCKER_API_VERSION
-          value: "1.23"
         - name: REGISTRY
-          value: "localhost:30500"
+          value: "reproserver-registry-{{ tier }}:5000"
+        - name: DOCKER_HOST
+          value: 127.0.0.1:2375
         - name: AMQP_USER
           valueFrom:
             secretKeyRef:
@@ -210,13 +210,13 @@ spec:
           value: reproserver-postgres-{{ tier }}
         - name: POSTGRES_DB
           value: reproserver
-        volumeMounts:
-        - mountPath: /var/run/docker.sock
-          name: docker-socket
-      volumes:
-      - name: docker-socket
-        hostPath:
-          path: /var/run/docker.sock
+      - name: docker
+        image: docker:dind
+        securityContext:
+          privileged: true
+        args:
+        - "--storage-driver=aufs"
+        - "--insecure-registry=reproserver-registry-{{ tier }}:5000"
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -386,6 +386,22 @@ spec:
   ports:
   - protocol: TCP
     port: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reproserver-registry-{{ tier }}
+  labels:
+    app: reproserver
+    tier: {{ tier }}
+spec:
+  selector:
+    app: reproserver
+    repro-pod: registry
+    tier: {{ tier }}
+  ports:
+  - protocol: TCP
+    port: 5000
 ---
 apiVersion: v1
 kind: Service
