@@ -124,9 +124,12 @@ def reproduce(experiment_code):
                                                  'application/json']) ==
                 'application/json'):
             log_from = request.args.get('log_from', 0)
-            return jsonify({'status': experiment.status,
+            return jsonify({'status': experiment.status.name,
                             'log': experiment.get_log(log_from),
-                            'params': experiment.parameters})
+                            'params': [
+                                {'name': p.name, 'optional': p.optional,
+                                 'default': p.default}
+                                for p in experiment.parameters]})
         # HTML view, return the page
         else:
             # If it's done building, send build log and run form
