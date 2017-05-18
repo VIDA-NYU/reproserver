@@ -143,6 +143,7 @@ spec:
           privileged: true
         args:
         - "--storage-driver=aufs"
+        - "--userns-remap=default"
         - "--insecure-registry=reproserver-registry-{{ tier }}:5000"
 ---
 apiVersion: extensions/v1beta1
@@ -216,6 +217,7 @@ spec:
           privileged: true
         args:
         - "--storage-driver=aufs"
+        - "--userns-remap=default"
         - "--insecure-registry=reproserver-registry-{{ tier }}:5000"
 ---
 apiVersion: extensions/v1beta1
