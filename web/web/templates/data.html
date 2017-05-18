@@ -17,10 +17,10 @@
 
   {% endfor %}
 
-  {% for parameter in experiment.parameter %}
+  {% for parameter in experiment.parameters %}
 
   <p>Parameter: {{ parameter.name }}
-  ({% if parameter.optional %}optional{% else %}required{% endif %})</p>
+  ({% if parameter.optional %}optional{% else %}required{% endif %}): {{ parameter.description }}</p>
 
   {% endfor %}
 

@@ -42,7 +42,7 @@
 
   {% for param in params %}
   <div class="form-group">
-    <label for="param_{{ param.name }}">{{ param.name }}</label>
+    <label for="param_{{ param.name }}">{{ param.description }}</label>
     <input type="text" class="form-control" id="param_{{ param.name }}" name="param_{{ param.name }}" value="{{ param.default }}" placeholder="value">
   </div>
   {% endfor %}
