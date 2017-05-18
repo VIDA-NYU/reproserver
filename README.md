@@ -4,7 +4,7 @@ ReproServer
 Goals
 -----
 
-  - Import something we can build a Docker image from (Dockerfile, ReproZip package, ...)
+  - Import something we can build a Docker image from (currently only a ReproZip package)
   - Build a Docker image from it
   - Allow the user to change experiment parameters and input files
   - Run the experiment
@@ -28,7 +28,7 @@ From the cached Docker image, input files, and parameters, run the experiment an
 How to use
 ----------
 
-This doesn't use docker-compose, because it sucks. To have better control over the build, and to have efficient & automatic builds, [pydoit](http://pydoit.org/) is used to drive Docker.
+This doesn't use docker-compose, because it has [serious limitations](https://github.com/moby/moby/issues/18789). To have better control over the build, and to have efficient & automatic builds, [pydoit](http://pydoit.org/) is used to drive Docker. It can also generate the Kubernetes configuration for you.
 
 Using `doit build` will build the images (`reproserver-*`). Using `doit start` will start all the containers locally. You can use `doit auto start` to automatically rebuild and restart containers when you change their code.
 
