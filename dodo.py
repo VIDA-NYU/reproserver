@@ -1,4 +1,5 @@
 from doit import get_var
+from doit.exceptions import TaskFailed
 import json
 import os
 import subprocess
@@ -261,3 +262,28 @@ def task_start():
             'clean': ['docker stop {0} || true'.format(container),
                       'docker rm {0} || true'.format(container)],
         }
+
+
+def make_k8s_def():
+    import jinja2
+
+    tier = get_var('tier', None)
+    if tier is None:
+        return TaskFailed("Please set the tier on the command-line, for "
+                          "example `tier=dev` or `tier=stable`")
+
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader('.'))
+    template = env.get_template('k8s.yml.tpl')
+    with open('k8s.yml', 'w') as out:
+        out.write(template.render(
+            tier=tier,
+            tag=TAG,
+        ))
+
+
+def task_k8s():
+    return {
+        'actions': [make_k8s_def],
+        'file_dep': ['k8s.yml.tpl'],
+        'targets': ['k8s.yml'],
+    }

@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: reproserver-web-prod
+  labels:
+    app: reproserver
+    tier: prod
+spec:
+  selector:
+    app: reproserver
+    repro-pod: web
+    tier: prod
+  type: NodePort
+  ports:
+  - protocol: TCP
+    port: 8000
+    nodePort: 30080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reproserver-registry-prod
+  labels:
+    app: reproserver
+    tier: prod
+spec:
+  selector:
+    app: reproserver
+    repro-pod: registry
+    tier: prod
+  type: NodePort
+  ports:
+  - protocol: TCP
+    port: 5000
+    nodePort: 30500
