@@ -5,12 +5,37 @@ from flask import Flask, jsonify, redirect, render_template, request, \
 from hashlib import sha256
 import io
 import logging
+import os
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import functions
+from werkzeug.contrib.fixers import ProxyFix
 from werkzeug.utils import secure_filename
 
 
 app = Flask(__name__)
+
+
+# Middleware allowing this to be run behind a reverse proxy
+if 'WEB_BEHIND_PROXY' in os.environ:
+    # Use ProxyFix to fix the remote address, HTTP host and HTTP scheme
+    app.wsgi_app = ProxyFix(app.wsgi_app)
+
+    # Fix SCRIPT_NAME to allow the app to run under a subdirectory
+    old_app = app.wsgi_app
+    def wsgi_app(environ, start_response):
+        script_name = environ.get('HTTP_X_SCRIPT_NAME', '')
+        if script_name:
+            environ['SCRIPT_NAME'] = script_name
+            path_info = environ['PATH_INFO']
+            if path_info.startswith(script_name):
+                environ['PATH_INFO'] = path_info[len(script_name):]
+
+        scheme = environ.get('HTTP_X_SCHEME', '')
+        if scheme:
+            environ['wsgi.url_scheme'] = scheme
+        return old_app(environ, start_response)
+
+    app.wsgi_app = wsgi_app
 
 
 # SQL database
