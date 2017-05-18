@@ -46,6 +46,12 @@ class Experiment(Base):
     def get_log(self, from_line=0):
         return [log.line for log in self.log[from_line:]]
 
+    def __repr__(self):
+        return "<Experiment hash=%r, status=%r, docker_image=%r>" % (
+            self.hash,
+            self.status,
+            self.docker_image)
+
 
 class Upload(Base):
     """An upload of an experiment.
@@ -74,6 +80,12 @@ class Upload(Base):
                                         '|' +
                                         self.filename)
 
+    def __repr__(self):
+        return ("<Upload id=%d, experiment_hash=%r, filename=%r, "
+                "submitted_ip=%r, timestamp=%r>") % (
+            self.id, self.experiment_hash, self.filename,
+            self.submitted_ip, self.timestamp)
+
 
 class Parameter(Base):
     """An experiment parameter.
@@ -93,6 +105,12 @@ class Parameter(Base):
     optional = Column(Boolean, nullable=False)
     default = Column(String, nullable=True)
 
+    def __repr__(self):
+        return ("<Parameter id=%d, experiment_hash=%r, name=%r, optional=%r, "
+                "default=%r") % (
+            self.id, self.experiment_hash, self.name, self.optional,
+            self.default)
+
 
 class Path(Base):
     """Path to an input/output file in the experiment.
@@ -108,6 +126,18 @@ class Path(Base):
     is_output = Column(Boolean, nullable=False)
     name = Column(String, nullable=False)
     path = Column(String, nullable=False)
+
+    def __repr__(self):
+        if self.is_input and self.is_output:
+            descr = "input+output"
+        elif self.is_input:
+            descr = "input"
+        elif self.is_output:
+            descr = "output"
+        else:
+            descr = "(NO FLAG)"
+        return "<Path id=%d, experiment_hash=%r, %s, name=%r>" % (
+            self.id, self.experiment_hash, descr, self.name)
 
 
 class Run(Base):
@@ -138,6 +168,18 @@ class Run(Base):
     def get_log(self, from_line=0):
         return [log.line for log in self.log[from_line:]]
 
+    def __repr__(self):
+        if self.done:
+            status = "done"
+        elif self.started:
+            status = "started"
+        else:
+            status = "submitted"
+        return ("<Run id=%d, experiment_hash=%r, %s, %d parameters, "
+                "%d inputs, %d outputs>") % (
+            self.id, self.experiment_hash, status, len(self.parameter_values),
+            len(self.input_files), len(self.output_files))
+
 
 class BuildLogLine(Base):
     """A line of build log.
@@ -155,6 +197,10 @@ class BuildLogLine(Base):
                        server_default=functions.now())
     line = Column(String, nullable=False)
 
+    def __repr__(self):
+        return "<BuildLogLine id=%d, experiment_hash=%r>" % (
+            self.id, self.experiment_hash)
+
 
 class RunLogLine(Base):
     """A line of run log.
@@ -170,6 +216,9 @@ class RunLogLine(Base):
                        server_default=functions.now())
     line = Column(String, nullable=False)
 
+    def __repr__(self):
+        return "<RunLogLine id=%d, run_id=%d>" % (self.id, self.run_id)
+
 
 class ParameterValue(Base):
     """A value for a parameter in a run.
@@ -181,6 +230,10 @@ class ParameterValue(Base):
     run = relationship('Run', uselist=False, back_populates='parameter_values')
     name = Column(String, nullable=False)
     value = Column(String, nullable=False)
+
+    def __repr__(self):
+        return "<ParameterValue id=%d, run_id=%d, name=%r>" % (
+            self.id, self.run_id, self.name)
 
 
 class InputFile(Base):
@@ -196,6 +249,10 @@ class InputFile(Base):
     name = Column(String, nullable=False)
     size = Column(Integer, nullable=False)
 
+    def __repr__(self):
+        return "<InputFile id=%d, run_id=%d, hash=%r, name=%r>" % (
+            self.id, self.run_id, self.hash, self.name)
+
 
 class OutputFile(Base):
     """An output file from a run.
@@ -209,6 +266,10 @@ class OutputFile(Base):
                        back_populates='output_files')
     name = Column(String, nullable=False)
     size = Column(Integer, nullable=False)
+
+    def __repr__(self):
+        return "<OutputFile id=%d, run_id=%d, hash=%r, name=%r>" % (
+            self.id, self.run_id, self.hash, self.name)
 
 
 def purge(url=None):
