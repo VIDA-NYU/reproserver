@@ -1,0 +1,31 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: reproserver-postgres-prod
+  labels:
+    type: local
+    app: reproserver
+    tier: prod
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/var/reproserver/postgres-prod"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: reproserver-postgres-prod
+spec:
+  storageClassName: ""
+  selector:
+    matchLabels:
+      app: reproserver
+      tier: prod
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi

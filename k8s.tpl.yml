@@ -340,6 +340,15 @@ spec:
               key: password
         ports:
         - containerPort: 5432
+{% if not postgres_no_volume %}
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: reproserver-postgres-{{ tier }}
+{% endif %}
 ---
 apiVersion: v1
 kind: Service

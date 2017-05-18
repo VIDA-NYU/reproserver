@@ -266,28 +266,30 @@ def task_start():
         }
 
 
+K8S_CONFIG = dict(
+    tier=get_var('tier', None),
+    tag=TAG,
+    postgres_no_volume=bool(get_var('postgres_no_volume', False)),
+)
+
+
 def make_k8s_def():
     import jinja2
 
-    tier = get_var('tier', None)
-    if tier is None:
+    if K8S_CONFIG['tier'] is None:
         return TaskFailed("Please set the tier on the command-line, for "
                           "example `tier=dev` or `tier=stable`")
 
     env = jinja2.Environment(loader=jinja2.FileSystemLoader('.'))
     template = env.get_template('k8s.tpl.yml')
     with open('k8s.yml', 'w') as out:
-        out.write(template.render(
-            tier=tier,
-            tag=TAG,
-        ))
+        out.write(template.render(K8S_CONFIG))
 
 
 def task_k8s():
     return {
         'actions': [make_k8s_def],
         'file_dep': ['k8s.tpl.yml'],
-        'uptodate': [config_changed({'tier': get_var('tier', None),
-                                     'tag': TAG})],
+        'uptodate': [config_changed(K8S_CONFIG)],
         'targets': ['k8s.yml'],
     }
