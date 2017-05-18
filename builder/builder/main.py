@@ -123,11 +123,12 @@ def build(channel, method, properties, body):
 
         # Add parameters
         # Command-line of each run
-        for run in info['runs']:
+        for i, run in enumerate(info['runs']):
             cmdline = ' '.join(shell_escape(a) for a in run['argv'])
-            session.add(database.Parameter(experiment_hash=experiment.hash,
-                                           name="cmdline_%s" % run['id'],
-                                           optional=False, default=cmdline))
+            session.add(database.Parameter(
+                experiment_hash=experiment.hash,
+                name="cmdline_%d" % i, optional=False, default=cmdline,
+                description="Command-line for step %s" % run['id']))
         # Input/output files
         for name, iofile in info.get('inputs_outputs', ()).iteritems():
             path = iofile['path']

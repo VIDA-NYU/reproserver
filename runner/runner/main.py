@@ -1,6 +1,6 @@
 from common import database
 from common import TaskQueues, get_object_store
-from common.utils import setup_logging
+from common.utils import setup_logging, shell_escape
 from hashlib import sha256
 import logging
 import os
@@ -128,9 +128,16 @@ def run(channel, method, properties, body):
         container = 'run_%s' % body
         logging.info("Creating container %s with image %s",
                      container, run.experiment.docker_image)
-        # TODO: Turn parameters into a command-line
-        subprocess.check_call(['docker', 'create', '-i', '--name', container,
-                               '--', fq_image_name])
+        # Turn parameters into a command-line
+        cmdline = []
+        for k, v in params.iteritems():
+            if k.startswith('cmdline_'):
+                i = k[8:]
+                cmdline.extend(['cmd', v, 'run', i])
+        cmdline = ['docker', 'create', '-i', '--name', container,
+                   '--', fq_image_name] + cmdline
+        logging.info('$ %s', ' '.join(shell_escape(a) for a in cmdline))
+        subprocess.check_call(cmdline)
 
         for input_file, path in inputs:
             local_path = os.path.join(directory, 'input_%s' % input_file.hash)
@@ -151,9 +158,6 @@ def run(channel, method, properties, body):
 
         # Start container using parameters
         logging.info("Starting container")
-        session.add(database.RunLogLine(
-            run_id=run.id,
-            line="TOOD: parameters are currently ignored"))
         try:
             ret = run_cmd_and_log(session, run.id,
                                   ['docker', 'start', '-ai', '--', container])

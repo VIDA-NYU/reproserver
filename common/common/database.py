@@ -102,6 +102,7 @@ class Parameter(Base):
     experiment = relationship('Experiment', uselist=False,
                               back_populates='parameters')
     name = Column(String, nullable=False)
+    description = Column(String, nullable=False)
     optional = Column(Boolean, nullable=False)
     default = Column(String, nullable=True)
 

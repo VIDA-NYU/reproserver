@@ -1,5 +1,6 @@
 from doit import get_var
 from doit.exceptions import TaskFailed
+from doit.tools import config_changed
 import json
 import os
 import subprocess
@@ -257,7 +258,8 @@ def task_start():
         yield {
             'name': name,
             'actions': [(run, [name, dct])],
-            'uptodate': [container_uptodate(container, dct['image'])],
+            'uptodate': [container_uptodate(container, dct['image']),
+                         config_changed(CONFIG)],
             'task_dep': ['network'] + dct.get('deps', []),
             'clean': ['docker stop {0} || true'.format(container),
                       'docker rm {0} || true'.format(container)],
@@ -285,5 +287,7 @@ def task_k8s():
     return {
         'actions': [make_k8s_def],
         'file_dep': ['k8s.tpl.yml'],
+        'uptodate': [config_changed({'tier': get_var('tier', None),
+                                     'tag': TAG})],
         'targets': ['k8s.yml'],
     }
