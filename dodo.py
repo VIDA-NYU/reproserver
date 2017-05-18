@@ -50,7 +50,7 @@ def merge(*args):
 def exists(object, type):
     def wrapped():
         proc = subprocess.Popen(['docker', 'inspect',
-                                 '--type={0}'.format(type), object],
+                                 '--type={0}'.format(type), '--', object],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
         _, _ = proc.communicate()
@@ -61,7 +61,7 @@ def exists(object, type):
 
 def inspect(object, type):
     proc = subprocess.Popen(['docker', 'inspect', '--type={0}'.format(type),
-                             object],
+                             '--', object],
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
     stdout, _ = proc.communicate()
@@ -160,11 +160,9 @@ def run(name, dct):
     container = PREFIX + name
     info = inspect(container, 'container')
     if info and info[0]['State']['Running']:
-        subprocess.check_call('docker stop {0}'.format(container),
-                              shell=True)
+        subprocess.check_call(['docker', 'stop', '--', container])
     if info:
-        subprocess.check_call('docker rm {0}'.format(container),
-                              shell=True)
+        subprocess.check_call(['docker', 'rm', '--', container])
     command = ['docker', 'run', '-d',
                '--name', container,
                '--network', 'reproserver']
@@ -175,6 +173,7 @@ def run(name, dct):
             command.extend(['-e', '{0}={1}'.format(k, v)])
     for p in dct.get('ports', []):
         command.extend(['-p', p])
+    command.append('--')
     command.append(dct['image'])
     if 'command' in dct:
         command.extend(dct['command'])

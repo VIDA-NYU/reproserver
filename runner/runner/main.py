@@ -129,7 +129,7 @@ def run(channel, method, properties, body):
                      container, run.experiment.docker_image)
         # TODO: Turn parameters into a command-line
         subprocess.check_call(['docker', 'create', '-i', '--name', container,
-                               fq_image_name])
+                               '--', fq_image_name])
 
         for input_file, path in inputs:
             local_path = os.path.join(directory, 'input_%s' % input_file.hash)
@@ -141,7 +141,7 @@ def run(channel, method, properties, body):
 
             # Put file in container
             logging.info("Copying file to container")
-            subprocess.check_call(['docker', 'cp',
+            subprocess.check_call(['docker', 'cp', '--',
                                    local_path,
                                    '%s:%s' % (container, path)])
 
@@ -155,7 +155,7 @@ def run(channel, method, properties, body):
             line="TOOD: parameters are currently ignored"))
         try:
             ret = run_cmd_and_log(session, run.id,
-                                  ['docker', 'start', '-ai', container])
+                                  ['docker', 'start', '-ai', '--', container])
         except IOError:
             return set_error("Got IOError running experiment")
         run.done = functions.now()
@@ -171,7 +171,7 @@ def run(channel, method, properties, body):
 
                 # Copy file out of container
                 logging.info("Getting output file %s", path.name)
-                ret = subprocess.call(['docker', 'cp',
+                ret = subprocess.call(['docker', 'cp', '--',
                                        '%s:%s' % (container, path.path),
                                        local_path])
                 if ret != 0:
@@ -223,9 +223,9 @@ def run(channel, method, properties, body):
     finally:
         # Remove container if created
         if container is not None:
-            subprocess.call(['docker', 'rm', '-f', container])
+            subprocess.call(['docker', 'rm', '-f', '--', container])
         # Remove image
-        subprocess.call(['docker', 'rmi', fq_image_name])
+        subprocess.call(['docker', 'rmi', '--', fq_image_name])
         # Remove build directory
         shutil.rmtree(directory)
 
