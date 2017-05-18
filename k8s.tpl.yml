@@ -327,7 +327,7 @@ spec:
         image: postgres:9.6
         env:
         - name: PGDATA
-          value: /var/lib/postgresql/data/pgdata}
+          value: /var/lib/postgresql/data/pgdata
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
