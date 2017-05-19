@@ -357,6 +357,55 @@ spec:
         persistentVolumeClaim:
           claimName: {{ postgres_volume }}
 {% endif %}
+{% if init_job %}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: reproserver-init-{{ tier }}
+  labels:
+    app: reproserver
+    tier: {{ tier }}
+spec:
+  template:
+    metadata:
+      name: reproserver-init-{{ tier }}
+      labels:
+        app: reproserver
+        tier: {{ tier }}
+    spec:
+      containers:
+      - name: reproserver-init-{{ tier }}
+        image: {{ image_registry }}reproserver-init{{ tag }}
+        env:
+        - name: S3_KEY
+          valueFrom:
+            secretKeyRef:
+              name: reproserver-secret-{{ tier }}
+              key: {% if use_minio %}user{% else %}s3_key{% endif %}
+        - name: S3_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: reproserver-secret-{{ tier }}
+              key: {% if use_minio %}password{% else %}s3_secret{% endif %}
+        - name: S3_URL
+          value: "{{ s3_url }}"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: reproserver-secret-{{ tier }}
+              key: user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: reproserver-secret-{{ tier }}
+              key: password
+        - name: POSTGRES_HOST
+          value: reproserver-postgres-{{ tier }}
+        - name: POSTGRES_DB
+          value: "{{ postgres_db }}"
+      restartPolicy: OnFailure
+{% endif %}
 ---
 apiVersion: v1
 kind: Service

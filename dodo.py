@@ -59,7 +59,7 @@ def list_files(*directories):
 
 
 def task_build():
-    for name in ['web', 'builder', 'runner']:
+    for name in ['web', 'builder', 'runner', 'init']:
         image = PREFIX + name + TAG
         yield {
             'name': name,
@@ -314,6 +314,7 @@ def make_k8s_def():
     context['tag'] = config.pop('tag')
     context['tier'] = config.pop('tier')
     context['postgres_db'] = config.pop('postgres_database', 'reproserver')
+    context['init_job'] = config.pop('init_job', True)
 
     if config:
         sys.stderr.write("Warning: unrecognized config options:\n")

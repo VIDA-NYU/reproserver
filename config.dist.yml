@@ -17,3 +17,5 @@ dev:
   use_minio: true
   minio_volume: false
   postgres_volume: false
+  # Don't run the init job
+  init_job: false

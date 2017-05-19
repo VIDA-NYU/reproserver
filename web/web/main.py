@@ -60,6 +60,7 @@ it = iter(object_store.buckets.all())
 try:
     next(it)
 except StopIteration:
+    logging.info("The buckets don't seem to exist; creating")
     for name in ['experiments', 'inputs', 'outputs']:
         object_store.create_bucket(Bucket=name)
 
