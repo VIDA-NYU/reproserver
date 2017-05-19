@@ -1,0 +1,19 @@
+# Production version
+prod:
+  # Don't use Minio, connect to S3
+  # The 'reproserver-secret-prod' secret needs to have 's3_key' and 's3_secret'
+  use_minio: false
+  # Possible are 'true', 'false' or a PersistentVolumeClaim name
+  postgres_volume: true
+  postgres_database: reproserver
+  # Images will be pulled from that registry, eg vidanyu/reproserver-web:0.3
+  image_registry: "vidanyu"
+  # This can be overridden on the command-line, `doit k8s tier=prod tag=0.4`
+  tag: 0.3
+
+# Development environment, no persistence
+dev:
+  # Use Minio, and store all data in the containers
+  use_minio: true
+  minio_volume: false
+  postgres_volume: false
