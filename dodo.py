@@ -269,6 +269,7 @@ def task_start():
 K8S_CONFIG = dict(
     tier=get_var('tier', None),
     tag=TAG,
+    registry=get_var('registry', None),
     postgres_no_volume=bool(get_var('postgres_no_volume', False)),
     minio_no_volume=bool(get_var('postgres_no_volume', False)),
 )
@@ -280,6 +281,9 @@ def make_k8s_def():
     if K8S_CONFIG['tier'] is None:
         return TaskFailed("Please set the tier on the command-line, for "
                           "example `tier=dev` or `tier=stable`")
+    registry = K8S_CONFIG['registry']
+    if registry:
+        registry = '%s/' % registry
 
     env = jinja2.Environment(loader=jinja2.FileSystemLoader('.'))
     template = env.get_template('k8s.tpl.yml')
