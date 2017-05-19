@@ -270,6 +270,7 @@ K8S_CONFIG = dict(
     tier=get_var('tier', None),
     tag=TAG,
     postgres_no_volume=bool(get_var('postgres_no_volume', False)),
+    minio_no_volume=bool(get_var('postgres_no_volume', False)),
 )
 
 

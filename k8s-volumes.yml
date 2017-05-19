@@ -8,7 +8,7 @@ metadata:
     tier: prod
 spec:
   capacity:
-    storage: 10Gi
+    storage: 5Gi
   accessModes:
     - ReadWriteOnce
   hostPath:
@@ -18,6 +18,38 @@ kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: reproserver-postgres-prod
+spec:
+  storageClassName: ""
+  selector:
+    matchLabels:
+      app: reproserver
+      tier: prod
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: reproserver-minio-prod
+  labels:
+    type: local
+    app: reproserver
+    tier: prod
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/var/reproserver/minio-prod"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: reproserver-minio-prod
 spec:
   storageClassName: ""
   selector:

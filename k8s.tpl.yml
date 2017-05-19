@@ -285,6 +285,15 @@ spec:
               key: password
         ports:
         - containerPort: 9000
+{% if not minio_no_volume %}
+        volumeMounts:
+        - mountPath: /export
+          name: data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: reproserver-minio-{{ tier }}
+{% endif %}
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
