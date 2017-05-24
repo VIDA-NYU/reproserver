@@ -38,29 +38,29 @@
 <form method="POST" action="{{ url_for('run', experiment_code=experiment_code) }}" enctype="multipart/form-data">
   <h3>Parameters</h3>
 
-{% if params %}
+    {% if params %}
 
-  {% for param in params %}
+      {% for param in params %}
   <div class="form-group">
     <label for="param_{{ param.name }}">{{ param.description }}</label>
     <input type="text" class="form-control" id="param_{{ param.name }}" name="param_{{ param.name }}" value="{{ param.default }}" placeholder="value">
   </div>
-  {% endfor %}
+      {% endfor %}
 
-{% else %}
+    {% else %}
   <p>No parameters</p>
-{% endif %}
+    {% endif %}
 
-{% if input_files %}
+    {% if input_files %}
   <h3>Input files</h3>
 
-  {% for file in input_files %}
+      {% for file in input_files %}
   <div class="form-group">
     <label for="inputfile_{{ file.name }}">{{ file.name }}</label>
     <input type="file" class="form-control" id="inputfile_{{ file.name }}" name="inputfile_{{ file.name }}">
   </div>
-  {% endfor %}
-{% endif %}
+      {% endfor %}
+    {% endif %}
 
   <button type="submit" class="btn btn-default">Run</button>
 </form>
@@ -81,6 +81,12 @@
 <p>Waiting for an available builder...</p>
 
   {% endif %}
+
+<script>
+setTimeout(function(){
+   window.location.reload(1);
+}, 5000);
+</script>
 
 {% endif %}
 
