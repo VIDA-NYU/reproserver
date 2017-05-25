@@ -23,6 +23,18 @@
 You can also choose one of the examples below.</p>
 
 <h2>Examples</h2>
-<p>TODO: Some examples here for people to try out</p>
+{% if examples %}
+
+  {% for example in examples %}
+
+<p><a href="{{ url_for('reproduce', experiment_code=example.upload.experiment_code) }}">{{ example.upload.filename }}</a>: {{ example.description }}</p>
+
+  {% endfor %}
+
+{% else %}
+
+<p>No examples on this server yet.</p>
+
+{% endif %}
 
 {% endblock content %}

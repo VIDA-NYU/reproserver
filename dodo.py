@@ -13,33 +13,9 @@ DOIT_CONFIG = {
 }
 
 PREFIX = get_var('prefix', 'reproserver-')
-TAG = ':%s' % (get_var('tag', '') or 'latest')
-
-
-CONFIG = {
-    'ADMIN_USER': 'reproserver',
-    'ADMIN_PASSWORD': 'hackmehackme',
-    'AMQP_HOST': '%srabbitmq' % PREFIX,
-    'S3_URL': 'http://%sminio:9000' % PREFIX,
-    'POSTGRES_HOST': '%spostgres' % PREFIX,
-    'POSTGRES_DB': 'reproserver',
-}
-if os.path.exists('config.py'):
-    with open('config.py') as f:
-        code = compile(f.read(), 'config.py', 'exec')
-        exec(code, CONFIG, CONFIG)
-else:
-    sys.stderr.write("config.py doesn't exist, using default values\n")
-AMQP_USER = CONFIG.get('AMQP_USER') or CONFIG['ADMIN_USER']
-AMQP_PASSWORD = CONFIG.get('AMQP_PASSWORD') or CONFIG['ADMIN_PASSWORD']
-AMQP_HOST = CONFIG['AMQP_HOST']
-S3_KEY = CONFIG.get('S3_KEY') or CONFIG['ADMIN_USER']
-S3_SECRET = CONFIG.get('S3_SECRET') or CONFIG['ADMIN_PASSWORD']
-S3_URL = CONFIG.get('S3_URL')
-POSTGRES_USER = CONFIG.get('POSTGRES_USER') or CONFIG['ADMIN_USER']
-POSTGRES_PASSWORD = CONFIG.get('POSTGRES_PASSWORD') or CONFIG['ADMIN_PASSWORD']
-POSTGRES_HOST = CONFIG['POSTGRES_HOST']
-POSTGRES_DB = CONFIG['POSTGRES_DB']
+TAG = get_var('tag', '')
+if TAG:
+    TAG = ':%s' % TAG
 
 
 def merge(*args):
@@ -83,7 +59,7 @@ def list_files(*directories):
 
 
 def task_build():
-    for name in ['web', 'builder', 'runner']:
+    for name in ['web', 'builder', 'runner', 'init']:
         image = PREFIX + name + TAG
         yield {
             'name': name,
@@ -182,17 +158,19 @@ def run(name, dct):
     subprocess.check_call(command)
 
 
+ADMIN_USER = 'reproserver'
+ADMIN_PASSWORD = 'hackmehackme'
 common_env = {
-    'AMQP_USER': AMQP_USER,
-    'AMQP_PASSWORD': AMQP_PASSWORD,
-    'AMQP_HOST': AMQP_HOST,
-    'S3_KEY': S3_KEY,
-    'S3_SECRET': S3_SECRET,
-    'S3_URL': S3_URL,
-    'POSTGRES_USER': POSTGRES_USER,
-    'POSTGRES_PASSWORD': POSTGRES_PASSWORD,
-    'POSTGRES_HOST': POSTGRES_HOST,
-    'POSTGRES_DB': POSTGRES_DB,
+    'AMQP_USER': ADMIN_USER,
+    'AMQP_PASSWORD': ADMIN_PASSWORD,
+    'AMQP_HOST': '%srabbitmq' % PREFIX,
+    'S3_KEY': ADMIN_USER,
+    'S3_SECRET': ADMIN_PASSWORD,
+    'S3_URL': 'http://%sminio:9000' % PREFIX,
+    'POSTGRES_USER': ADMIN_USER,
+    'POSTGRES_PASSWORD': ADMIN_PASSWORD,
+    'POSTGRES_HOST': '%spostgres' % PREFIX,
+    'POSTGRES_DB': 'reproserver',
 }
 services = [
     ('web', {
@@ -222,8 +200,8 @@ services = [
         'image': 'rabbitmq:3.6.9-management',
         'deps': ['pull:rabbitmq', 'volume:rabbitmq'],
         'volumes': ['{p}rabbitmq:/var/lib/rabbitmq'],
-        'env': {'RABBITMQ_DEFAULT_USER': AMQP_USER,
-                'RABBITMQ_DEFAULT_PASS': AMQP_PASSWORD},
+        'env': {'RABBITMQ_DEFAULT_USER': ADMIN_USER,
+                'RABBITMQ_DEFAULT_PASS': ADMIN_PASSWORD},
         'ports': ['8080:15672'],
     }),
     ('minio', {
@@ -231,8 +209,8 @@ services = [
         'deps': ['pull:minio', 'volume:minio'],
         'command': ['server', '/export'],
         'volumes': ['{p}minio:/export'],
-        'env': {'MINIO_ACCESS_KEY': S3_KEY,
-                'MINIO_SECRET_KEY': S3_SECRET},
+        'env': {'MINIO_ACCESS_KEY': ADMIN_USER,
+                'MINIO_SECRET_KEY': ADMIN_PASSWORD},
         'ports': ['9000:9000'],
     }),
     ('registry', {
@@ -245,8 +223,8 @@ services = [
         'deps': ['pull:postgres', 'volume:postgres'],
         'volumes': ['{p}postgres:/var/lib/postgresql/data'],
         'env': {'PGDATA': '/var/lib/postgresql/data/pgdata',
-                'POSTGRES_USER': POSTGRES_USER,
-                'POSTGRES_PASSWORD': POSTGRES_PASSWORD},
+                'POSTGRES_USER': ADMIN_USER,
+                'POSTGRES_PASSWORD': ADMIN_PASSWORD},
         'ports': ['5432:5432'],
     }),
 ]
@@ -259,38 +237,100 @@ def task_start():
             'name': name,
             'actions': [(run, [name, dct])],
             'uptodate': [container_uptodate(container, dct['image']),
-                         config_changed(CONFIG)],
+                         config_changed([PREFIX, TAG])],
             'task_dep': ['network'] + dct.get('deps', []),
             'clean': ['docker stop {0} || true'.format(container),
                       'docker rm {0} || true'.format(container)],
         }
 
 
-K8S_CONFIG = dict(
-    tier=get_var('tier', None),
-    tag=TAG,
-    postgres_no_volume=bool(get_var('postgres_no_volume', False)),
-    minio_no_volume=bool(get_var('postgres_no_volume', False)),
-)
+_k8s_config = None
+
+def get_k8s_config():
+    global _k8s_config
+
+    if _k8s_config is not None:
+        return _k8s_config
+
+    tier = get_var('tier', None)
+    if tier is None:
+        return {'error': "Please set the tier on the command-line, for "
+                         "example `tier=dev` or `tier=prod`"}
+
+    if os.path.exists('config.yml'):
+        import yaml
+
+        with open('config.yml', encoding='utf-8') as fp:
+            config = yaml.safe_load(fp)
+
+        if tier not in config:
+            return {'error': "config.yml doesn't have an entry for tier=%s" %
+                             tier}
+        _k8s_config = config[tier]
+    else:
+        sys.stderr.write("config.yml doesn't exist, using default values\n")
+        _k8s_config = {}
+    _k8s_config['tier'] = tier
+    if TAG:
+        _k8s_config['tag'] = TAG
+    return _k8s_config
 
 
 def make_k8s_def():
     import jinja2
 
-    if K8S_CONFIG['tier'] is None:
-        return TaskFailed("Please set the tier on the command-line, for "
-                          "example `tier=dev` or `tier=stable`")
+    config = get_k8s_config()
+
+    if 'error' in config:
+        raise ValueError(config['error'])
+
+    context = {}
+
+    registry = config.pop('image_registry', None)
+    if registry:
+        context['image_registry'] = '%s/' % registry
+
+    for key in ['postgres', 'minio']:
+        value = config.pop('%s_volume' % key, None)
+        if isinstance(value, str):
+            pass
+        elif value:
+            value = 'reproserver-{key}-{tier}'.format(key=key,
+                                                      tier=config['tier'])
+        else:
+            value = ''
+        context['%s_volume' % key] = value
+
+    context['use_minio'] = use_minio = config.pop('use_minio', False)
+    if use_minio:
+        context['s3_url'] = 'http://reproserver-minio-{tier}:9000'.format(
+            tier=config['tier'])
+    else:
+        context['s3_url'] = ''
+
+    if 'tag' not in config:
+        return TaskFailed("You must set a tag explicitly, either in "
+                          "config.yml or on the command-line")
+    context['tag'] = config.pop('tag')
+    context['tier'] = config.pop('tier')
+    context['postgres_db'] = config.pop('postgres_database', 'reproserver')
+    context['init_job'] = config.pop('init_job', True)
+
+    if config:
+        sys.stderr.write("Warning: unrecognized config options:\n")
+        for k in config:
+            sys.stderr.write("    %s\n" % k)
 
     env = jinja2.Environment(loader=jinja2.FileSystemLoader('.'))
     template = env.get_template('k8s.tpl.yml')
     with open('k8s.yml', 'w') as out:
-        out.write(template.render(K8S_CONFIG))
+        out.write(template.render(context))
 
 
 def task_k8s():
     return {
         'actions': [make_k8s_def],
         'file_dep': ['k8s.tpl.yml'],
-        'uptodate': [config_changed(K8S_CONFIG)],
+        'uptodate': [config_changed(get_k8s_config())],
         'targets': ['k8s.yml'],
     }

@@ -60,6 +60,7 @@ it = iter(object_store.buckets.all())
 try:
     next(it)
 except StopIteration:
+    logging.info("The buckets don't seem to exist; creating")
     for name in ['experiments', 'inputs', 'outputs']:
         object_store.create_bucket(Bucket=name)
 
@@ -68,7 +69,9 @@ except StopIteration:
 def index():
     """Landing page from which a user can select an experiment to unpack.
     """
-    return render_template('index.html')
+    session = SQLSession()
+    examples = session.query(database.Example).all()
+    return render_template('index.html', examples=examples)
 
 
 @app.route('/upload', methods=['POST'])

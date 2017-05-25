@@ -240,7 +240,6 @@ def main():
 
     # SQL database
     global SQLSession
-    logging.info("Connecting to SQL database")
     engine, SQLSession = database.connect()
 
     # AMQP

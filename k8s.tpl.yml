@@ -18,8 +18,7 @@ spec:
     spec:
       containers:
       - name: web
-        image: reproserver-web{{ tag }}
-        imagePullPolicy: Never
+        image: {{ image_registry }}reproserver-web{{ tag }}
         env:
         - name: AMQP_USER
           valueFrom:
@@ -37,14 +36,14 @@ spec:
           valueFrom:
             secretKeyRef:
               name: reproserver-secret-{{ tier }}
-              key: user
+              key: {% if use_minio %}user{% else %}s3_key{% endif %}
         - name: S3_SECRET
           valueFrom:
             secretKeyRef:
               name: reproserver-secret-{{ tier }}
-              key: password
+              key: {% if use_minio %}password{% else %}s3_secret{% endif %}
         - name: S3_URL
-          value: "http://reproserver-minio-{{ tier }}:9000"
+          value: "{{ s3_url }}"
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
@@ -58,7 +57,7 @@ spec:
         - name: POSTGRES_HOST
           value: reproserver-postgres-{{ tier }}
         - name: POSTGRES_DB
-          value: reproserver
+          value: "{{ postgres_db }}"
         - name: WEB_BEHIND_PROXY
           value: "1"
         ports:
@@ -90,8 +89,7 @@ spec:
     spec:
       containers:
       - name: builder
-        image: reproserver-builder{{ tag }}
-        imagePullPolicy: Never
+        image: {{ image_registry }}reproserver-builder{{ tag }}
         env:
         - name: REPROZIP_USAGE_STATS
           value: "off"
@@ -115,14 +113,14 @@ spec:
           valueFrom:
             secretKeyRef:
               name: reproserver-secret-{{ tier }}
-              key: user
+              key: {% if use_minio %}user{% else %}s3_key{% endif %}
         - name: S3_SECRET
           valueFrom:
             secretKeyRef:
               name: reproserver-secret-{{ tier }}
-              key: password
+              key: {% if use_minio %}password{% else %}s3_secret{% endif %}
         - name: S3_URL
-          value: "http://reproserver-minio-{{ tier }}:9000"
+          value: "{{ s3_url }}"
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
@@ -136,7 +134,7 @@ spec:
         - name: POSTGRES_HOST
           value: reproserver-postgres-{{ tier }}
         - name: POSTGRES_DB
-          value: reproserver
+          value: "{{ postgres_db }}"
       - name: docker
         image: docker:dind
         securityContext:
@@ -166,8 +164,7 @@ spec:
     spec:
       containers:
       - name: runner
-        image: reproserver-runner{{ tag }}
-        imagePullPolicy: Never
+        image: {{ image_registry }}reproserver-runner{{ tag }}
         env:
         - name: REGISTRY
           value: "reproserver-registry-{{ tier }}:5000"
@@ -189,14 +186,14 @@ spec:
           valueFrom:
             secretKeyRef:
               name: reproserver-secret-{{ tier }}
-              key: user
+              key: {% if use_minio %}user{% else %}s3_key{% endif %}
         - name: S3_SECRET
           valueFrom:
             secretKeyRef:
               name: reproserver-secret-{{ tier }}
-              key: password
+              key: {% if use_minio %}password{% else %}s3_secret{% endif %}
         - name: S3_URL
-          value: "http://reproserver-minio-{{ tier }}:9000"
+          value: "{{ s3_url }}"
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
@@ -210,7 +207,7 @@ spec:
         - name: POSTGRES_HOST
           value: reproserver-postgres-{{ tier }}
         - name: POSTGRES_DB
-          value: reproserver
+          value: "{{ postgres_db }}"
       - name: docker
         image: docker:dind
         securityContext:
@@ -252,6 +249,7 @@ spec:
         ports:
         - containerPort: 5672
         - containerPort: 8080
+{% if use_minio %}
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -285,14 +283,15 @@ spec:
               key: password
         ports:
         - containerPort: 9000
-{% if not minio_no_volume %}
+{% if minio_volume %}
         volumeMounts:
         - mountPath: /export
           name: data
       volumes:
       - name: data
         persistentVolumeClaim:
-          claimName: reproserver-minio-{{ tier }}
+          claimName: {{ minio_volume }}
+{% endif %}
 {% endif %}
 ---
 apiVersion: extensions/v1beta1
@@ -349,14 +348,63 @@ spec:
               key: password
         ports:
         - containerPort: 5432
-{% if not postgres_no_volume %}
+{% if postgres_volume %}
         volumeMounts:
         - mountPath: /var/lib/postgresql/data
           name: data
       volumes:
       - name: data
         persistentVolumeClaim:
-          claimName: reproserver-postgres-{{ tier }}
+          claimName: {{ postgres_volume }}
+{% endif %}
+{% if init_job %}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: reproserver-init-{{ tier }}
+  labels:
+    app: reproserver
+    tier: {{ tier }}
+spec:
+  template:
+    metadata:
+      name: reproserver-init-{{ tier }}
+      labels:
+        app: reproserver
+        tier: {{ tier }}
+    spec:
+      containers:
+      - name: reproserver-init-{{ tier }}
+        image: {{ image_registry }}reproserver-init{{ tag }}
+        env:
+        - name: S3_KEY
+          valueFrom:
+            secretKeyRef:
+              name: reproserver-secret-{{ tier }}
+              key: {% if use_minio %}user{% else %}s3_key{% endif %}
+        - name: S3_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: reproserver-secret-{{ tier }}
+              key: {% if use_minio %}password{% else %}s3_secret{% endif %}
+        - name: S3_URL
+          value: "{{ s3_url }}"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: reproserver-secret-{{ tier }}
+              key: user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: reproserver-secret-{{ tier }}
+              key: password
+        - name: POSTGRES_HOST
+          value: reproserver-postgres-{{ tier }}
+        - name: POSTGRES_DB
+          value: "{{ postgres_db }}"
+      restartPolicy: OnFailure
 {% endif %}
 ---
 apiVersion: v1
