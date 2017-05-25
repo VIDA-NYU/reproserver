@@ -57,15 +57,20 @@ def main():
 
     # Download the examples and add them
     examples = [
-        ('bash-count.rpz', 'https://drive.google.com/uc?export=download&id=0B3'
-                           'ucPz7GSthBeDFuMkRXLUlzem8'),
         ('bechdel.rpz', 'https://drive.google.com/uc?export=download&id=0B3ucP'
-                        'z7GSthBRjVqZ2xFeGpITTQ'),
+                        'z7GSthBRjVqZ2xFeGpITTQ',
+         "Attempt to replicate the findings from a FiveThirtyEight article "
+         "examining gender bias in the movie business"),
         ('digits_sklearn_opencv.rpz', 'https://drive.google.com/uc?export=down'
-                                      'load&id=0B3ucPz7GSthBZm5Wa1lxNWZFVTA'),
+                                      'load&id=0B3ucPz7GSthBZm5Wa1lxNWZFVTA',
+         "Recognizing the value of hand-written digits using OpenCV and "
+         "scikit-learn"),
+        ('bash-count.rpz', 'https://drive.google.com/uc?export=download&id=0B3'
+                           'ucPz7GSthBeDFuMkRXLUlzem8',
+         "Simple bash script counting the lines in a file"),
     ]
 
-    for name, url in examples:
+    for name, url, description in examples:
         # Download
         logging.info("Downloading %s", name)
         local_path = os.path.join('/tmp', name)
@@ -98,9 +103,12 @@ def main():
                 # Insert it in database
                 experiment = database.Experiment(hash=filehash)
                 session.add(experiment)
-                session.add(database.Upload(experiment=experiment,
-                                            filename=name,
-                                            submitted_ip='127.0.0.1'))
+                upload = database.Upload(experiment=experiment,
+                                         filename=name,
+                                         submitted_ip='127.0.0.1')
+                session.add(upload)
+                session.add(database.Example(upload=upload,
+                                             description=description))
                 session.commit()
                 logging.info("Inserted file in database")
         finally:

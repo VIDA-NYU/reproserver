@@ -69,7 +69,9 @@ except StopIteration:
 def index():
     """Landing page from which a user can select an experiment to unpack.
     """
-    return render_template('index.html')
+    session = SQLSession()
+    examples = session.query(database.Example).all()
+    return render_template('index.html', examples=examples)
 
 
 @app.route('/upload', methods=['POST'])
