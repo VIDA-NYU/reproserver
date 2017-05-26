@@ -244,6 +244,18 @@ def task_start():
         }
 
 
+def task_init():
+    dct = {
+        'image': PREFIX + 'init' + TAG,
+        'deps': ['start:rabbitmq', 'start:postgres', 'build:init'],
+        'env': common_env,
+    }
+    return {
+        'actions': [(run, ['init', dct])],
+        'task_dep': ['network'] + dct.get('deps', []),
+    }
+
+
 _k8s_config = None
 
 def get_k8s_config():
