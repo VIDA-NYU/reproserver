@@ -237,7 +237,7 @@ def task_start():
             'name': name,
             'actions': [(run, [name, dct])],
             'uptodate': [container_uptodate(container, dct['image']),
-                         config_changed([PREFIX, TAG])],
+                         config_changed({'prefix': PREFIX, 'tag': TAG})],
             'task_dep': ['network'] + dct.get('deps', []),
             'clean': ['docker stop {0} || true'.format(container),
                       'docker rm {0} || true'.format(container)],
@@ -250,7 +250,7 @@ def get_k8s_config():
     global _k8s_config
 
     if _k8s_config is not None:
-        return _k8s_config
+        return dict(_k8s_config)
 
     tier = get_var('tier', None)
     if tier is None:
@@ -273,7 +273,7 @@ def get_k8s_config():
     _k8s_config['tier'] = tier
     if TAG:
         _k8s_config['tag'] = TAG
-    return _k8s_config
+    return dict(_k8s_config)
 
 
 def make_k8s_def():
