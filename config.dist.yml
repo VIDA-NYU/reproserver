@@ -6,10 +6,10 @@ prod:
   # Possible are 'true', 'false' or a PersistentVolumeClaim name
   postgres_volume: true
   postgres_database: reproserver
-  # Images will be pulled from that registry, eg vidanyu/reproserver-web:0.3
+  # Images will be pulled from that registry, eg vidanyu/reproserver-web:0.4
   image_registry: "vidanyu"
-  # This can be overridden on the command-line, `doit k8s tier=prod tag=0.4`
-  tag: 0.3
+  # This can be overridden on the command-line, `doit k8s tier=prod tag=0.3`
+  tag: 0.4
 
 # Development environment, no persistence
 dev:
