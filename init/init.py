@@ -92,26 +92,32 @@ def main():
                 experiment = session.query(database.Experiment).get(filehash)
                 if experiment:
                     logging.info("File %s exists", name)
-                    continue
-
+                else:
                     # Rewind it
-                downloaded_file.seek(0, 0)
+                    downloaded_file.seek(0, 0)
 
-                # Insert it on S3
-                s3.Object('experiments', filehash).put(Body=downloaded_file)
-                logging.info("Inserted file in storage")
+                    # Insert it on S3
+                    s3.Object('experiments', filehash).put(Body=downloaded_file)
+                    logging.info("Inserted file in storage")
 
-                # Insert it in database
-                experiment = database.Experiment(hash=filehash)
-                session.add(experiment)
-                upload = database.Upload(experiment=experiment,
-                                         filename=name,
-                                         submitted_ip='127.0.0.1')
-                session.add(upload)
-                session.add(database.Example(upload=upload,
-                                             description=description))
+                    # Insert it in database
+                    experiment = database.Experiment(hash=filehash)
+                    session.add(experiment)
+
+                # Check for existence of example
+                examples = session.query(database.Example).filter(
+                    database.Example.upload.has(experiment_hash=filehash))
+                if examples.count():
+                    logging.info("Example for %s exists", name)
+                else:
+                    upload = database.Upload(experiment=experiment,
+                                             filename=name,
+                                             submitted_ip='127.0.0.1')
+                    session.add(upload)
+                    session.add(database.Example(upload=upload,
+                                                 description=description))
+                    logging.info("Inserted file in database")
                 session.commit()
-                logging.info("Inserted file in database")
         finally:
             # Remove
             os.remove(local_path)
