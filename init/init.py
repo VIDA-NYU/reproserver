@@ -57,16 +57,17 @@ def main():
 
     # Download the examples and add them
     examples = [
-        ('bechdel.rpz', 'https://drive.google.com/uc?export=download&id=0B3ucP'
-                        'z7GSthBRjVqZ2xFeGpITTQ',
+        ('bechdel.rpz', 'http://reproserver-examples.s3-website-us-east-1.amaz'
+                        'onaws.com/bechdel.rpz',
          "Attempt to replicate the findings from a FiveThirtyEight article "
          "examining gender bias in the movie business"),
-        ('digits_sklearn_opencv.rpz', 'https://drive.google.com/uc?export=down'
-                                      'load&id=0B3ucPz7GSthBZm5Wa1lxNWZFVTA',
+        ('digits_sklearn_opencv.rpz', 'http://reproserver-examples.s3-website-'
+                                      'us-east-1.amazonaws.com/digits_sklearn_'
+                                      'opencv.rpz',
          "Recognizing the value of hand-written digits using OpenCV and "
          "scikit-learn"),
-        ('bash-count.rpz', 'https://drive.google.com/uc?export=download&id=0B3'
-                           'ucPz7GSthBeDFuMkRXLUlzem8',
+        ('bash-count.rpz', 'http://reproserver-examples.s3-website-us-east-1.a'
+                           'mazonaws.com/bash-count.rpz',
          "Simple bash script counting the lines in a file"),
     ]
 
