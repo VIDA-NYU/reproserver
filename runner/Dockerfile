@@ -8,4 +8,6 @@ COPY runner/requirements.txt /usr/src/app
 RUN pip install -r requirements.txt
 COPY runner/runner /usr/src/app/runner
 COPY common/ /usr/src/app/
+RUN useradd -d /usr/src/app -s /usr/sbin/nologin appuser
+USER appuser
 CMD ["/bin/sh", "-c", "PATH=\"/usr/local/docker:$PATH\" python -m runner"]
