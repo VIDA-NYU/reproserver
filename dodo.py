@@ -265,6 +265,7 @@ def get_k8s_config():
         return dict(_k8s_config)
 
     tier = get_var('tier', None)
+    storage_driver = get_var('storage_driver', 'overlay2')
     if tier is None:
         return {'error': "Please set the tier on the command-line, for "
                          "example `tier=dev` or `tier=prod`"}
@@ -283,6 +284,7 @@ def get_k8s_config():
         sys.stderr.write("config.yml doesn't exist, using default values\n")
         _k8s_config = {}
     _k8s_config['tier'] = tier
+    _k8s_config['storage_driver'] = storage_driver
     if TAG:
         _k8s_config['tag'] = TAG
     return dict(_k8s_config)
@@ -327,6 +329,7 @@ def make_k8s_def():
     context['tier'] = config.pop('tier')
     context['postgres_db'] = config.pop('postgres_database', 'reproserver')
     context['init_job'] = config.pop('init_job', True)
+    context['storage_driver'] = config.pop('storage_driver')
 
     if config:
         sys.stderr.write("Warning: unrecognized config options:\n")
