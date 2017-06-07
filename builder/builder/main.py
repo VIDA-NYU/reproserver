@@ -64,6 +64,10 @@ def build(channel, method, properties, body):
         logging.warning("Building experiment which has status %r",
                         experiment.status)
     experiment.status = database.Status.BUILDING
+    experiment.docker_image = None
+    experiment.parameters[:] = []
+    experiment.paths[:] = []
+    experiment.log[:] = []
     session.commit()
     logging.info("Set status to BUILDING")
 
