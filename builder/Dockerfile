@@ -12,6 +12,9 @@ COPY builder/requirements.txt /usr/src/app
 RUN pip install -r requirements.txt
 COPY builder/builder /usr/src/app/builder
 COPY common/ /usr/src/app/
-RUN useradd -d /usr/src/app -s /usr/sbin/nologin appuser
+RUN mkdir /usr/src/app/home && \
+    useradd -d /usr/src/app/home -s /usr/sbin/nologin appuser && \
+    chown appuser /usr/src/app/home
 USER appuser
+ENV HOME=/usr/src/app/home
 CMD ["/bin/sh", "-c", "PATH=\"/usr/local/docker:$PATH\" python -m builder"]

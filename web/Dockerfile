@@ -8,7 +8,10 @@ COPY web/web /usr/src/app/web
 COPY common/ /usr/src/app/
 COPY web/entrypoint.sh /usr/src/app/
 RUN chmod +x entrypoint.sh
-RUN useradd -d /usr/src/app -s /usr/sbin/nologin appuser
+RUN mkdir /usr/src/app/home && \
+    useradd -d /usr/src/app/home -s /usr/sbin/nologin appuser && \
+    chown appuser /usr/src/app/home
+ENV HOME=/usr/src/app/home
 EXPOSE 8000
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
 CMD ["server"]
