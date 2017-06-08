@@ -153,7 +153,9 @@ class Run(Base):
                                                 ondelete='CASCADE'))
     experiment = relationship('Experiment', uselist=False,
                               back_populates='runs')
-    experiment_filename = Column(String, nullable=False)
+    upload_id = Column(Integer, ForeignKey('uploads.id',
+                                           ondelete='RESTRICT'))
+    upload = relationship('Upload', uselist=False)
     submitted = Column(DateTime, nullable=False,
                        server_default=functions.now())
     started = Column(DateTime, nullable=True)

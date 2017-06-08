@@ -231,7 +231,7 @@ def run(experiment_code):
     # New run entry
     try:
         run = database.Run(experiment_hash=experiment.hash,
-                           experiment_filename=filename)
+                           upload_id=upload_id)
         session.add(run)
 
         # Get list of parameters
@@ -336,9 +336,7 @@ def results(run_id):
                         'log': run.get_log(log_from)})
     # HTML view, return the page
     else:
-        experiment_code = base64.urlsafe_b64encode(run.experiment_hash +
-                                                   '|' +
-                                                   run.experiment_filename)
+        experiment_code = short_ids.encode(run.upload_id)
         return render_template('results.html', run=run,
                                log=run.get_log(0),
                                started=bool(run.started),
