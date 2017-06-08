@@ -1,0 +1,59 @@
+__all__ = ['ShortIDs']
+
+
+CHARS = u'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz-_'
+
+
+def _encode(nb, min_chars, chars):
+    nb_chars = len(chars)
+    shortid = []
+    idx = 0
+    i = 0
+    while nb or i < min_chars:
+        idx = (idx + nb) % nb_chars
+        shortid.append(chars[idx])
+        idx += 1
+        nb = nb // nb_chars
+        i += 1
+    return u''.join(reversed(shortid))
+
+
+def _decode(shortid, cmap):
+    nb_chars = len(cmap)
+    nb = 0
+    e = 1
+    prev_idx = 0
+    for c in reversed(shortid):
+        idx = cmap[c]
+        d = (idx - prev_idx) % nb_chars
+        nb += d * e
+        prev_idx = idx + 1
+        e *= nb_chars
+    return nb
+
+
+class ShortIDs(object):
+    """Encodes IDs as short strings.
+
+    This turns a number into a short random-looking string like 'dxT2_x'.
+    """
+    def __init__(self, salt):
+        chars = list(CHARS)
+        l = len(salt)
+        nb_chars = len(chars)
+        for i in range(nb_chars):
+            s = ord(salt[i % l])
+            j = i + s % (nb_chars - i)
+            chars[i], chars[j] = chars[j], chars[i]
+        self.chars = u''.join(chars)
+        self.cmap = dict((c, i) for i, c in enumerate(self.chars))
+
+    def encode(self, nb, min_chars=5):
+        """Encode a number into a random-looking short ID.
+        """
+        return _encode(nb, min_chars, self.chars)
+
+    def decode(self, shortid):
+        """Decode a random-looking short ID into the original number.
+        """
+        return _decode(shortid, self.cmap)
