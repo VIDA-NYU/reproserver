@@ -41,4 +41,12 @@
 
 {% endif %}
 
+{% if not run.done %}
+<script>
+setTimeout(function(){
+   window.location.reload(1);
+}, 5000);
+</script>
+{% endif %}
+
 {% endblock content %}
