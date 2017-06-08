@@ -1,5 +1,6 @@
 import base64
 from common import database, TaskQueues, get_object_store
+from common.shortid import ShortIDs
 from flask import Flask, jsonify, redirect, render_template, request, \
     url_for, send_file
 from hashlib import sha256
@@ -13,6 +14,9 @@ from werkzeug.utils import secure_filename
 
 
 app = Flask(__name__)
+
+
+short_ids = ShortIDs(os.environ['SHORTIDS_SALT'])
 
 
 # Middleware allowing this to be run behind a reverse proxy
@@ -112,13 +116,14 @@ def unpack():
         # Insert it in database
         experiment = database.Experiment(hash=filehash)
         session.add(experiment)
-    session.add(database.Upload(experiment=experiment,
-                                filename=filename,
-                                submitted_ip=request.remote_addr))
+    upload = database.Upload(experiment=experiment,
+                             filename=filename,
+                             submitted_ip=request.remote_addr)
+    session.add(upload)
     session.commit()
 
-    # Encode hash + filename for permanent URL
-    experiment_code = base64.urlsafe_b64encode(filehash + '|' + filename)
+    # Encode ID for permanent URL
+    experiment_code = upload.experiment_code
 
     # Redirect to build page
     return redirect(url_for('reproduce', experiment_code=experiment_code), 302)
@@ -131,19 +136,20 @@ def reproduce(experiment_code):
     # Decode info from URL
     app.logger.info("Decoding %r", experiment_code)
     try:
-        permanent_id = base64.urlsafe_b64decode(
-            experiment_code.encode('ascii'))
-        sep = permanent_id.index('|')
+        upload_id = short_ids.decode(experiment_code)
     except Exception:
         return render_template('setup_notfound.html'), 404
-    filehash = permanent_id[:sep]
-    filename = permanent_id[sep + 1:]
 
     # Look up the experiment in database
     session = SQLSession()
-    experiment = session.query(database.Experiment).get(filehash)
-    if not experiment:
+    upload = (session.query(database.Upload)
+                  .options(joinedload(database.Upload.experiment))
+                  .get(upload_id))
+    if not upload:
         return render_template('setup_notfound.html'), 404
+    experiment = upload.experiment
+    filename = upload.filename
+
     # Also updates last access
     experiment.last_access = functions.now()
 
@@ -191,7 +197,7 @@ def reproduce(experiment_code):
                 if experiment.status == database.Status.NOBUILD:
                     app.logger.info("Triggering a build, sending message")
                     experiment.status = database.Status.QUEUED
-                    tasks.publish_build_task(filehash)
+                    tasks.publish_build_task(experiment.hash)
                 return render_template('setup.html', filename=filename,
                                        built=False,
                                        experiment_code=experiment_code)
@@ -208,23 +214,23 @@ def run(experiment_code):
     # Decode info from URL
     app.logger.info("Decoding %r", experiment_code)
     try:
-        permanent_id = base64.urlsafe_b64decode(
-            experiment_code.encode('ascii'))
-        sep = permanent_id.index('|')
+        upload_id = short_ids.decode(experiment_code)
     except Exception:
         return render_template('setup_notfound.html'), 404
-    filehash = permanent_id[:sep]
-    filename = permanent_id[sep + 1:]
 
     # Look up the experiment in database
     session = SQLSession()
-    experiment = session.query(database.Experiment).get(filehash)
-    if not experiment:
+    upload = (session.query(database.Upload)
+              .options(joinedload(database.Upload.experiment))
+              .get(upload_id))
+    if not upload:
         return render_template('setup_notfound.html'), 404
+    experiment = upload.experiment
+    filename = upload.filename
 
     # New run entry
     try:
-        run = database.Run(experiment_hash=filehash,
+        run = database.Run(experiment_hash=experiment.hash,
                            experiment_filename=filename)
         session.add(run)
 
@@ -251,9 +257,11 @@ def run(experiment_code):
                              ", ".join(params_unset))
 
         # Get list of input files
-        input_files = set(p.name for p in session.query(database.Path)
-                          .filter(database.Path.experiment_hash == filehash)
-                          .filter(database.Path.is_input).all())
+        input_files = set(
+            p.name for p in (
+                session.query(database.Path)
+                .filter(database.Path.experiment_hash == experiment.hash)
+                .filter(database.Path.is_input).all()))
 
         # Get input files
         for k, uploaded_file in request.files.iteritems():

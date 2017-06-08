@@ -1,4 +1,3 @@
-import base64
 import enum
 import logging
 import os
@@ -7,6 +6,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.sql import functions
 from sqlalchemy.types import Boolean, DateTime, Enum, Integer, String
+
+from common.shortid import ShortIDs
 
 
 Base = declarative_base()
@@ -76,9 +77,7 @@ class Upload(Base):
 
     @property
     def experiment_code(self):
-        return base64.urlsafe_b64encode(self.experiment_hash +
-                                        '|' +
-                                        self.filename)
+        return short_ids.encode(self.id)
 
     def __repr__(self):
         return ("<Upload id=%d, experiment_hash=%r, filename=%r, "
@@ -295,6 +294,9 @@ def purge(url=None):
 def connect(url=None):
     """Connect to the database using an environment variable.
     """
+    global short_ids
+    short_ids = ShortIDs(os.environ['SHORTIDS_SALT'])
+
     logging.info("Connecting to SQL database")
     if url is None:
         url = 'postgresql://{user}:{password}@{host}/{database}'.format(
