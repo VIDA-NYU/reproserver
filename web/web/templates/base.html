@@ -31,7 +31,7 @@
             <ul class="nav navbar-nav">
               <li><a href="{{ url_for('index') }}">Unpack</a></li>
 {% if experiment_code %}
-              <li><a href="{{ url_for('reproduce', experiment_code=experiment_code) }}">Reproduce</a></li>
+              <li><a href="{{ url_for('reproduce', upload_short_id=experiment_code) }}">Reproduce</a></li>
 {% endif %}
 {% if run_id %}
               <li><a href="">View run</a></li>
