@@ -151,6 +151,8 @@ def run(name, dct):
             command.extend(['-e', '{0}={1}'.format(k, v)])
     for p in dct.get('ports', []):
         command.extend(['-p', p])
+    if 'user' in dct:
+        command.extend(['--user', dct.get('user')])
     command.append('--')
     command.append(dct['image'])
     if 'command' in dct:
@@ -186,6 +188,7 @@ services = [
         'image': PREFIX + 'builder' + TAG,
         'deps': ['start:rabbitmq', 'start:registry', 'start:minio',
                  'build:builder'],
+        'user': '0',
         'volumes': ['/var/run/docker.sock:/var/run/docker.sock'],
         'env': merge(common_env, {'REPROZIP_USAGE_STATS': 'off'}),
     }),
@@ -193,6 +196,7 @@ services = [
         'image': PREFIX + 'runner' + TAG,
         'deps': ['start:rabbitmq', 'start:registry', 'start:minio',
                  'build:runner'],
+        'user': '0',
         'volumes': ['/var/run/docker.sock:/var/run/docker.sock'],
         'env': common_env,
     }),
