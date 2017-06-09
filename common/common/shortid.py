@@ -1,7 +1,7 @@
 __all__ = ['ShortIDs']
 
 
-CHARS = u'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz-_'
+CHARS = u'023456789abcdefghijkmnopqrstuvwxyz'
 
 
 def _encode(nb, min_chars, chars):
