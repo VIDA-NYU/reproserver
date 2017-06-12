@@ -4,23 +4,22 @@
 
 <h1>About ReproServer</h1>
 
-<p>As research has become increasingly reliant on digital tools, the challenges in reproducibility have become more poignant. Releasing code and data are key to open research, but not necessarily enough for reproducibility. There are dependencies that aren't easily capture, and effect the reproducibility of research. In response to these challenges, we created ReproZip, an open source tool (see <a href="https://github.com/ViDA-NYU/reprozip">GitHub repo</a>) that bundles everything necessary to reproduce your work -- down to the operating system level!</p>
+<p>As research has become increasingly reliant on digital tools, the challenges in reproducibility have become more poignant. Releasing code and data are key to open research, but not necessarily enough for reproducibility. There are dependencies that aren't easily captured, and effect the reproducibility of research. In response to these challenges, we created ReproZip, an open source tool (see <a href="https://github.com/ViDA-NYU/reprozip">GitHub repo</a>) that bundles everything necessary to reproduce your work -- down to the operating system level!</p>
 
-<p>ReproZip allows you to pack your research along with all necessary data files, libraries, and environment variables and options. Then anybody can reproduce the research on a different machine, without tracking down and installing the dependencies. While these packages (<code>.rpz</code> files) are small and easy to share, it does require that the person unpacking the ReproZip file to install extra software -- ReproUnzip, and one of our unpackers (e.g. Vagrant or Docker). You can read more about standalone ReproZip and ReproUnzip via the <a href="https://reprozip.readthedocs.io/en/1.0.x/">documentation</a>.
+<p>ReproZip allows you to automatically pack your research along with all the necessary data files, libraries, environment variables, and options. Then anybody can reproduce the research on a different machine, without tracking down and installing the dependencies. While these packages (<code>.rpz</code> files) are small and easy to share, it does require that the person unpacking the ReproZip file install extra software -- ReproUnzip, and one Vagrant or Docker. You can read more about standalone ReproZip and ReproUnzip in our <a href="https://reprozip.readthedocs.io/">documentation</a>.
 
 <p><strong>In an effort to lower the barrier to sharing reproducible work, we've developed the ReproServer</strong>. This application, still a work in progress, enables you to reproduce ReproZip packages from your web browser, without having to install ReproUnzip on your computer!</p>
 
-<!--------------------------------------REPRODUCING--------------------------------------------->
+<!-- ----- REPRODUCING ----- -->
 <h2>Getting Started</h2>
 
 <p>Upload your own <code>.rpz</code> file, or try uploading one of the examples from the <a href="https://examples.reprozip.org/">ReproZip-Examples repository</a>, and click the "Unpack" button!</p>
 
-<p>From there, you can view the build log and (optionally) upload your own inputs. To reproduce the work "as is", simply click the "Run" button and watch as the research is rerun before your eyes, complete with an additional build log and the outputs from the research, which you can then download.</p>
+<p>From there, you can set parameters and (optionally) upload your own inputs, and then reproduce the work by clicking the "Run" button. You can then see the log and output files from the research, which you can view or download to your machine. You can also share the link for other people to reproduce your research.</p>
 
-<p>In the future, you will be able to simply provide a link to a <code>.rpz</code> file and unpack and rerun it. Keep your eyes out!</p>
+<p>In the future, you will be able to simply provide a link to a <code>.rpz</code> file from a repository, and unpack and rerun it from there. Stay tuned!</p>
 
-
-<!--------------------------------------TEAM--------------------------------------------->
+<!-- ----- TEAM ----- -->
 <h2>The Team</h2>
 
 <p>The ReproServer project is run by the <a href="https://www.reprozip.org/">ReproZip</a> team from New York University.</p>
