@@ -1,10 +1,9 @@
 import base64
 from common import database, TaskQueues, get_object_store
 from flask import Flask, jsonify, redirect, render_template, request, \
-    url_for, send_file
+    url_for
 import functools
 from hashlib import sha256
-import io
 import logging
 import os
 from sqlalchemy.orm import joinedload
@@ -75,6 +74,24 @@ def sql_session(func):
             session.close()
     functools.update_wrapper(wrapper, func)
     return wrapper
+
+
+@app.context_processor
+def context():
+    def output_link(output_file):
+        client_endpoint_url = os.environ.get('S3_CLIENT_URL')
+        if client_endpoint_url:
+            s3 = get_object_store(client_endpoint_url)
+        else:
+            s3 = object_store
+        return s3.meta.client.generate_presigned_url(
+            ClientMethod='get_object',
+            Params={'Bucket': 'outputs',
+                    'Key': output_file.hash,
+                    'ResponseContentDisposition': 'inline; filename=%s' %
+                                                  output_file.name})
+
+    return dict(output_link=output_link)
 
 
 @app.route('/')
@@ -348,26 +365,6 @@ def results(run_id, session):
                                started=bool(run.started),
                                done=bool(run.done),
                                experiment_code=experiment_code)
-
-
-@app.route('/output_file/<id>')
-@sql_session
-def output_file(id, session):
-    """Gets an output file from S3 and send it with the correct filename.
-    """
-    # Look up the file in the database
-    outputfile = session.query(database.OutputFile).get(id)
-    if not outputfile:
-        return "File not found", 404, {'Content-Type': 'text/plain'}
-
-    # Download the file from S3
-    obj = io.BytesIO()
-    object_store.Bucket('outputs').download_fileobj(outputfile.hash, obj)
-    obj.seek(0, 0)
-
-    # Serve the file
-    return send_file(obj, cache_timeout=31536000,
-                     as_attachment=True, attachment_filename=outputfile.name)
 
 
 @app.route('/about')
