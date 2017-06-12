@@ -1,3 +1,5 @@
+[![Matrix](https://img.shields.io/badge/chat-matrix.org-blue.svg)](https://riot.im/app/#/room/#reprozip:matrix.org)
+
 ReproServer
 ===========
 
