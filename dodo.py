@@ -334,6 +334,8 @@ def make_k8s_def():
     context['postgres_db'] = config.pop('postgres_database', 'reproserver')
     context['init_job'] = config.pop('init_job', True)
     context['storage_driver'] = config.pop('storage_driver')
+    context['liveness_probe_period_seconds'] = config.pop(
+        'liveness_probe_period_seconds', 30)
 
     if config:
         sys.stderr.write("Warning: unrecognized config options:\n")

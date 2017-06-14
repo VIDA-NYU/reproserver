@@ -10,6 +10,8 @@ prod:
   image_registry: "vidanyu"
   # This can be overridden on the command-line, `doit k8s tier=prod tag=0.3`
   tag: 0.4
+  # Period for the Kubernetes liveness checks
+  liveness_probe_period_seconds: 60
 
 # Development environment, no persistence
 dev:
@@ -17,5 +19,7 @@ dev:
   use_minio: true
   minio_volume: false
   postgres_volume: false
+  # Period for the Kubernetes liveness checks
+  liveness_probe_period_seconds: 60
   # Don't run the init job
   init_job: false
