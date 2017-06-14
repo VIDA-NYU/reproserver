@@ -374,6 +374,13 @@ def data():
     )
 
 
+@app.route('/healthz')
+def health():
+    """For Kubernetes liveness probe.
+    """
+    return ''
+
+
 def main():
     # Start webserver
     app.logger.info("web running")

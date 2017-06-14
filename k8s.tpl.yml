@@ -64,9 +64,9 @@ spec:
         - containerPort: 8000
         livenessProbe:
           httpGet:
-            path: /
+            path: /healthz
             port: 8000
-          initialDelaySeconds: 10
+          initialDelaySeconds: 30
           periodSeconds: 10
 ---
 apiVersion: extensions/v1beta1
