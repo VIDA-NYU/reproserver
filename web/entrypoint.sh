@@ -6,7 +6,7 @@ elif [ "$1" = "server" ]; then
     exec uwsgi \
         --uid appuser \
         --http 0.0.0.0:8000 \
-        --module web.main:app \
+        --module web.wsgi \
         --static-map /static=/usr/src/app/web/static \
         --processes 1 \
         --threads 8

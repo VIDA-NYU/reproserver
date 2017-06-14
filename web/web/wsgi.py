@@ -6,8 +6,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 
 from common.utils import setup_logging
-from web.main import main  # noqa
+from web.main import app  # noqa
 
 
 setup_logging('REPROSERVER-WEB')
-main()
+application = app
+
+__all__ = ['application']
