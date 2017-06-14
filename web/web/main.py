@@ -2,6 +2,7 @@ import base64
 from common import database, TaskQueues, get_object_store
 from flask import Flask, jsonify, redirect, render_template, request, \
     url_for, send_file
+import functools
 from hashlib import sha256
 import io
 import logging
@@ -65,17 +66,29 @@ except StopIteration:
         object_store.create_bucket(Bucket=name)
 
 
+def sql_session(func):
+    def wrapper(**kwargs):
+        session = SQLSession()
+        try:
+            return func(session=session, **kwargs)
+        finally:
+            session.close()
+    functools.update_wrapper(wrapper, func)
+    return wrapper
+
+
 @app.route('/')
-def index():
+@sql_session
+def index(session):
     """Landing page from which a user can select an experiment to unpack.
     """
-    session = SQLSession()
     examples = session.query(database.Example).all()
     return render_template('index.html', examples=examples)
 
 
 @app.route('/upload', methods=['POST'])
-def unpack():
+@sql_session
+def unpack(session):
     """Target of the landing page.
 
     An experiment has been provided, store it and start the build process.
@@ -99,7 +112,6 @@ def unpack():
     uploaded_file.seek(0, 0)
 
     # Check for existence of experiment
-    session = SQLSession()
     experiment = session.query(database.Experiment).get(filehash)
     if experiment:
         experiment.last_access = functions.now()
@@ -125,7 +137,8 @@ def unpack():
 
 
 @app.route('/reproduce/<experiment_code>')
-def reproduce(experiment_code):
+@sql_session
+def reproduce(experiment_code, session):
     """Show build log and ask for run parameters.
     """
     # Decode info from URL
@@ -140,7 +153,6 @@ def reproduce(experiment_code):
     filename = permanent_id[sep + 1:]
 
     # Look up the experiment in database
-    session = SQLSession()
     experiment = session.query(database.Experiment).get(filehash)
     if not experiment:
         return render_template('setup_notfound.html'), 404
@@ -200,7 +212,8 @@ def reproduce(experiment_code):
 
 
 @app.route('/run/<experiment_code>', methods=['POST'])
-def run(experiment_code):
+@sql_session
+def run(experiment_code, session):
     """Gets the run parameters POSTed to from /reproduce.
 
     Triggers the run and redirects to the results page.
@@ -217,7 +230,6 @@ def run(experiment_code):
     filename = permanent_id[sep + 1:]
 
     # Look up the experiment in database
-    session = SQLSession()
     experiment = session.query(database.Experiment).get(filehash)
     if not experiment:
         return render_template('setup_notfound.html'), 404
@@ -301,11 +313,11 @@ def run(experiment_code):
 
 
 @app.route('/results/<int:run_id>')
-def results(run_id):
+@sql_session
+def results(run_id, session):
     """Shows the results of a run, whether it's done or in progress.
     """
     # Look up the run in the database
-    session = SQLSession()
     run = (session.query(database.Run)
            .options(joinedload(database.Run.experiment),
                     joinedload(database.Run.parameter_values),
@@ -339,11 +351,11 @@ def results(run_id):
 
 
 @app.route('/output_file/<id>')
-def output_file(id):
+@sql_session
+def output_file(id, session):
     """Gets an output file from S3 and send it with the correct filename.
     """
     # Look up the file in the database
-    session = SQLSession()
     outputfile = session.query(database.OutputFile).get(id)
     if not outputfile:
         return "File not found", 404, {'Content-Type': 'text/plain'}
@@ -364,10 +376,10 @@ def about():
 
 
 @app.route('/data')
-def data():
+@sql_session
+def data(session):
     """Print some system information.
     """
-    session = SQLSession()
     return render_template(
         'data.html',
         experiments=session.query(database.Experiment).all(),
