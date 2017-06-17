@@ -326,9 +326,10 @@ def make_k8s_def():
     if use_minio:
         context['s3_url'] = 'http://reproserver-minio-{tier}:9000'.format(
             tier=config['tier'])
+        context['s3_bucket_prefix'] = 'minio'
     else:
         context['s3_url'] = ''
-    context['s3_bucket_prefix'] = config.pop('s3_bucket_prefix')
+        context['s3_bucket_prefix'] = config.pop('s3_bucket_prefix')
     context['s3_client_url'] = config.pop('s3_client_url', '')
 
     if 'tag' not in config:
