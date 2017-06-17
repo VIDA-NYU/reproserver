@@ -87,8 +87,7 @@ def build(channel, method, properties, body):
         logging.info("Downloading file...")
         local_path = os.path.join(directory, 'experiment.rpz')
         build_dir = os.path.join(directory, 'build_dir')
-        object_store.Bucket('experiments').download_file(experiment.hash,
-                                                         local_path)
+        object_store.download_file('experiments', experiment.hash, local_path)
         logging.info("Got file, %d bytes", os.stat(local_path).st_size)
 
         # Get metadata

@@ -56,13 +56,7 @@ tasks = TaskQueues()
 # Object storage
 object_store = get_object_store()
 
-it = iter(object_store.buckets.all())
-try:
-    next(it)
-except StopIteration:
-    logging.info("The buckets don't seem to exist; creating")
-    for name in ['experiments', 'inputs', 'outputs']:
-        object_store.create_bucket(Bucket=name)
+object_store.create_buckets()
 
 
 def sql_session(func):
@@ -81,15 +75,11 @@ def context():
     def output_link(output_file):
         client_endpoint_url = os.environ.get('S3_CLIENT_URL')
         if client_endpoint_url:
-            s3 = get_object_store(client_endpoint_url)
+            client = get_object_store(client_endpoint_url)
         else:
-            s3 = object_store
-        return s3.meta.client.generate_presigned_url(
-            ClientMethod='get_object',
-            Params={'Bucket': 'outputs',
-                    'Key': output_file.hash,
-                    'ResponseContentDisposition': 'inline; filename=%s' %
-                                                  output_file.name})
+            client = object_store
+        return client.presigned_serve_url('outputs', output_file.hash,
+                                          output_file.name)
 
     return dict(output_link=output_link)
 
@@ -135,7 +125,7 @@ def unpack(session):
         app.logger.info("File exists in storage")
     else:
         # Insert it on S3
-        object_store.Object('experiments', filehash).put(Body=uploaded_file)
+        object_store.upload_fileobj('experiments', filehash, uploaded_file)
         app.logger.info("Inserted file in storage")
 
         # Insert it in database
@@ -309,8 +299,7 @@ def run(experiment_code, session):
             uploaded_file.seek(0, 0)
 
             # Insert it on S3
-            object_store.Object('inputs', inputfilehash).put(
-                Body=uploaded_file)
+            object_store.upload_fileobj('inputs', inputfilehash, uploaded_file)
             app.logger.info("Inserted file in storage")
 
             # Insert it in database

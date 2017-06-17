@@ -145,8 +145,7 @@ def run(channel, method, properties, body):
             # Download file from S3
             logging.info("Downloading input file: %s, %s, %d bytes",
                          input_file.name, input_file.hash, input_file.size)
-            object_store.Bucket('inputs').download_file(input_file.hash,
-                                                        local_path)
+            object_store.download_file('inputs', input_file.hash, local_path)
 
             # Put file in container
             logging.info("Copying file to container")
@@ -202,7 +201,7 @@ def run(channel, method, properties, body):
 
                     # Upload file to S3
                     logging.info("Uploading file, size: %d bytes" % filesize)
-                    object_store.Object('outputs', filehash).put(Body=fp)
+                    object_store.upload_fileobj('outputs', filehash, fp)
 
                 # Add OutputFile to database
                 run.output_files.append(
