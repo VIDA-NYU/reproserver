@@ -17,6 +17,8 @@ prod:
   # Note that if you are proxying this under a subdirectory, request signatures
   # will fail
   s3_client_url: "https://server.reprozip.org/files"
+  # Prefix for the name of the S3 buckets
+  s3_bucket_prefix: "prod"
 
 # Development environment, no persistence
 dev:
@@ -28,5 +30,6 @@ dev:
   liveness_probe_period_seconds: 60
   # URL through which the users can access S3
   s3_client_url: "https://devfiles.server.reprozip.org"
+  s3_bucket_prefix: ""
   # Don't run the init job
   init_job: false

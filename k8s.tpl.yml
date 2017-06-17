@@ -44,6 +44,8 @@ spec:
               key: {% if use_minio %}password{% else %}s3_secret{% endif %}
         - name: S3_URL
           value: "{{ s3_url }}"
+        - name: S3_BUCKET_PREFIX
+          value: "{{ s3_bucket_prefix }}"
         - name: S3_CLIENT_URL
           value: "{{ s3_client_url }}"
         - name: POSTGRES_USER
@@ -123,6 +125,8 @@ spec:
               key: {% if use_minio %}password{% else %}s3_secret{% endif %}
         - name: S3_URL
           value: "{{ s3_url }}"
+        - name: S3_BUCKET_PREFIX
+          value: "{{ s3_bucket_prefix }}"
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
@@ -196,6 +200,8 @@ spec:
               key: {% if use_minio %}password{% else %}s3_secret{% endif %}
         - name: S3_URL
           value: "{{ s3_url }}"
+        - name: S3_BUCKET_PREFIX
+          value: "{{ s3_bucket_prefix }}"
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
@@ -392,6 +398,8 @@ spec:
               key: {% if use_minio %}password{% else %}s3_secret{% endif %}
         - name: S3_URL
           value: "{{ s3_url }}"
+        - name: S3_BUCKET_PREFIX
+          value: "{{ s3_bucket_prefix }}"
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
