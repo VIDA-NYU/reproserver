@@ -20,6 +20,11 @@ spec:
       - name: web
         image: {{ image_registry }}reproserver-web{{ tag }}
         env:
+        - name: SHORTIDS_SALT
+          valueFrom:
+            secretKeyRef:
+              name: reproserver-secret-{{ tier }}
+              key: salt
         - name: AMQP_USER
           valueFrom:
             secretKeyRef:
@@ -101,6 +106,11 @@ spec:
           value: "reproserver-registry-{{ tier }}:5000"
         - name: DOCKER_HOST
           value: 127.0.0.1:2375
+        - name: SHORTIDS_SALT
+          valueFrom:
+            secretKeyRef:
+              name: reproserver-secret-{{ tier }}
+              key: salt
         - name: AMQP_USER
           valueFrom:
             secretKeyRef:
@@ -176,6 +186,11 @@ spec:
           value: "reproserver-registry-{{ tier }}:5000"
         - name: DOCKER_HOST
           value: 127.0.0.1:2375
+        - name: SHORTIDS_SALT
+          valueFrom:
+            secretKeyRef:
+              name: reproserver-secret-{{ tier }}
+              key: salt
         - name: AMQP_USER
           valueFrom:
             secretKeyRef:
@@ -386,6 +401,11 @@ spec:
       - name: reproserver-init-{{ tier }}
         image: {{ image_registry }}reproserver-init{{ tag }}
         env:
+        - name: SHORTIDS_SALT
+          valueFrom:
+            secretKeyRef:
+              name: reproserver-secret-{{ tier }}
+              key: salt
         - name: S3_KEY
           valueFrom:
             secretKeyRef:

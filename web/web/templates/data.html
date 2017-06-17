@@ -13,7 +13,7 @@
   {% for upload in experiment.uploads %}
 
   <p>Uploaded by {{ upload.submitted_ip }} at {{ upload.timestamp }}
-  as <a href="{{ url_for('reproduce', experiment_code=upload.experiment_code) }}">{{ upload.filename }}</a></p>
+  as <a href="{{ url_for('reproduce', upload_short_id=upload.short_id) }}">{{ upload.filename }}</a></p>
 
   {% endfor %}
 
@@ -32,7 +32,7 @@
 
   {% for run in experiment.runs %}
 
-  <h2>Run {{ run.id }} submitted at {{ run.submitted }}</h2>
+  <h2><a href="{{ url_for('results', run_short_id=run.short_id) }}">Run {{ run.id }}</a> submitted at {{ run.submitted }}</h2>
 
   <p>Started: {{ run.started }}<br/>
   Done: {{ run.done }}</p>

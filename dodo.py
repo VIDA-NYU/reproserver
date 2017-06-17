@@ -163,6 +163,7 @@ def run(name, dct):
 ADMIN_USER = 'reproserver'
 ADMIN_PASSWORD = 'hackmehackme'
 common_env = {
+    'SHORTIDS_SALT': 'thisisarandomstring',
     'AMQP_USER': ADMIN_USER,
     'AMQP_PASSWORD': ADMIN_PASSWORD,
     'AMQP_HOST': '%srabbitmq' % PREFIX,

@@ -1,5 +1,5 @@
-import base64
 from common import database, TaskQueues, get_object_store
+from common.shortid import MultiShortIDs
 from flask import Flask, jsonify, redirect, render_template, request, \
     url_for
 import functools
@@ -13,6 +13,9 @@ from werkzeug.utils import secure_filename
 
 
 app = Flask(__name__)
+
+
+short_ids = MultiShortIDs(os.environ['SHORTIDS_SALT'])
 
 
 # Middleware allowing this to be run behind a reverse proxy
@@ -131,38 +134,40 @@ def unpack(session):
         # Insert it in database
         experiment = database.Experiment(hash=filehash)
         session.add(experiment)
-    session.add(database.Upload(experiment=experiment,
-                                filename=filename,
-                                submitted_ip=request.remote_addr))
+    upload = database.Upload(experiment=experiment,
+                             filename=filename,
+                             submitted_ip=request.remote_addr)
+    session.add(upload)
     session.commit()
 
-    # Encode hash + filename for permanent URL
-    experiment_code = base64.urlsafe_b64encode(filehash + '|' + filename)
+    # Encode ID for permanent URL
+    upload_short_id = upload.short_id
 
     # Redirect to build page
-    return redirect(url_for('reproduce', experiment_code=experiment_code), 302)
+    return redirect(url_for('reproduce', upload_short_id=upload_short_id), 302)
 
 
-@app.route('/reproduce/<experiment_code>')
+@app.route('/reproduce/<upload_short_id>')
 @sql_session
-def reproduce(experiment_code, session):
+def reproduce(upload_short_id, session):
     """Show build log and ask for run parameters.
     """
     # Decode info from URL
-    app.logger.info("Decoding %r", experiment_code)
+    app.logger.info("Decoding %r", upload_short_id)
     try:
-        permanent_id = base64.urlsafe_b64decode(
-            experiment_code.encode('ascii'))
-        sep = permanent_id.index('|')
+        upload_id = short_ids.decode('upload', upload_short_id)
     except Exception:
         return render_template('setup_notfound.html'), 404
-    filehash = permanent_id[:sep]
-    filename = permanent_id[sep + 1:]
 
     # Look up the experiment in database
-    experiment = session.query(database.Experiment).get(filehash)
-    if not experiment:
+    upload = (session.query(database.Upload)
+                  .options(joinedload(database.Upload.experiment))
+                  .get(upload_id))
+    if not upload:
         return render_template('setup_notfound.html'), 404
+    experiment = upload.experiment
+    filename = upload.filename
+
     # Also updates last access
     experiment.last_access = functions.now()
 
@@ -192,59 +197,59 @@ def reproduce(experiment_code, session):
                                        log=experiment.get_log(0),
                                        params=experiment.parameters,
                                        input_files=input_files,
-                                       experiment_code=experiment_code)
+                                       experiment_code=upload_short_id)
             if experiment.status == database.Status.ERROR:
                 app.logger.info("Experiment is errored")
                 return render_template('setup.html', filename=filename,
                                        built=True, error=True,
                                        log=experiment.get_log(0),
-                                       experiment_code=experiment_code)
+                                       experiment_code=upload_short_id)
             # If it's currently building, show the log
             elif experiment.status == database.Status.BUILDING:
                 app.logger.info("Experiment is currently building")
                 return render_template('setup.html', filename=filename,
                                        built=False, log=experiment.get_log(0),
-                                       experiment_code=experiment_code)
+                                       experiment_code=upload_short_id)
             # Else, trigger the build
             else:
                 if experiment.status == database.Status.NOBUILD:
                     app.logger.info("Triggering a build, sending message")
                     experiment.status = database.Status.QUEUED
-                    tasks.publish_build_task(filehash)
+                    tasks.publish_build_task(experiment.hash)
                 return render_template('setup.html', filename=filename,
                                        built=False,
-                                       experiment_code=experiment_code)
+                                       experiment_code=upload_short_id)
     finally:
         session.commit()
 
 
-@app.route('/run/<experiment_code>', methods=['POST'])
+@app.route('/run/<upload_short_id>', methods=['POST'])
 @sql_session
-def run(experiment_code, session):
+def run(upload_short_id, session):
     """Gets the run parameters POSTed to from /reproduce.
 
     Triggers the run and redirects to the results page.
     """
     # Decode info from URL
-    app.logger.info("Decoding %r", experiment_code)
+    app.logger.info("Decoding %r", upload_short_id)
     try:
-        permanent_id = base64.urlsafe_b64decode(
-            experiment_code.encode('ascii'))
-        sep = permanent_id.index('|')
+        upload_id = short_ids.decode('upload', upload_short_id)
     except Exception:
         return render_template('setup_notfound.html'), 404
-    filehash = permanent_id[:sep]
-    filename = permanent_id[sep + 1:]
 
     # Look up the experiment in database
-    experiment = session.query(database.Experiment).get(filehash)
-    if not experiment:
+    upload = (session.query(database.Upload)
+              .options(joinedload(database.Upload.experiment))
+              .get(upload_id))
+    if not upload:
         return render_template('setup_notfound.html'), 404
+    experiment = upload.experiment
+    filename = upload.filename
 
     # New run entry
     try:
-        run = database.Run(experiment_hash=filehash,
-                           experiment_filename=filename)
+        run = database.Run(experiment_hash=experiment.hash,
+                           upload_id=upload_id)
         session.add(run)
 
         # Get list of parameters
@@ -270,9 +275,11 @@ def run(experiment_code, session):
                              ", ".join(params_unset))
 
         # Get list of input files
-        input_files = set(p.name for p in session.query(database.Path)
-                          .filter(database.Path.experiment_hash == filehash)
-                          .filter(database.Path.is_input).all())
+        input_files = set(
+            p.name for p in (
+                session.query(database.Path)
+                .filter(database.Path.experiment_hash == experiment.hash)
+                .filter(database.Path.is_input).all()))
 
         # Get input files
         for k, uploaded_file in request.files.iteritems():
@@ -312,17 +319,24 @@ def run(experiment_code, session):
         tasks.publish_run_task(str(run.id))
 
         # Redirect to results page
-        return redirect(url_for('results', run_id=run.id), 302)
+        return redirect(url_for('results', run_short_id=run.short_id), 302)
     except Exception:
         session.rollback()
         raise
 
 
-@app.route('/results/<int:run_id>')
+@app.route('/results/<run_short_id>')
 @sql_session
-def results(run_id, session):
+def results(run_short_id, session):
     """Shows the results of a run, whether it's done or in progress.
     """
+    # Decode info from URL
+    app.logger.info("Decoding %r", run_short_id)
+    try:
+        run_id = short_ids.decode('run', run_short_id)
+    except Exception:
+        return render_template('setup_notfound.html'), 404
+
     # Look up the run in the database
     run = (session.query(database.Run)
            .options(joinedload(database.Run.experiment),
@@ -346,14 +360,12 @@ def results(run_id, session):
                         'log': run.get_log(log_from)})
     # HTML view, return the page
     else:
-        experiment_code = base64.urlsafe_b64encode(run.experiment_hash +
-                                                   '|' +
-                                                   run.experiment_filename)
+        upload_short_id = short_ids.encode('upload', run.upload_id)
         return render_template('results.html', run=run,
                                log=run.get_log(0),
                                started=bool(run.started),
                                done=bool(run.done),
-                               experiment_code=experiment_code)
+                               experiment_code=upload_short_id)
 
 
 @app.route('/about')

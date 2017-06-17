@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<h1>Package <a href="{{ url_for('reproduce', experiment_code=experiment_code) }}">{{ run.experiment_filename }}</a>, run #{{ run.id }}</h1>
+<h1>Package <a href="{{ url_for('reproduce', upload_short_id=experiment_code) }}">{{ run.upload.filename }}</a>, run #{{ run.id }}</h1>
 
 <div class="panel panel-success" id="panel1">
   <div class="panel-heading">
