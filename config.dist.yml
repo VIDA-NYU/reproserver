@@ -12,6 +12,8 @@ prod:
   tag: 0.4
   # Period for the Kubernetes liveness checks
   liveness_probe_period_seconds: 60
+  # URL through which the users can access S3
+  s3_client_url: "https://server.reprozip.org/files/"
 
 # Development environment, no persistence
 dev:
@@ -21,5 +23,7 @@ dev:
   postgres_volume: false
   # Period for the Kubernetes liveness checks
   liveness_probe_period_seconds: 60
+  # URL through which the users can access S3
+  s3_client_url: "https://server.reprozip.org/dev/files/"
   # Don't run the init job
   init_job: false

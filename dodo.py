@@ -169,6 +169,7 @@ common_env = {
     'S3_KEY': ADMIN_USER,
     'S3_SECRET': ADMIN_PASSWORD,
     'S3_URL': 'http://%sminio:9000' % PREFIX,
+    'S3_CLIENT_URL': 'http://localhost:9000',
     'POSTGRES_USER': ADMIN_USER,
     'POSTGRES_PASSWORD': ADMIN_PASSWORD,
     'POSTGRES_HOST': '%spostgres' % PREFIX,
@@ -325,6 +326,7 @@ def make_k8s_def():
             tier=config['tier'])
     else:
         context['s3_url'] = ''
+    context['s3_client_url'] = config.pop('s3_client_url', '')
 
     if 'tag' not in config:
         return TaskFailed("You must set a tag explicitly, either in "
