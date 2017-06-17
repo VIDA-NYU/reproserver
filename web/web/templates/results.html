@@ -29,7 +29,7 @@
 
   {% for file in run.output_files %}
 
-    <li><a href="{{ url_for('output_file', id=file.id) }}">{{ file.name }}</a>, {{ file.size }} bytes</li>
+    <li><a href="{{ output_link(file) }}">{{ file.name }}</a>, {{ file.size }} bytes</li>
 
   {% endfor %}
 

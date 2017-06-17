@@ -45,15 +45,9 @@ def main():
         Base.metadata.create_all(bind=engine)
 
     # Object storage
-    s3 = get_object_store()
+    object_store = get_object_store()
 
-    it = iter(s3.buckets.all())
-    try:
-        next(it)
-    except StopIteration:
-        logging.info("The buckets don't seem to exist; creating")
-        for name in ['experiments', 'inputs', 'outputs']:
-            s3.create_bucket(Bucket=name)
+    object_store.create_buckets()
 
     # Download the examples and add them
     examples = [
@@ -97,7 +91,8 @@ def main():
                     downloaded_file.seek(0, 0)
 
                     # Insert it on S3
-                    s3.Object('experiments', filehash).put(Body=downloaded_file)
+                    object_store.upload_fileobj('experiments', filehash,
+                                                downloaded_file)
                     logging.info("Inserted file in storage")
 
                     # Insert it in database

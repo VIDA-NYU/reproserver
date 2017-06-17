@@ -1,10 +1,9 @@
 import base64
 from common import database, TaskQueues, get_object_store
 from flask import Flask, jsonify, redirect, render_template, request, \
-    url_for, send_file
+    url_for
 import functools
 from hashlib import sha256
-import io
 import logging
 import os
 from sqlalchemy.orm import joinedload
@@ -57,13 +56,7 @@ tasks = TaskQueues()
 # Object storage
 object_store = get_object_store()
 
-it = iter(object_store.buckets.all())
-try:
-    next(it)
-except StopIteration:
-    logging.info("The buckets don't seem to exist; creating")
-    for name in ['experiments', 'inputs', 'outputs']:
-        object_store.create_bucket(Bucket=name)
+object_store.create_buckets()
 
 
 def sql_session(func):
@@ -75,6 +68,20 @@ def sql_session(func):
             session.close()
     functools.update_wrapper(wrapper, func)
     return wrapper
+
+
+@app.context_processor
+def context():
+    def output_link(output_file):
+        client_endpoint_url = os.environ.get('S3_CLIENT_URL')
+        if client_endpoint_url:
+            client = get_object_store(client_endpoint_url)
+        else:
+            client = object_store
+        return client.presigned_serve_url('outputs', output_file.hash,
+                                          output_file.name)
+
+    return dict(output_link=output_link)
 
 
 @app.route('/')
@@ -118,7 +125,7 @@ def unpack(session):
         app.logger.info("File exists in storage")
     else:
         # Insert it on S3
-        object_store.Object('experiments', filehash).put(Body=uploaded_file)
+        object_store.upload_fileobj('experiments', filehash, uploaded_file)
         app.logger.info("Inserted file in storage")
 
         # Insert it in database
@@ -292,8 +299,7 @@ def run(experiment_code, session):
             uploaded_file.seek(0, 0)
 
             # Insert it on S3
-            object_store.Object('inputs', inputfilehash).put(
-                Body=uploaded_file)
+            object_store.upload_fileobj('inputs', inputfilehash, uploaded_file)
             app.logger.info("Inserted file in storage")
 
             # Insert it in database
@@ -348,26 +354,6 @@ def results(run_id, session):
                                started=bool(run.started),
                                done=bool(run.done),
                                experiment_code=experiment_code)
-
-
-@app.route('/output_file/<id>')
-@sql_session
-def output_file(id, session):
-    """Gets an output file from S3 and send it with the correct filename.
-    """
-    # Look up the file in the database
-    outputfile = session.query(database.OutputFile).get(id)
-    if not outputfile:
-        return "File not found", 404, {'Content-Type': 'text/plain'}
-
-    # Download the file from S3
-    obj = io.BytesIO()
-    object_store.Bucket('outputs').download_fileobj(outputfile.hash, obj)
-    obj.seek(0, 0)
-
-    # Serve the file
-    return send_file(obj, cache_timeout=31536000,
-                     as_attachment=True, attachment_filename=outputfile.name)
 
 
 @app.route('/about')

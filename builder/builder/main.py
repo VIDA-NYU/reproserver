@@ -10,7 +10,7 @@ import tempfile
 
 
 SQLSession = None
-s3 = None
+object_store = None
 
 
 # IP as understood by Docker daemon, not this container
@@ -87,7 +87,7 @@ def build(channel, method, properties, body):
         logging.info("Downloading file...")
         local_path = os.path.join(directory, 'experiment.rpz')
         build_dir = os.path.join(directory, 'build_dir')
-        s3.Bucket('experiments').download_file(experiment.hash, local_path)
+        object_store.download_file('experiments', experiment.hash, local_path)
         logging.info("Got file, %d bytes", os.stat(local_path).st_size)
 
         # Get metadata
@@ -186,8 +186,8 @@ def main():
     tasks = TaskQueues()
 
     # Object storage
-    global s3
-    s3 = get_object_store()
+    global object_store
+    object_store = get_object_store()
 
     # Wait for tasks
     logging.info("Ready, listening for requests")
