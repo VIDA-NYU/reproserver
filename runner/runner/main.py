@@ -12,7 +12,7 @@ import tempfile
 
 
 SQLSession = None
-s3 = None
+object_store = None
 
 
 # IP as understood by Docker daemon, not this container
@@ -145,7 +145,8 @@ def run(channel, method, properties, body):
             # Download file from S3
             logging.info("Downloading input file: %s, %s, %d bytes",
                          input_file.name, input_file.hash, input_file.size)
-            s3.Bucket('inputs').download_file(input_file.hash, local_path)
+            object_store.Bucket('inputs').download_file(input_file.hash,
+                                                        local_path)
 
             # Put file in container
             logging.info("Copying file to container")
@@ -201,7 +202,7 @@ def run(channel, method, properties, body):
 
                     # Upload file to S3
                     logging.info("Uploading file, size: %d bytes" % filesize)
-                    s3.Object('outputs', filehash).put(Body=fp)
+                    object_store.Object('outputs', filehash).put(Body=fp)
 
                 # Add OutputFile to database
                 run.output_files.append(
@@ -246,8 +247,8 @@ def main():
     tasks = TaskQueues()
 
     # Object storage
-    global s3
-    s3 = get_object_store()
+    global object_store
+    object_store = get_object_store()
 
     logging.info("Ready, listening for requests")
     tasks.consume_run_tasks(run)
