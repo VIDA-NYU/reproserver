@@ -12,8 +12,11 @@ prod:
   tag: 0.4
   # Period for the Kubernetes liveness checks
   liveness_probe_period_seconds: 60
-  # URL through which the users can access S3
-  s3_client_url: "https://server.reprozip.org/files/"
+  # URL through which the users can access S3 (useful if running Minio and we
+  # access it internally using a different URL than what the users see)
+  # Note that if you are proxying this under a subdirectory, request signatures
+  # will fail
+  s3_client_url: "https://server.reprozip.org/files"
 
 # Development environment, no persistence
 dev:
@@ -24,6 +27,6 @@ dev:
   # Period for the Kubernetes liveness checks
   liveness_probe_period_seconds: 60
   # URL through which the users can access S3
-  s3_client_url: "https://server.reprozip.org/dev/files/"
+  s3_client_url: "https://devfiles.server.reprozip.org"
   # Don't run the init job
   init_job: false
