@@ -41,7 +41,7 @@ def run_cmd_and_log(session, experiment_hash, cmd):
         return "Got IOError"
 
 
-def build(channel, method, properties, body):
+def build_request(channel, method, _properties, body):
     """Process a build task.
 
     Lookup the experiment in the database, and the file on S3. Then, do the
@@ -191,4 +191,4 @@ def main():
 
     # Wait for tasks
     logging.info("Ready, listening for requests")
-    tasks.consume_build_tasks(build)
+    tasks.consume_build_tasks(build_request)

@@ -15,10 +15,10 @@ def get_object_store(endpoint_url=None):
 class ObjectStore(object):
     def __init__(self, endpoint_url, bucket_prefix):
         self.s3 = boto3.resource('s3', endpoint_url=endpoint_url,
-            aws_access_key_id=os.environ['S3_KEY'],
-            aws_secret_access_key=os.environ['S3_SECRET'],
-            region_name='us-east-1',
-            config=Config(signature_version='s3v4'))
+                                 aws_access_key_id=os.environ['S3_KEY'],
+                                 aws_secret_access_key=os.environ['S3_SECRET'],
+                                 region_name='us-east-1',
+                                 config=Config(signature_version='s3v4'))
         self.bucket_prefix = bucket_prefix
 
     def bucket_name(self, name):

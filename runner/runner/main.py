@@ -34,7 +34,7 @@ def run_cmd_and_log(session, run_id, cmd):
     return proc.wait()
 
 
-def run(channel, method, properties, body):
+def run_request(channel, method, _properties, body):
     """Process a run task.
 
     Lookup a run in the database, get the input files from S3, then do the run
@@ -250,4 +250,4 @@ def main():
     object_store = get_object_store()
 
     logging.info("Ready, listening for requests")
-    tasks.consume_run_tasks(run)
+    tasks.consume_run_tasks(run_request)

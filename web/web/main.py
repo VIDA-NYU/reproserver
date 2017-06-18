@@ -1,7 +1,6 @@
 from common import database, TaskQueues, get_object_store
 from common.shortid import MultiShortIDs
-from flask import Flask, jsonify, redirect, render_template, request, \
-    url_for
+from flask import Flask, jsonify, redirect, render_template, request, url_for
 import functools
 from hashlib import sha256
 import logging
@@ -156,13 +155,13 @@ def reproduce(upload_short_id, session):
     app.logger.info("Decoding %r", upload_short_id)
     try:
         upload_id = short_ids.decode('upload', upload_short_id)
-    except Exception:
+    except ValueError:
         return render_template('setup_notfound.html'), 404
 
     # Look up the experiment in database
     upload = (session.query(database.Upload)
-                  .options(joinedload(database.Upload.experiment))
-                  .get(upload_id))
+              .options(joinedload(database.Upload.experiment))
+              .get(upload_id))
     if not upload:
         return render_template('setup_notfound.html'), 404
     experiment = upload.experiment
@@ -225,7 +224,7 @@ def reproduce(upload_short_id, session):
 
 @app.route('/run/<upload_short_id>', methods=['POST'])
 @sql_session
-def run(upload_short_id, session):
+def start_run(upload_short_id, session):
     """Gets the run parameters POSTed to from /reproduce.
 
     Triggers the run and redirects to the results page.
@@ -234,7 +233,7 @@ def run(upload_short_id, session):
     app.logger.info("Decoding %r", upload_short_id)
     try:
         upload_id = short_ids.decode('upload', upload_short_id)
-    except Exception:
+    except ValueError:
         return render_template('setup_notfound.html'), 404
 
     # Look up the experiment in database
@@ -244,7 +243,6 @@ def run(upload_short_id, session):
     if not upload:
         return render_template('setup_notfound.html'), 404
     experiment = upload.experiment
-    filename = upload.filename
 
     # New run entry
     try:
@@ -334,7 +332,7 @@ def results(run_short_id, session):
     app.logger.info("Decoding %r", run_short_id)
     try:
         run_id = short_ids.decode('run', run_short_id)
-    except Exception:
+    except ValueError:
         return render_template('setup_notfound.html'), 404
 
     # Look up the run in the database

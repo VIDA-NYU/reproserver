@@ -24,7 +24,10 @@ def _decode(shortid, cmap):
     e = 1
     prev_idx = 0
     for c in reversed(shortid):
-        idx = cmap[c]
+        try:
+            idx = cmap[c]  # Can raise KeyError if invalid characters
+        except KeyError:
+            raise ValueError("shortid contains invalid character %r" % c)
         d = (idx - prev_idx) % nb_chars
         nb += d * e
         prev_idx = idx + 1
