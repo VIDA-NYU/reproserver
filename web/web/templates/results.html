@@ -48,13 +48,31 @@
 <p>Run in progress,<span id="time_elapsed"></span> please wait...</p>
 
 <p>Run log:</p>
-<pre>{% for line in log %}{{ line }}
+<pre id="log">{% for line in log %}{{ line }}
 {% endfor %}</pre>
 
 <script>
-setTimeout(function(){
-   window.location.reload(1);
-}, 5000);
+var log_lines = {{ log | length }};
+function update_page() {
+  var req = new XMLHttpRequest();
+  req.addEventListener("load", function(e) {
+    if(this.status == 200) {
+      if(this.response.done) {
+        window.location.reload();
+      } else if(this.response.log.length > 0) {
+        log_lines += this.response.log.length;
+        var dom_log = document.getElementById("log");
+        dom_log.textContent += this.response.log.join("\n") + "\n";
+      }
+    }
+    setTimeout(update_page, 3000);
+  });
+  req.open("GET", "{{ url_for('results', run_short_id=run.short_id) }}?log_from=" + log_lines);
+  req.responseType = "json";
+  req.send();
+}
+
+setTimeout(update_page, 3000);
 </script>
 
 {% endif %}
