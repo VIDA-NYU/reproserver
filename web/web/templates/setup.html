@@ -71,21 +71,31 @@
 
 <p>Waiting for package extraction, please wait...</p>
 
-  {% if log %}
-
-<pre>{% for line in log %}{{ line }}
+<pre id="log">{% for line in log %}{{ line }}
 {% endfor %}</pre>
 
-  {% else %}
-
-<p>Waiting for an available builder...</p>
-
-  {% endif %}
-
 <script>
-setTimeout(function(){
-   window.location.reload(1);
-}, 5000);
+var log_lines = {{ log | length }};
+function update_page() {
+  var req = new XMLHttpRequest();
+  req.addEventListener("load", function(e) {
+    if(this.status == 200) {
+      if(this.response.status != "QUEUED" && this.response.status != "BUILDING") {
+        window.location.reload();
+      } else if(this.response.log.length > 0) {
+        log_lines += this.response.log.length;
+        var dom_log = document.getElementById("log");
+        dom_log.textContent += this.response.log.join("\n") + "\n";
+      }
+    }
+    setTimeout(update_page, 3000);
+  });
+  req.open("GET", "{{ url_for('reproduce', upload_short_id=experiment_code) }}?log_from=" + log_lines);
+  req.responseType = "json";
+  req.send();
+}
+
+setTimeout(update_page, 3000);
 </script>
 
 {% endif %}

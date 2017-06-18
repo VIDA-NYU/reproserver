@@ -175,7 +175,7 @@ def reproduce(upload_short_id, session):
         if (request.accept_mimetypes.best_match(['application/json',
                                                  'text/html']) ==
                 'application/json'):
-            log_from = request.args.get('log_from', 0)
+            log_from = int(request.args.get('log_from', '0'), 10)
             return jsonify({'status': experiment.status.name,
                             'log': experiment.get_log(log_from),
                             'params': [
