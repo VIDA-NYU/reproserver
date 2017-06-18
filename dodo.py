@@ -102,17 +102,6 @@ def task_pull():
         }
 
 
-def task_volume():
-    for name in ['rabbitmq', 'minio', 'postgres']:
-        volume = PREFIX + name
-        yield {
-            'name': name,
-            'actions': ['docker volume create {0}'.format(volume)],
-            'uptodate': [exists(volume, 'volume')],
-            'clean': ['docker volume rm {0}'.format(volume)],
-        }
-
-
 def task_network():
     return {
         'actions': ['docker network create reproserver'],
@@ -136,11 +125,8 @@ def container_uptodate(container, image):
 
 def run(name, dct):
     container = PREFIX + name
-    info = inspect(container, 'container')
-    if info and info[0]['State']['Running']:
-        subprocess.check_call(['docker', 'stop', '--', container])
-    if info:
-        subprocess.check_call(['docker', 'rm', '--', container])
+    if inspect(container, 'container') is not None:
+        subprocess.check_call(['docker', 'rm', '-f', '-v', '--', container])
     command = ['docker', 'run', '-d',
                '--name', container,
                '--network', 'reproserver']
@@ -205,17 +191,15 @@ services = [
     }),
     ('rabbitmq', {
         'image': 'rabbitmq:3.6.9-management',
-        'deps': ['pull:rabbitmq', 'volume:rabbitmq'],
-        'volumes': ['{p}rabbitmq:/var/lib/rabbitmq'],
+        'deps': ['pull:rabbitmq'],
         'env': {'RABBITMQ_DEFAULT_USER': ADMIN_USER,
                 'RABBITMQ_DEFAULT_PASS': ADMIN_PASSWORD},
         'ports': ['8080:15672'],
     }),
     ('minio', {
         'image': 'minio/minio:RELEASE.2017-04-29T00-40-27Z',
-        'deps': ['pull:minio', 'volume:minio'],
+        'deps': ['pull:minio'],
         'command': ['server', '/export'],
-        'volumes': ['{p}minio:/export'],
         'env': {'MINIO_ACCESS_KEY': ADMIN_USER,
                 'MINIO_SECRET_KEY': ADMIN_PASSWORD},
         'ports': ['9000:9000'],
@@ -227,8 +211,7 @@ services = [
     }),
     ('postgres', {
         'image': 'postgres:9.6',
-        'deps': ['pull:postgres', 'volume:postgres'],
-        'volumes': ['{p}postgres:/var/lib/postgresql/data'],
+        'deps': ['pull:postgres'],
         'env': {'PGDATA': '/var/lib/postgresql/data/pgdata',
                 'POSTGRES_USER': ADMIN_USER,
                 'POSTGRES_PASSWORD': ADMIN_PASSWORD},
@@ -246,8 +229,7 @@ def task_start():
             'uptodate': [container_uptodate(container, dct['image']),
                          config_changed({'prefix': PREFIX, 'tag': TAG})],
             'task_dep': ['network'] + dct.get('deps', []),
-            'clean': ['docker stop {0} || true'.format(container),
-                      'docker rm {0} || true'.format(container)],
+            'clean': ['docker rm -f -v {0} || true'.format(container)],
         }
 
 
