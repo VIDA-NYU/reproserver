@@ -4,6 +4,8 @@
 
 <h1>Package <a href="{{ url_for('reproduce', upload_short_id=experiment_code) }}">{{ run.upload.filename }}</a>, run {{ run.short_id }}</h1>
 
+{% if run.done %}
+
 <div class="panel panel-success" id="panel1">
   <div class="panel-heading">
     <h4 class="panel-title">
@@ -23,30 +25,38 @@
 
 <h2>Output files:</h2>
 
-{% if run.output_files %}
+  {% if run.output_files %}
 
   <ul>
 
-  {% for file in run.output_files %}
+    {% for file in run.output_files %}
 
     <li><a href="{{ output_link(file) }}">{{ file.name }}</a>, {{ file.size }} bytes</li>
 
-  {% endfor %}
+    {% endfor %}
 
   </ul>
 
-{% else %}
+  {% else %}
 
 <p>No output files</p>
 
-{% endif %}
+  {% endif %}
 
-{% if not run.done %}
+{% else %}
+
+<p>Run in progress,<span id="time_elapsed"></span> please wait...</p>
+
+<p>Run log:</p>
+<pre>{% for line in log %}{{ line }}
+{% endfor %}</pre>
+
 <script>
 setTimeout(function(){
    window.location.reload(1);
 }, 5000);
 </script>
+
 {% endif %}
 
 {% endblock content %}
