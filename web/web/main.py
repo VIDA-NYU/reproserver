@@ -76,6 +76,10 @@ def sql_session(func):
     return wrapper
 
 
+def url_for_upload(upload):
+    return url_for('reproduce_local', upload_short_id=upload.short_id)
+
+
 @app.context_processor
 def context():
     def output_link(output_file):
@@ -176,6 +180,7 @@ def reproduce(upload_short_id, session):
         return render_template('setup_notfound.html'), 404
     experiment = upload.experiment
     filename = upload.filename
+    experiment_url = url_for_upload(upload)
 
     # Also updates last access
     experiment.last_access = functions.now()
@@ -206,19 +211,22 @@ def reproduce(upload_short_id, session):
                                        log=experiment.get_log(0),
                                        params=experiment.parameters,
                                        input_files=input_files,
-                                       experiment_code=upload_short_id)
+                                       upload_short_id=upload.short_id,
+                                       experiment_url=experiment_url)
             if experiment.status == database.Status.ERROR:
                 app.logger.info("Experiment is errored")
                 return render_template('setup.html', filename=filename,
                                        built=True, error=True,
                                        log=experiment.get_log(0),
-                                       experiment_code=upload_short_id)
+                                       upload_short_id=upload.short_id,
+                                       experiment_url=experiment_url)
             # If it's currently building, show the log
             elif experiment.status == database.Status.BUILDING:
                 app.logger.info("Experiment is currently building")
                 return render_template('setup.html', filename=filename,
                                        built=False, log=experiment.get_log(0),
-                                       experiment_code=upload_short_id)
+                                       upload_short_id=upload.short_id,
+                                       experiment_url=experiment_url)
             # Else, trigger the build
             else:
                 if experiment.status == database.Status.NOBUILD:
@@ -227,7 +235,8 @@ def reproduce(upload_short_id, session):
                     tasks.publish_build_task(experiment.hash)
                 return render_template('setup.html', filename=filename,
                                        built=False,
-                                       experiment_code=upload_short_id)
+                                       upload_short_id=upload.short_id,
+                                       experiment_url=experiment_url)
     finally:
         session.commit()
 
@@ -348,6 +357,7 @@ def results(run_short_id, session):
     # Look up the run in the database
     run = (session.query(database.Run)
            .options(joinedload(database.Run.experiment),
+                    joinedload(database.Run.upload),
                     joinedload(database.Run.parameter_values),
                     joinedload(database.Run.input_files),
                     joinedload(database.Run.output_files))
@@ -373,7 +383,7 @@ def results(run_short_id, session):
                                log=run.get_log(0),
                                started=bool(run.started),
                                done=bool(run.done),
-                               experiment_code=upload_short_id)
+                               experiment_url=url_for_upload(run.upload))
 
 
 @app.route('/about')

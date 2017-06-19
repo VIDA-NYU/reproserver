@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<h1>Package <a href="{{ url_for('reproduce', upload_short_id=experiment_code) }}">{{ run.upload.filename }}</a>, run {{ run.short_id }}</h1>
+<h1>Package <a href="{{ experiment_url }}">{{ run.upload.filename }}</a>, run {{ run.short_id }}</h1>
 
 {% if run.done %}
 
