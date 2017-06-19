@@ -12,6 +12,8 @@ from sqlalchemy.sql import functions
 from werkzeug.contrib.fixers import ProxyFix
 from werkzeug.utils import secure_filename
 
+from web.providers import get_experiment_from_provider
+
 
 app = Flask(__name__)
 
@@ -77,7 +79,12 @@ def sql_session(func):
 
 
 def url_for_upload(upload):
-    return url_for('reproduce_local', upload_short_id=upload.short_id)
+    if upload.provider_key is not None:
+        provider, path = upload.provider_key.split('/', 1)
+        return url_for('reproduce_provider',
+                       provider=provider, provider_path=path)
+    else:
+        return url_for('reproduce_local', upload_short_id=upload.short_id)
 
 
 @app.context_processor
@@ -157,12 +164,35 @@ def unpack(session):
     upload_short_id = upload.short_id
 
     # Redirect to build page
-    return redirect(url_for('reproduce', upload_short_id=upload_short_id), 302)
+    return redirect(url_for('reproduce_local',
+                            upload_short_id=upload_short_id), 302)
+
+
+@app.route('/reproduce/<string:provider>/<string:provider_path>')
+@sql_session
+def reproduce_provider(provider, provider_path, session):
+    """Reproduce an experiment from a data repository (provider).
+    """
+    # Check the database for an experiment already stored matching the URI
+    provider_key = '%s/%s' % (provider, provider_path)
+    upload = (session.query(database.Upload)
+              .options(joinedload(database.Upload.experiment))
+              .filter(database.Upload.provider_key == provider_key)
+              .order_by(database.Upload.id.desc())).first()
+    if not upload:
+        upload = get_experiment_from_provider(session, provider, provider_path)
+    if not upload:
+        return render_template('setup_notfound.html'), 404
+
+    # Also updates last access
+    upload.experiment.last_access = functions.now()
+
+    return reproduce_common(upload, session)
 
 
 @app.route('/reproduce/<upload_short_id>')
 @sql_session
-def reproduce(upload_short_id, session):
+def reproduce_local(upload_short_id, session):
     """Show build log and ask for run parameters.
     """
     # Decode info from URL
@@ -178,13 +208,17 @@ def reproduce(upload_short_id, session):
               .get(upload_id))
     if not upload:
         return render_template('setup_notfound.html'), 404
+
+    # Also updates last access
+    upload.experiment.last_access = functions.now()
+
+    return reproduce_common(upload, session)
+
+
+def reproduce_common(upload, session):
     experiment = upload.experiment
     filename = upload.filename
     experiment_url = url_for_upload(upload)
-
-    # Also updates last access
-    experiment.last_access = functions.now()
-
     try:
         # JSON endpoint, returns data for JavaScript to update the page
         if (request.accept_mimetypes.best_match(['application/json',

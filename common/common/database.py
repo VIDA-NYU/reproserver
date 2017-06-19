@@ -71,7 +71,8 @@ class Upload(Base):
                                                 ondelete='CASCADE'))
     experiment = relationship('Experiment', uselist=False,
                               back_populates='uploads')
-    submitted_ip = Column(String, nullable=False)
+    submitted_ip = Column(String, nullable=True)
+    provider_key = Column(String, nullable=True, index=True)
     timestamp = Column(DateTime, nullable=False,
                        server_default=functions.now())
 

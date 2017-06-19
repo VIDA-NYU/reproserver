@@ -106,8 +106,7 @@ def main():
                     logging.info("Example for %s exists", name)
                 else:
                     upload = database.Upload(experiment=experiment,
-                                             filename=name,
-                                             submitted_ip='127.0.0.1')
+                                             filename=name)
                     session.add(upload)
                     session.add(database.Example(upload=upload,
                                                  description=description))
