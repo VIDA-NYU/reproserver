@@ -172,8 +172,8 @@ def reproduce(upload_short_id, session):
 
     try:
         # JSON endpoint, returns data for JavaScript to update the page
-        if (request.accept_mimetypes.best_match(['text/html',
-                                                 'application/json']) ==
+        if (request.accept_mimetypes.best_match(['application/json',
+                                                 'text/html']) ==
                 'application/json'):
             log_from = request.args.get('log_from', 0)
             return jsonify({'status': experiment.status.name,
