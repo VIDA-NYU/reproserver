@@ -3,9 +3,11 @@ run_python_on_web(){
     shift
     usage(){
         echo "$USAGE_MSG" >&2
+        echo "exit 1"
+        exit 1
     }
 
-    if [ "$#" = 0 ]; then usage; exit 1; fi
+    if [ "$#" = 0 ]; then usage; fi
 
     case "$1" in
         k8s)
@@ -20,7 +22,7 @@ run_python_on_web(){
             echo 'docker exec -i reproserver-web python'
         ;;
         *)
-            usage; exit 1
+            usage
         ;;
     esac
 }
