@@ -1,9 +1,11 @@
 from common import database, TaskQueues, get_object_store
 from common.shortid import MultiShortIDs
+import flask
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 import functools
 from hashlib import sha256
 import logging
+import mimetypes
 import os
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import functions
@@ -64,9 +66,11 @@ object_store.create_buckets()
 def sql_session(func):
     def wrapper(**kwargs):
         session = SQLSession()
+        flask.g.sql_session = session
         try:
             return func(session=session, **kwargs)
         finally:
+            flask.g.sql_session = None
             session.close()
     functools.update_wrapper(wrapper, func)
     return wrapper
@@ -80,8 +84,14 @@ def context():
             client = get_object_store(client_endpoint_url)
         else:
             client = object_store
+        session = flask.g.sql_session
+        path = session.query(database.Path).filter(
+            database.Path.experiment_hash == output_file.run.experiment_hash,
+            database.Path.name == output_file.name).one().path
+        mime = mimetypes.guess_type(path)[0]
         return client.presigned_serve_url('outputs', output_file.hash,
-                                          output_file.name)
+                                          output_file.name,
+                                          mime)
 
     return dict(output_link=output_link)
 

@@ -51,10 +51,11 @@ class ObjectStore(object):
             for name in missing:
                 self.s3.create_bucket(Bucket=name)
 
-    def presigned_serve_url(self, bucket, objectname, filename):
+    def presigned_serve_url(self, bucket, objectname, filename, mime=None):
         return self.s3.meta.client.generate_presigned_url(
             ClientMethod='get_object',
             Params={'Bucket': self.bucket_name(bucket),
                     'Key': objectname,
+                    'ResponseContentType': mime or 'application/octet-stream',
                     'ResponseContentDisposition': 'inline; filename=%s' %
                                                   filename})
