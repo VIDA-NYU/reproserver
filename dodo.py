@@ -242,6 +242,7 @@ def task_init():
     return {
         'actions': [(run, ['init', dct])],
         'task_dep': ['network'] + dct.get('deps', []),
+        'clean': ['docker rm -f -v {0} || true'.format(PREFIX + 'init')],
     }
 
 
