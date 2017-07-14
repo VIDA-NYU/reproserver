@@ -21,7 +21,7 @@ Web application allowing users to select or upload an experiment, edit parameter
 
 ### Builder
 
-From the experiment file, builds a Docker image and caches it on a private Docker registry for the runnners.
+From the experiment file, builds a Docker image and caches it on a private Docker registry for the runners.
 
 ### Runner
 
