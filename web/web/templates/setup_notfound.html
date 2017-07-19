@@ -4,7 +4,11 @@
 
 <h1>Package not found</h1>
 
+{% if message %}
+<p>{{ message }}</p>
+{% else %}
 <p>This package does not exist. If it existed before, it was probably removed due to inactivity.</p>
+{% endif %}
 
 <p>If you have the file, you can try <a href="{{ url_for('index') }}">uploading it again</a>.</p>
 

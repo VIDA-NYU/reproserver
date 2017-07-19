@@ -35,7 +35,7 @@
 
 <h2>Run the experiment</h2>
 
-<form method="POST" action="{{ url_for('start_run', upload_short_id=experiment_code) }}" enctype="multipart/form-data">
+<form method="POST" action="{{ url_for('start_run', upload_short_id=upload_short_id) }}" enctype="multipart/form-data">
   <h3>Parameters</h3>
 
     {% if params %}
@@ -90,7 +90,7 @@ function update_page() {
     }
     setTimeout(update_page, 3000);
   });
-  req.open("GET", "{{ url_for('reproduce', upload_short_id=experiment_code) }}?log_from=" + log_lines);
+  req.open("GET", "{{ experiment_url }}?log_from=" + log_lines);
   req.responseType = "json";
   req.send();
 }

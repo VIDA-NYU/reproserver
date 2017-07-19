@@ -32,7 +32,7 @@
 
   {% for example in examples %}
 
-<p><a href="{{ url_for('reproduce', upload_short_id=example.upload.short_id) }}">{{ example.upload.filename }}</a>: {{ example.description }}</p>
+<p><a href="{{ url_for_upload(example.upload) }}">{{ example.upload.filename }}</a>: {{ example.description }}</p>
 
   {% endfor %}
 

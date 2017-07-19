@@ -12,6 +12,8 @@ from sqlalchemy.sql import functions
 from werkzeug.contrib.fixers import ProxyFix
 from werkzeug.utils import secure_filename
 
+from web.providers import ProviderError, get_experiment_from_provider
+
 
 app = Flask(__name__)
 
@@ -76,6 +78,15 @@ def sql_session(func):
     return wrapper
 
 
+def url_for_upload(upload):
+    if upload.provider_key is not None:
+        provider, path = upload.provider_key.split('/', 1)
+        return url_for('reproduce_provider',
+                       provider=provider, provider_path=path)
+    else:
+        return url_for('reproduce_local', upload_short_id=upload.short_id)
+
+
 @app.context_processor
 def context():
     def output_link(output_file):
@@ -93,7 +104,8 @@ def context():
                                           output_file.name,
                                           mime)
 
-    return dict(output_link=output_link)
+    return dict(output_link=output_link,
+                url_for_upload=url_for_upload)
 
 
 @app.route('/')
@@ -143,6 +155,8 @@ def unpack(session):
         # Insert it in database
         experiment = database.Experiment(hash=filehash)
         session.add(experiment)
+
+    # Insert Upload in database
     upload = database.Upload(experiment=experiment,
                              filename=filename,
                              submitted_ip=request.remote_addr)
@@ -153,12 +167,38 @@ def unpack(session):
     upload_short_id = upload.short_id
 
     # Redirect to build page
-    return redirect(url_for('reproduce', upload_short_id=upload_short_id), 302)
+    return redirect(url_for('reproduce_local',
+                            upload_short_id=upload_short_id), 302)
+
+
+@app.route('/reproduce/<string:provider>/<path:provider_path>')
+@sql_session
+def reproduce_provider(provider, provider_path, session):
+    """Reproduce an experiment from a data repository (provider).
+    """
+    # Check the database for an experiment already stored matching the URI
+    provider_key = '%s/%s' % (provider, provider_path)
+    upload = (session.query(database.Upload)
+              .options(joinedload(database.Upload.experiment))
+              .filter(database.Upload.provider_key == provider_key)
+              .order_by(database.Upload.id.desc())).first()
+    if not upload:
+        try:
+            upload = get_experiment_from_provider(session, request.remote_addr,
+                                                  provider, provider_path)
+        except ProviderError as e:
+            return render_template('setup_notfound.html',
+                                   message=e.message), 404
+
+    # Also updates last access
+    upload.experiment.last_access = functions.now()
+
+    return reproduce_common(upload, session)
 
 
 @app.route('/reproduce/<upload_short_id>')
 @sql_session
-def reproduce(upload_short_id, session):
+def reproduce_local(upload_short_id, session):
     """Show build log and ask for run parameters.
     """
     # Decode info from URL
@@ -174,12 +214,17 @@ def reproduce(upload_short_id, session):
               .get(upload_id))
     if not upload:
         return render_template('setup_notfound.html'), 404
-    experiment = upload.experiment
-    filename = upload.filename
 
     # Also updates last access
-    experiment.last_access = functions.now()
+    upload.experiment.last_access = functions.now()
 
+    return reproduce_common(upload, session)
+
+
+def reproduce_common(upload, session):
+    experiment = upload.experiment
+    filename = upload.filename
+    experiment_url = url_for_upload(upload)
     try:
         # JSON endpoint, returns data for JavaScript to update the page
         if (request.accept_mimetypes.best_match(['application/json',
@@ -206,19 +251,22 @@ def reproduce(upload_short_id, session):
                                        log=experiment.get_log(0),
                                        params=experiment.parameters,
                                        input_files=input_files,
-                                       experiment_code=upload_short_id)
+                                       upload_short_id=upload.short_id,
+                                       experiment_url=experiment_url)
             if experiment.status == database.Status.ERROR:
                 app.logger.info("Experiment is errored")
                 return render_template('setup.html', filename=filename,
                                        built=True, error=True,
                                        log=experiment.get_log(0),
-                                       experiment_code=upload_short_id)
+                                       upload_short_id=upload.short_id,
+                                       experiment_url=experiment_url)
             # If it's currently building, show the log
             elif experiment.status == database.Status.BUILDING:
                 app.logger.info("Experiment is currently building")
                 return render_template('setup.html', filename=filename,
                                        built=False, log=experiment.get_log(0),
-                                       experiment_code=upload_short_id)
+                                       upload_short_id=upload.short_id,
+                                       experiment_url=experiment_url)
             # Else, trigger the build
             else:
                 if experiment.status == database.Status.NOBUILD:
@@ -227,7 +275,8 @@ def reproduce(upload_short_id, session):
                     tasks.publish_build_task(experiment.hash)
                 return render_template('setup.html', filename=filename,
                                        built=False,
-                                       experiment_code=upload_short_id)
+                                       upload_short_id=upload.short_id,
+                                       experiment_url=experiment_url)
     finally:
         session.commit()
 
@@ -348,6 +397,7 @@ def results(run_short_id, session):
     # Look up the run in the database
     run = (session.query(database.Run)
            .options(joinedload(database.Run.experiment),
+                    joinedload(database.Run.upload),
                     joinedload(database.Run.parameter_values),
                     joinedload(database.Run.input_files),
                     joinedload(database.Run.output_files))
@@ -373,7 +423,7 @@ def results(run_short_id, session):
                                log=run.get_log(0),
                                started=bool(run.started),
                                done=bool(run.done),
-                               experiment_code=upload_short_id)
+                               experiment_url=url_for_upload(run.upload))
 
 
 @app.route('/about')
