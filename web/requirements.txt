@@ -3,4 +3,5 @@ enum34
 flask~=0.12
 pika~=0.10
 psycopg2~=2.7
+requests~=2.13
 SQLAlchemy~=1.1

@@ -37,6 +37,10 @@ class ObjectStore(object):
     def upload_fileobj(self, bucket, objectname, fileobj):
         self.s3.Object(self.bucket_name(bucket), objectname).put(Body=fileobj)
 
+    def upload_file(self, bucket, objectname, filename):
+        self.s3.meta.client.upload_file(filename,
+                                        self.bucket_name(bucket), objectname)
+
     def create_buckets(self):
         buckets = set(bucket.name for bucket in self.s3.buckets.all())
         missing = []

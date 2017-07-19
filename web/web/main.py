@@ -155,6 +155,8 @@ def unpack(session):
         # Insert it in database
         experiment = database.Experiment(hash=filehash)
         session.add(experiment)
+
+    # Insert Upload in database
     upload = database.Upload(experiment=experiment,
                              filename=filename,
                              submitted_ip=request.remote_addr)
@@ -181,7 +183,8 @@ def reproduce_provider(provider, provider_path, session):
               .filter(database.Upload.provider_key == provider_key)
               .order_by(database.Upload.id.desc())).first()
     if not upload:
-        upload = get_experiment_from_provider(session, provider, provider_path)
+        upload = get_experiment_from_provider(session, request.remote_addr,
+                                              provider, provider_path)
     if not upload:
         return render_template('setup_notfound.html'), 404
 
