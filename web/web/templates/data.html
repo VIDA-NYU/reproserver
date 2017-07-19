@@ -13,7 +13,8 @@
   {% for upload in experiment.uploads %}
 
   <p>Uploaded by {{ upload.submitted_ip }} at {{ upload.timestamp }}
-  as <a href="{{ url_for('reproduce', upload_short_id=upload.short_id) }}">{{ upload.filename }}</a></p>
+  as <a href="{{ url_for_upload(upload) }}">{{ upload.filename }}</a>
+  {% if upload.provider_key %} ({{ upload.provider_key}}){% endif %}</p>
 
   {% endfor %}
 

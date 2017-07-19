@@ -104,7 +104,8 @@ def context():
                                           output_file.name,
                                           mime)
 
-    return dict(output_link=output_link)
+    return dict(output_link=output_link,
+                url_for_upload=url_for_upload)
 
 
 @app.route('/')

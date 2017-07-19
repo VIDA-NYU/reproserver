@@ -90,7 +90,7 @@ function update_page() {
     }
     setTimeout(update_page, 3000);
   });
-  req.open("GET", "{{ url_for('reproduce', upload_short_id=upload_short_id) }}?log_from=" + log_lines);
+  req.open("GET", "{{ experiment_url }}?log_from=" + log_lines);
   req.responseType = "json";
   req.send();
 }
