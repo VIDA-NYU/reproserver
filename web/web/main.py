@@ -171,7 +171,7 @@ def unpack(session):
                             upload_short_id=upload_short_id), 302)
 
 
-@app.route('/reproduce/<string:provider>/<string:provider_path>')
+@app.route('/reproduce/<string:provider>/<path:provider_path>')
 @sql_session
 def reproduce_provider(provider, provider_path, session):
     """Reproduce an experiment from a data repository (provider).

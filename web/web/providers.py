@@ -115,7 +115,37 @@ def _osf(session, remote_addr, provider, path):
 
 
 def _figshare(session, remote_addr, provider, path):
-    raise NotImplementedError  # TODO
+    # article_id/file_id
+    try:
+        article_id, file_id = path.split('/', 1)
+        article_id = int(article_id)
+        file_id = int(file_id)
+    except ValueError:
+        raise ProviderError("ID is not in 'article_id/file_id' format")
+    logging.info("Querying Figshare for article=%s file=%s",
+                 article_id, file_id)
+    req = requests.get('https://api.figshare.com/v2/articles/{0}/files/{1}'
+                       .format(article_id, file_id),
+                       headers={'Accept': 'application/json'})
+    if req.status_code != 200:
+        logging.info("Got error %s", req.status_code)
+        raise ProviderError("HTTP error from Figshare")
+    try:
+        response = req.json()
+        link = response['download_url']
+    except KeyError:
+        raise ProviderError("Invalid data returned from Figshare")
+    except ValueError:
+        logging.error("Got invalid JSON from Figshare")
+        raise ProviderError("Invalid JSON returned from Figshare")
+    else:
+        try:
+            filename = response['name']
+        except KeyError:
+            filename = 'unnamed_figshare_file'
+        logging.info("Got response: %s %s", link, filename)
+        return _get_from_link(session, remote_addr, provider, path,
+                              link, filename)
 
 
 _PROVIDERS = {
