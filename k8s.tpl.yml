@@ -20,6 +20,8 @@ spec:
       - name: web
         image: {{ image_registry }}reproserver-web{{ tag }}
         env:
+        - name: REPROSERVER_VERSION
+          value: {{ version }}
         - name: SHORTIDS_SALT
           valueFrom:
             secretKeyRef:

@@ -146,9 +146,19 @@ def run(name, dct):
     subprocess.check_call(command)
 
 
+def get_version():
+    try:
+        out = subprocess.check_output(['git', 'describe', '--tags'])
+    except subprocess.CalledProcessError:
+        return None
+    else:
+        return out.decode('utf-8').strip()
+
+
 ADMIN_USER = 'reproserver'
 ADMIN_PASSWORD = 'hackmehackme'
 common_env = {
+    'REPROSERVER_VERSION': get_version(),
     'SHORTIDS_SALT': 'thisisarandomstring',
     'AMQP_USER': ADMIN_USER,
     'AMQP_PASSWORD': ADMIN_PASSWORD,
@@ -319,6 +329,10 @@ def make_k8s_def():
         return TaskFailed("You must set a tag explicitly, either in "
                           "config.yml or on the command-line")
     context['tag'] = config.pop('tag')
+    if context['tag'].startswith(':'):
+        context['version'] = context['tag'][1:]
+    else:
+        context['version'] = context['tag']
     context['tier'] = config.pop('tier')
     context['postgres_db'] = config.pop('postgres_database', 'reproserver')
     context['init_job'] = config.pop('init_job', True)

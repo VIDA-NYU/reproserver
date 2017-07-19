@@ -105,7 +105,8 @@ def context():
                                           mime)
 
     return dict(output_link=output_link,
-                url_for_upload=url_for_upload)
+                url_for_upload=url_for_upload,
+                version=os.environ.get('REPROSERVER_VERSION', 'dev'))
 
 
 @app.route('/')
