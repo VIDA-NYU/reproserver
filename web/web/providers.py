@@ -10,19 +10,26 @@ import tempfile
 __all__ =['get_experiment_from_provider']
 
 
+class ProviderError(Exception):
+    pass
+
+
 def get_experiment_from_provider(session, remote_addr,
                                  provider, provider_path):
     try:
         getter = _PROVIDERS[provider]
     except KeyError:
-        raise KeyError("No such provider %s" % provider)
+        raise ProviderError("No such provider %s" % provider)
     return getter(session, remote_addr, provider, provider_path)
 
 
 def _get_from_link(session, remote_addr, provider, provider_path,
                    link, filename, filehash=None):
     # Check for existence of experiment
-    experiment = session.query(database.Experiment).get(filehash)
+    if filehash is not None:
+        experiment = session.query(database.Experiment).get(filehash)
+    else:
+        experiment = None
     if experiment:
         logging.info("Experiment with hash exists, no need to download")
     else:
@@ -77,21 +84,22 @@ _osf_path = re.compile('^[a-zA-Z0-9]+$')
 
 def _osf(session, remote_addr, provider, path):
     if _osf_path.match(path) is None:
-        return None
+        raise ProviderError("ID is not in the OSF format")
     logging.info("Querying OSF for '%s'", path)
     req = requests.get('https://api.osf.io/v2/files/{0}/'.format(path),
                        headers={'Content-Type': 'application/json',
                                 'Accept': 'application/json'})
     if req.status_code != 200:
         logging.info("Got error %s", req.status_code)
-        return None
-    response = req.json()
+        raise ProviderError("HTTP error from OSF")
     try:
+        response = req.json()
         link = response['data']['links']['download']
     except KeyError:
-        return None
+        raise ProviderError("Invalid data returned from the OSF")
     except ValueError:
         logging.error("Got invalid JSON from osf.io")
+        raise ProviderError("Invalid JSON returned from the OSF")
     else:
         try:
             filehash = response['data']['attributes']['extra']['hashes']['sha256']

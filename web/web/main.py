@@ -12,7 +12,7 @@ from sqlalchemy.sql import functions
 from werkzeug.contrib.fixers import ProxyFix
 from werkzeug.utils import secure_filename
 
-from web.providers import get_experiment_from_provider
+from web.providers import ProviderError, get_experiment_from_provider
 
 
 app = Flask(__name__)
@@ -183,10 +183,12 @@ def reproduce_provider(provider, provider_path, session):
               .filter(database.Upload.provider_key == provider_key)
               .order_by(database.Upload.id.desc())).first()
     if not upload:
-        upload = get_experiment_from_provider(session, request.remote_addr,
-                                              provider, provider_path)
-    if not upload:
-        return render_template('setup_notfound.html'), 404
+        try:
+            upload = get_experiment_from_provider(session, request.remote_addr,
+                                                  provider, provider_path)
+        except ProviderError as e:
+            return render_template('setup_notfound.html',
+                                   message=e.message), 404
 
     # Also updates last access
     upload.experiment.last_access = functions.now()
