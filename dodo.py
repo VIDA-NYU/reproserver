@@ -59,7 +59,7 @@ def list_files(*directories):
 
 
 def task_build():
-    for name in ['web', 'builder', 'runner', 'init']:
+    for name in ['web', 'builder', 'runner']:
         image = PREFIX + name + TAG
         yield {
             'name': name,
@@ -243,19 +243,6 @@ def task_start():
         }
 
 
-def task_init():
-    dct = {
-        'image': PREFIX + 'init' + TAG,
-        'deps': ['start:rabbitmq', 'start:postgres', 'build:init'],
-        'env': common_env,
-    }
-    return {
-        'actions': [(run, ['init', dct])],
-        'task_dep': ['network'] + dct.get('deps', []),
-        'clean': ['docker rm -f -v {0} || true'.format(PREFIX + 'init')],
-    }
-
-
 _k8s_config = None
 
 def get_k8s_config():
@@ -335,7 +322,6 @@ def make_k8s_def():
         context['version'] = context['tag']
     context['tier'] = config.pop('tier')
     context['postgres_db'] = config.pop('postgres_database', 'reproserver')
-    context['init_job'] = config.pop('init_job', True)
     context['storage_driver'] = config.pop('storage_driver')
     context['liveness_probe_period_seconds'] = config.pop(
         'liveness_probe_period_seconds', 30)
