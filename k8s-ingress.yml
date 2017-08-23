@@ -1,0 +1,10 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: reproserver-ingress-prod
+spec:
+  tls:
+  - secretName: reproserver-tls
+  backend:
+    serviceName: reproserver-web-prod
+    servicePort: 8000
