@@ -278,17 +278,6 @@ class OutputFile(Base):
             self.id, self.run_id, self.hash, self.name)
 
 
-class Example(Base):
-    """An example experiment featured on the landing page.
-    """
-    __tablename__ = 'examples'
-
-    id = Column(Integer, primary_key=True)
-    upload_id = Column(Integer, ForeignKey('uploads.id', ondelete='RESTRICT'))
-    upload = relationship('Upload', uselist=False)
-    description = Column(String, nullable=False)
-
-
 def purge(url=None):
     _, Session = connect(url)
 

@@ -28,18 +28,9 @@
 <p>You can also choose one of the examples below to test it out!</p>
 
 <h2>Examples</h2>
-{% if examples %}
 
-  {% for example in examples %}
-
-<p><a href="{{ url_for_upload(example.upload) }}">{{ example.upload.filename }}</a>: {{ example.description }}</p>
-
-  {% endfor %}
-
-{% else %}
-
-<p>No examples on this server yet.</p>
-
-{% endif %}
+<p><a href="{{ url_for('reproduce_provider', provider='osf.io', provider_path='r2ptb') }}">bechdel.rpz</a>: Attempt to replicate the findings from a FiveThirtyEight article examining gender bias in the movie business</p>
+<p><a href="{{ url_for('reproduce_provider', provider='osf.io', provider_path='5ztp2') }}">digits_sklearn_opencv.rpz</a>: "Recognizing the value of hand-written digits using OpenCV and scikit-learn</p>
+<p><a href="{{ url_for('reproduce_provider', provider='osf.io', provider_path='5ke97') }}">bash-count.rpz</a>: Simple bash script counting the lines in a file</p>
 
 {% endblock content %}
