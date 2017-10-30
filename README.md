@@ -32,6 +32,8 @@ How to setup locally for development
 
 This doesn't use docker-compose, because it has [serious limitations](https://github.com/moby/moby/issues/18789). To have better control over the build, and to have efficient & automatic builds, [pydoit](http://pydoit.org/) is used to drive Docker. It can also generate the Kubernetes configuration for you.
 
+Don't forget to check out the submodule using `git submodule init && git submodule update`.
+
 Using `doit build` will build the images (`reproserver-*`). Using `doit start` will start all the containers locally.
 
 The ports are:
