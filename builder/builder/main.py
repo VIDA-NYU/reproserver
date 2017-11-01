@@ -41,7 +41,7 @@ def run_cmd_and_log(session, experiment_hash, cmd):
         return "Got IOError"
 
 
-def build_request(channel, method, _properties, body):
+def build_request(body):
     """Process a build task.
 
     Lookup the experiment in the database, and the file on S3. Then, do the
@@ -55,8 +55,6 @@ def build_request(channel, method, _properties, body):
     if not experiment:
         logging.error("Got a build request but couldn't get the experiment "
                       "from the database (body=%r)", body)
-        # ACK anyway
-        channel.basic_ack(delivery_tag=method.delivery_tag)
         return
 
     # Update status in database
@@ -80,7 +78,6 @@ def build_request(channel, method, _properties, body):
         session.add(database.BuildLogLine(experiment_hash=experiment.hash,
                                           line=msg))
         session.commit()
-        channel.basic_ack(delivery_tag=method.delivery_tag)
 
     try:
         # Get experiment file
@@ -156,20 +153,11 @@ def build_request(channel, method, _properties, body):
 
         # Set status
         experiment.status = database.Status.BUILT
-        # ACK
         session.commit()
-        channel.basic_ack(delivery_tag=method.delivery_tag)
         logging.info("Done!")
     except Exception:
         logging.exception("Error processing build!")
-        if True:
-            set_error("Internal error!")
-        else:
-            # Set database status back to QUEUED
-            experiment.status = database.Status.QUEUED
-            session.commit()
-            # NACK the task in RabbitMQ
-            channel.basic_nack(delivery_tag=method.delivery_tag)
+        set_error("Internal error!")
     finally:
         # Remove build directory
         shutil.rmtree(directory)

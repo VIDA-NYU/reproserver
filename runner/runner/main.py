@@ -34,7 +34,7 @@ def run_cmd_and_log(session, run_id, cmd):
     return proc.wait()
 
 
-def run_request(channel, method, _properties, body):
+def run_request(body):
     """Process a run task.
 
     Lookup a run in the database, get the input files from S3, then do the run
@@ -54,8 +54,6 @@ def run_request(channel, method, _properties, body):
     if not run:
         logging.error("Got a run request but couldn't get the run from the "
                       "database (body=%r)", body)
-        # ACK anyway
-        channel.basic_ack(delivery_tag=method.delivery_tag)
         return
 
     # Update status in database
@@ -74,7 +72,6 @@ def run_request(channel, method, _properties, body):
         run.done = functions.now()
         session.add(database.RunLogLine(run_id=run.id, line=msg))
         session.commit()
-        channel.basic_ack(delivery_tag=method.delivery_tag)
 
     if run.experiment.status != database.Status.BUILT:
         return set_error("Experiment to run is not BUILT")
@@ -211,20 +208,11 @@ def run_request(channel, method, _properties, body):
                 # Remove local file
                 os.remove(local_path)
 
-        # ACK
         session.commit()
-        channel.basic_ack(delivery_tag=method.delivery_tag)
         logging.info("Done!")
     except Exception:
         logging.exception("Error processing run!")
-        if True:
-            set_error("Internal error!")
-        else:
-            # Set database status back to QUEUED
-            run.status = database.Status.QUEUED
-            session.commit()
-            # NACK the task in RabbitMQ
-            channel.basic_nack(delivery_tag=method.delivery_tag)
+        set_error("Internal error!")
     finally:
         # Remove container if created
         if container is not None:
