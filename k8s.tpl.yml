@@ -27,18 +27,8 @@ spec:
             secretKeyRef:
               name: reproserver-secret-{{ tier }}
               key: salt
-        - name: AMQP_USER
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret-{{ tier }}
-              key: user
-        - name: AMQP_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret-{{ tier }}
-              key: password
-        - name: AMQP_HOST
-          value: reproserver-rabbitmq-{{ tier }}
+        - name: REDIS_HOST
+          value: reproserver-redis-{{ tier }}
         - name: S3_KEY
           valueFrom:
             secretKeyRef:
@@ -113,18 +103,8 @@ spec:
             secretKeyRef:
               name: reproserver-secret-{{ tier }}
               key: salt
-        - name: AMQP_USER
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret-{{ tier }}
-              key: user
-        - name: AMQP_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret-{{ tier }}
-              key: password
-        - name: AMQP_HOST
-          value: reproserver-rabbitmq-{{ tier }}
+        - name: REDIS_HOST
+          value: reproserver-redis-{{ tier }}
         - name: S3_KEY
           valueFrom:
             secretKeyRef:
@@ -193,18 +173,8 @@ spec:
             secretKeyRef:
               name: reproserver-secret-{{ tier }}
               key: salt
-        - name: AMQP_USER
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret-{{ tier }}
-              key: user
-        - name: AMQP_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret-{{ tier }}
-              key: password
-        - name: AMQP_HOST
-          value: reproserver-rabbitmq-{{ tier }}
+        - name: REDIS_HOST
+          value: reproserver-redis-{{ tier }}
         - name: S3_KEY
           valueFrom:
             secretKeyRef:
@@ -245,7 +215,7 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: reproserver-rabbitmq-{{ tier }}
+  name: reproserver-redis-{{ tier }}
 spec:
   replicas: 1
   strategy:
@@ -254,26 +224,15 @@ spec:
     metadata:
       labels:
         app: reproserver
-        repro-pod: rabbitmq
+        repro-pod: redis
         tier: {{ tier }}
     spec:
       containers:
-      - name: rabbitmq
-        image: rabbitmq:3.6.9-management
+      - name: redis
+        image: redis:3.2
         env:
-        - name: RABBITMQ_DEFAULT_USER
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret-{{ tier }}
-              key: user
-        - name: RABBITMQ_DEFAULT_PASS
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret-{{ tier }}
-              key: password
         ports:
-        - containerPort: 5672
-        - containerPort: 8080
+        - containerPort: 6379
 {% if use_minio %}
 ---
 apiVersion: extensions/v1beta1
@@ -442,34 +401,18 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: reproserver-rabbitmq-{{ tier }}
+  name: reproserver-redis-{{ tier }}
   labels:
     app: reproserver
     tier: {{ tier }}
 spec:
   selector:
     app: reproserver
-    repro-pod: rabbitmq
+    repro-pod: redis
     tier: {{ tier }}
   ports:
   - protocol: TCP
-    port: 5672
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: reproserver-rabbitmq-management-{{ tier }}
-  labels:
-    app: reproserver
-    tier: {{ tier }}
-spec:
-  selector:
-    app: reproserver
-    repro-pod: rabbitmq
-    tier: {{ tier }}
-  ports:
-  - protocol: TCP
-    port: 15672
+    port: 6379
 ---
 apiVersion: v1
 kind: Service

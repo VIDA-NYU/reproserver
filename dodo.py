@@ -90,7 +90,7 @@ def task_push():
 
 
 def task_pull():
-    for image in ['rabbitmq:3.6.9-management',
+    for image in ['redis:3.2',
                   'minio/minio:RELEASE.2017-04-29T00-40-27Z',
                   'registry:2.6',
                   'postgres:9.6']:
@@ -160,9 +160,7 @@ ADMIN_PASSWORD = 'hackmehackme'
 common_env = {
     'REPROSERVER_VERSION': get_version(),
     'SHORTIDS_SALT': 'thisisarandomstring',
-    'AMQP_USER': ADMIN_USER,
-    'AMQP_PASSWORD': ADMIN_PASSWORD,
-    'AMQP_HOST': '%srabbitmq' % PREFIX,
+    'REDIS_HOST': '%sredis' % PREFIX,
     'S3_KEY': ADMIN_USER,
     'S3_SECRET': ADMIN_PASSWORD,
     'S3_URL': 'http://%sminio:9000' % PREFIX,
@@ -176,7 +174,7 @@ common_env = {
 services = [
     ('web', {
         'image': PREFIX + 'web' + TAG,
-        'deps': ['start:rabbitmq', 'build:web'],
+        'deps': ['start:redis', 'build:web'],
         'command': ['debug'],
         'volumes': ['{d}/web/static:/usr/src/app/static',
                     '{d}/web/web:/usr/src/app/web'],
@@ -185,7 +183,7 @@ services = [
     }),
     ('builder', {
         'image': PREFIX + 'builder' + TAG,
-        'deps': ['start:rabbitmq', 'start:registry', 'start:minio',
+        'deps': ['start:redis', 'start:registry', 'start:minio',
                  'build:builder'],
         'user': '0',
         'volumes': ['/var/run/docker.sock:/var/run/docker.sock'],
@@ -193,18 +191,16 @@ services = [
     }),
     ('runner', {
         'image': PREFIX + 'runner' + TAG,
-        'deps': ['start:rabbitmq', 'start:registry', 'start:minio',
+        'deps': ['start:redis', 'start:registry', 'start:minio',
                  'build:runner'],
         'user': '0',
         'volumes': ['/var/run/docker.sock:/var/run/docker.sock'],
         'env': common_env,
     }),
-    ('rabbitmq', {
-        'image': 'rabbitmq:3.6.9-management',
-        'deps': ['pull:rabbitmq'],
-        'env': {'RABBITMQ_DEFAULT_USER': ADMIN_USER,
-                'RABBITMQ_DEFAULT_PASS': ADMIN_PASSWORD},
-        'ports': ['8080:15672'],
+    ('redis', {
+        'image': 'redis:3.2',
+        'deps': ['pull:redis'],
+        'ports': ['6379:6379'],
     }),
     ('minio', {
         'image': 'minio/minio:RELEASE.2017-04-29T00-40-27Z',
@@ -246,7 +242,7 @@ def task_start():
 def task_init():
     dct = {
         'image': PREFIX + 'init' + TAG,
-        'deps': ['start:rabbitmq', 'start:postgres', 'build:init'],
+        'deps': ['start:redis', 'start:postgres', 'build:init'],
         'env': common_env,
     }
     return {
