@@ -4,7 +4,7 @@ import logging
 import os
 from sqlalchemy import Column, ForeignKey, create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm import relationship, scoped_session, sessionmaker
 from sqlalchemy.sql import functions
 from sqlalchemy.types import Boolean, DateTime, Enum, Integer, String
 
@@ -313,4 +313,6 @@ def connect(url=None):
         )
     engine = create_engine(url, echo=False)
 
-    return engine, sessionmaker(bind=engine)
+    return engine, scoped_session(sessionmaker(bind=engine,
+                                               autocommit=False,
+                                               autoflush=False))

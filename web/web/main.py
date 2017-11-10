@@ -46,7 +46,7 @@ if 'WEB_BEHIND_PROXY' in os.environ:
 
 
 # SQL database
-engine, SQLSession = database.connect()
+engine, db_session = database.connect()
 
 if not engine.dialect.has_table(engine.connect(), 'experiments'):
     logging.warning("The tables don't seem to exist; creating")
@@ -65,17 +65,9 @@ object_store = get_object_store()
 object_store.create_buckets()
 
 
-def sql_session(func):
-    def wrapper(**kwargs):
-        session = SQLSession()
-        flask.g.sql_session = session
-        try:
-            return func(session=session, **kwargs)
-        finally:
-            flask.g.sql_session = None
-            session.close()
-    functools.update_wrapper(wrapper, func)
-    return wrapper
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    db_session.remove()
 
 
 def url_for_upload(upload):
@@ -95,8 +87,7 @@ def context():
             client = get_object_store(client_endpoint_url)
         else:
             client = object_store
-        session = flask.g.sql_session
-        path = session.query(database.Path).filter(
+        path = db_session.query(database.Path).filter(
             database.Path.experiment_hash == output_file.run.experiment_hash,
             database.Path.name == output_file.name).one().path
         mime = mimetypes.guess_type(path)[0]
@@ -110,17 +101,15 @@ def context():
 
 
 @app.route('/')
-@sql_session
-def index(session):
+def index():
     """Landing page from which a user can select an experiment to unpack.
     """
-    examples = session.query(database.Example).all()
+    examples = db_session.query(database.Example).all()
     return render_template('index.html', examples=examples)
 
 
 @app.route('/upload', methods=['POST'])
-@sql_session
-def unpack(session):
+def unpack():
     """Target of the landing page.
 
     An experiment has been provided, store it and start the build process.
@@ -144,7 +133,7 @@ def unpack(session):
     uploaded_file.seek(0, 0)
 
     # Check for existence of experiment
-    experiment = session.query(database.Experiment).get(filehash)
+    experiment = db_session.query(database.Experiment).get(filehash)
     if experiment:
         experiment.last_access = functions.now()
         app.logger.info("File exists in storage")
@@ -155,14 +144,14 @@ def unpack(session):
 
         # Insert it in database
         experiment = database.Experiment(hash=filehash)
-        session.add(experiment)
+        db_session.add(experiment)
 
     # Insert Upload in database
     upload = database.Upload(experiment=experiment,
                              filename=filename,
                              submitted_ip=request.remote_addr)
-    session.add(upload)
-    session.commit()
+    db_session.add(upload)
+    db_session.commit()
 
     # Encode ID for permanent URL
     upload_short_id = upload.short_id
@@ -173,19 +162,19 @@ def unpack(session):
 
 
 @app.route('/reproduce/<string:provider>/<path:provider_path>')
-@sql_session
-def reproduce_provider(provider, provider_path, session):
+def reproduce_provider(provider, provider_path):
     """Reproduce an experiment from a data repository (provider).
     """
     # Check the database for an experiment already stored matching the URI
     provider_key = '%s/%s' % (provider, provider_path)
-    upload = (session.query(database.Upload)
+    upload = (db_session.query(database.Upload)
               .options(joinedload(database.Upload.experiment))
               .filter(database.Upload.provider_key == provider_key)
               .order_by(database.Upload.id.desc())).first()
     if not upload:
         try:
-            upload = get_experiment_from_provider(session, request.remote_addr,
+            upload = get_experiment_from_provider(db_session,
+                                                  request.remote_addr,
                                                   provider, provider_path)
         except ProviderError as e:
             return render_template('setup_notfound.html',
@@ -194,12 +183,11 @@ def reproduce_provider(provider, provider_path, session):
     # Also updates last access
     upload.experiment.last_access = functions.now()
 
-    return reproduce_common(upload, session)
+    return reproduce_common(upload)
 
 
 @app.route('/reproduce/<upload_short_id>')
-@sql_session
-def reproduce_local(upload_short_id, session):
+def reproduce_local(upload_short_id):
     """Show build log and ask for run parameters.
     """
     # Decode info from URL
@@ -210,7 +198,7 @@ def reproduce_local(upload_short_id, session):
         return render_template('setup_notfound.html'), 404
 
     # Look up the experiment in database
-    upload = (session.query(database.Upload)
+    upload = (db_session.query(database.Upload)
               .options(joinedload(database.Upload.experiment))
               .get(upload_id))
     if not upload:
@@ -219,10 +207,10 @@ def reproduce_local(upload_short_id, session):
     # Also updates last access
     upload.experiment.last_access = functions.now()
 
-    return reproduce_common(upload, session)
+    return reproduce_common(upload)
 
 
-def reproduce_common(upload, session):
+def reproduce_common(upload):
     experiment = upload.experiment
     filename = upload.filename
     experiment_url = url_for_upload(upload)
@@ -244,7 +232,7 @@ def reproduce_common(upload, session):
             if experiment.status == database.Status.BUILT:
                 app.logger.info("Experiment already built")
                 input_files = (
-                    session.query(database.Path)
+                    db_session.query(database.Path)
                     .filter(database.Path.experiment_hash == experiment.hash)
                     .filter(database.Path.is_input)).all()
                 return render_template('setup.html', filename=filename,
@@ -279,12 +267,11 @@ def reproduce_common(upload, session):
                                        upload_short_id=upload.short_id,
                                        experiment_url=experiment_url)
     finally:
-        session.commit()
+        db_session.commit()
 
 
 @app.route('/run/<upload_short_id>', methods=['POST'])
-@sql_session
-def start_run(upload_short_id, session):
+def start_run(upload_short_id):
     """Gets the run parameters POSTed to from /reproduce.
 
     Triggers the run and redirects to the results page.
@@ -297,7 +284,7 @@ def start_run(upload_short_id, session):
         return render_template('setup_notfound.html'), 404
 
     # Look up the experiment in database
-    upload = (session.query(database.Upload)
+    upload = (db_session.query(database.Upload)
               .options(joinedload(database.Upload.experiment))
               .get(upload_id))
     if not upload:
@@ -308,7 +295,7 @@ def start_run(upload_short_id, session):
     try:
         run = database.Run(experiment_hash=experiment.hash,
                            upload_id=upload_id)
-        session.add(run)
+        db_session.add(run)
 
         # Get list of parameters
         params = set()
@@ -335,7 +322,7 @@ def start_run(upload_short_id, session):
         # Get list of input files
         input_files = set(
             p.name for p in (
-                session.query(database.Path)
+                db_session.query(database.Path)
                 .filter(database.Path.experiment_hash == experiment.hash)
                 .filter(database.Path.is_input).all()))
 
@@ -373,19 +360,18 @@ def start_run(upload_short_id, session):
             run.input_files.append(input_file)
 
         # Trigger run
-        session.commit()
+        db_session.commit()
         tasks.publish_run_task(str(run.id))
 
         # Redirect to results page
         return redirect(url_for('results', run_short_id=run.short_id), 302)
     except Exception:
-        session.rollback()
+        db_session.rollback()
         raise
 
 
 @app.route('/results/<run_short_id>')
-@sql_session
-def results(run_short_id, session):
+def results(run_short_id):
     """Shows the results of a run, whether it's done or in progress.
     """
     # Decode info from URL
@@ -396,7 +382,7 @@ def results(run_short_id, session):
         return render_template('setup_notfound.html'), 404
 
     # Look up the run in the database
-    run = (session.query(database.Run)
+    run = (db_session.query(database.Run)
            .options(joinedload(database.Run.experiment),
                     joinedload(database.Run.upload),
                     joinedload(database.Run.parameter_values),
@@ -407,7 +393,7 @@ def results(run_short_id, session):
         return render_template('results_notfound.html'), 404
     # Update last access
     run.experiment.last_access = functions.now()
-    session.commit()
+    db_session.commit()
 
     # JSON endpoint, returns data for JavaScript to update the page
     if (request.accept_mimetypes.best_match(['application/json',
@@ -433,13 +419,12 @@ def about():
 
 
 @app.route('/data')
-@sql_session
-def data(session):
+def data():
     """Print some system information.
     """
     return render_template(
         'data.html',
-        experiments=session.query(database.Experiment).all(),
+        experiments=db_session.query(database.Experiment).all(),
     )
 
 
