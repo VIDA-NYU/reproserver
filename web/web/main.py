@@ -129,14 +129,15 @@ def unpack(session):
     # If a URL was provided, and no file
     if request.form.get('rpz_url'):
         # Redirect to reproduce_provider view
-        provider, provider_path = parse_provider_url(request.form['rpz_url'])
         try:
-            return redirect(url_for('reproduce_provider',
-                                    provider=provider,
-                                    provider_path=provider_path))
+            provider, provider_path = parse_provider_url(request.form['rpz_url'])
         except ProviderError as e:
             return render_template('setup_notfound.html',
                                    message=e.message), 404
+        else:
+            return redirect(url_for('reproduce_provider',
+                                    provider=provider,
+                                    provider_path=provider_path))
 
     # Get uploaded file
     uploaded_file = request.files['rpz_file']
