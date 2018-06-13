@@ -7,7 +7,7 @@ import requests
 import tempfile
 
 
-__all__ =['get_experiment_from_provider']
+__all__ = ['get_experiment_from_provider']
 
 
 class ProviderError(Exception):
@@ -152,3 +152,23 @@ _PROVIDERS = {
     'osf.io': _osf,
     'figshare.com': _figshare,
 }
+
+
+def parse_provider_url(url):
+    if url.startswith('http://'):
+        url = url[7:]
+    elif url.startswith('https://'):
+        url = url[8:]
+    else:
+        return None
+    if url.lower().startswith('osf.io/'):
+        path = url[7:]
+        path = path.lstrip('/')
+        path = path.split('/', 1)[0]
+        return 'osf.io', path
+    elif url.lower().startswith('figshare.com/'):
+        path = url[13:]
+        path = path.lstrip('/')
+        return 'figshare.com', path
+    else:
+        return None

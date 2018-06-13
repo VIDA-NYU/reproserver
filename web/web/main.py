@@ -12,7 +12,8 @@ from sqlalchemy.sql import functions
 from werkzeug.contrib.fixers import ProxyFix
 from werkzeug.utils import secure_filename
 
-from web.providers import ProviderError, get_experiment_from_provider
+from web.providers import ProviderError, get_experiment_from_provider, \
+    parse_provider_url
 
 
 app = Flask(__name__)
@@ -125,6 +126,18 @@ def unpack(session):
 
     An experiment has been provided, store it and start the build process.
     """
+    # If a URL was provided, and no file
+    if not request.files['rpz_file'].filename and request.form.get('rpz_url'):
+        # Redirect to reproduce_provider view
+        provider, provider_path = parse_provider_url(request.form['rpz_url'])
+        try:
+            return redirect(url_for('reproduce_provider',
+                                    provider=provider,
+                                    provider_path=provider_path))
+        except ProviderError as e:
+            return render_template('setup_notfound.html',
+                                   message=e.message), 404
+
     # Get uploaded file
     uploaded_file = request.files['rpz_file']
     assert uploaded_file.filename
