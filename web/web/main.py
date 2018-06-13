@@ -132,7 +132,7 @@ def unpack(session):
         try:
             provider, provider_path = parse_provider_url(request.form['rpz_url'])
         except ProviderError as e:
-            return render_template('setup_notfound.html',
+            return render_template('provider_notfound.html',
                                    message=e.message), 404
         else:
             return redirect(url_for('reproduce_provider',

@@ -19,7 +19,7 @@ def get_experiment_from_provider(session, remote_addr,
     try:
         getter = _PROVIDERS[provider]
     except KeyError:
-        raise ProviderError("No such provider %s" % provider)
+        raise ProviderError("Unknown provider %s" % provider)
     return getter(session, remote_addr, provider, provider_path)
 
 
@@ -167,6 +167,7 @@ def parse_provider_url(url):
         path = path.split('/', 1)[0]
         return 'osf.io', path
     elif url.lower().startswith('figshare.com/'):
+        # TODO: Actually need to find the article ID, which is not in the URL?
         path = url[13:]
         path = path.lstrip('/')
         return 'figshare.com', path
