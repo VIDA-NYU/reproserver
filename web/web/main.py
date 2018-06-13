@@ -127,7 +127,7 @@ def unpack(session):
     An experiment has been provided, store it and start the build process.
     """
     # If a URL was provided, and no file
-    if not request.files['rpz_file'].filename and request.form.get('rpz_url'):
+    if request.form.get('rpz_url'):
         # Redirect to reproduce_provider view
         provider, provider_path = parse_provider_url(request.form['rpz_url'])
         try:
