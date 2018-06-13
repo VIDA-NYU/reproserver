@@ -160,7 +160,7 @@ def parse_provider_url(url):
     elif url.startswith('https://'):
         url = url[8:]
     else:
-        return None
+        raise ProviderError("Invalid URL")
     if url.lower().startswith('osf.io/'):
         path = url[7:]
         path = path.lstrip('/')
@@ -171,4 +171,4 @@ def parse_provider_url(url):
         path = path.lstrip('/')
         return 'figshare.com', path
     else:
-        return None
+        raise ProviderError("Unrecognized URL")
