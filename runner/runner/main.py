@@ -163,11 +163,9 @@ def run_request(channel, method, _properties, body):
                                   ['docker', 'start', '-ai', '--', container])
         except IOError:
             return set_error("Got IOError running experiment")
+        if ret != 0:
+            return set_error("Error: Docker returned %d" % ret)
         run.done = functions.now()
-        session.add(database.RunLogLine(
-            run_id=run.id,
-            line="Done, experiment returned %d" % ret))
-        logging.info("Container done, returned %d", ret)
 
         # Get output files
         for path in run.experiment.paths:
