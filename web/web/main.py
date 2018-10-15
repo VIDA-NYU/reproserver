@@ -418,7 +418,6 @@ def results(run_short_id, session):
                         'log': run.get_log(log_from)})
     # HTML view, return the page
     else:
-        upload_short_id = short_ids.encode('upload', run.upload_id)
         return render_template('results.html', run=run,
                                log=run.get_log(0),
                                started=bool(run.started),

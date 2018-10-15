@@ -12,7 +12,7 @@ flake8:
   before_script:
     - pip install flake8
   script:
-    - flake8 dodo.py common/common builder/builder runner/runner web/web
+    - flake8 --ignore=E731 dodo.py common/common builder/builder runner/runner web/web
 
 make_images:
   stage: deploy

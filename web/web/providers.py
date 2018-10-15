@@ -7,7 +7,7 @@ import requests
 import tempfile
 
 
-__all__ =['get_experiment_from_provider']
+__all__ = ['get_experiment_from_provider']
 
 
 class ProviderError(Exception):
@@ -102,7 +102,8 @@ def _osf(session, remote_addr, provider, path):
         raise ProviderError("Invalid JSON returned from the OSF")
     else:
         try:
-            filehash = response['data']['attributes']['extra']['hashes']['sha256']
+            attrs = response['data']['attributes']
+            filehash = attrs['extra']['hashes']['sha256']
         except KeyError:
             filehash = None
         try:
