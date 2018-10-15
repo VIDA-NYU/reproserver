@@ -114,8 +114,7 @@ def context():
 def index(session):
     """Landing page from which a user can select an experiment to unpack.
     """
-    examples = session.query(database.Example).all()
-    return render_template('index.html', examples=examples)
+    return render_template('index.html')
 
 
 @app.route('/upload', methods=['POST'])

@@ -1,6 +1,0 @@
-boto3~=1.4
-enum34
-pika~=0.10
-psycopg2~=2.7
-requests~=2.13
-SQLAlchemy~=1.1

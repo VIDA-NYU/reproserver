@@ -31,5 +31,3 @@ dev:
   liveness_probe_period_seconds: 60
   # URL through which the users can access S3
   s3_client_url: "https://devfiles.server.reprozip.org"
-  # Don't run the init job
-  init_job: false
