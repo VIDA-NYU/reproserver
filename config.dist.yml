@@ -9,7 +9,7 @@ prod:
   # Images will be pulled from that registry, eg vidanyu/reproserver-web:0.4
   image_registry: "vidanyu"
   # This can be overridden on the command-line, `doit k8s tier=prod tag=0.3`
-  tag: 0.4
+  tag: 0.6
   # Period for the Kubernetes liveness checks
   liveness_probe_period_seconds: 60
   # URL through which the users can access S3 (useful if running Minio and we
