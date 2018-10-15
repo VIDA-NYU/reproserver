@@ -1,4 +1,4 @@
-FROM python:2.7
+FROM python:3.6
 
 WORKDIR /usr/src/app
 RUN curl -Lo /tmp/docker.tgz https://get.docker.com/builds/Linux/x86_64/docker-17.05.0-ce.tgz && \

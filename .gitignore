@@ -1,3 +1,6 @@
+.doit.db.db
+/config.py
+
 *.py[co]
 
 # Packages

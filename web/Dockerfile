@@ -1,4 +1,4 @@
-FROM python:2.7
+FROM python:3.6
 
 RUN pip install uwsgi~=2.0.15
 WORKDIR /usr/src/app
