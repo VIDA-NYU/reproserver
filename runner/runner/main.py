@@ -25,7 +25,8 @@ def run_cmd_and_log(session, run_id, cmd):
                             stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT)
     proc.stdin.close()
-    for line in iter(proc.stdout.readline, ''):
+    for line in iter(proc.stdout.readline, b''):
+        line = line.decode('utf-8', 'replace')
         logging.info("> %s", line)
         session.add(database.RunLogLine(
             run_id=run_id,
@@ -40,6 +41,7 @@ def run_request(channel, method, _properties, body):
     Lookup a run in the database, get the input files from S3, then do the run
     from the Docker image, upload the log and the output files.
     """
+    body = body.decode('ascii')
     logging.info("Run request received: %r", body)
 
     # Look up the run in the database
@@ -130,7 +132,7 @@ def run_request(channel, method, _properties, body):
                      container, run.experiment.docker_image)
         # Turn parameters into a command-line
         cmdline = []
-        for k, v in params.iteritems():
+        for k, v in params.items():
             if k.startswith('cmdline_'):
                 i = k[8:]
                 cmdline.extend(['cmd', v, 'run', i])

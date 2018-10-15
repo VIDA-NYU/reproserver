@@ -28,7 +28,8 @@ def run_cmd_and_log(session, experiment_hash, cmd):
                             stderr=subprocess.STDOUT)
     proc.stdin.close()
     try:
-        for line in iter(proc.stdout.readline, ''):
+        for line in iter(proc.stdout.readline, b''):
+            line = line.decode('utf-8', 'replace')
             logging.info("> %s", line)
             session.add(database.BuildLogLine(
                 experiment_hash=experiment_hash,
@@ -47,6 +48,7 @@ def build_request(channel, method, _properties, body):
     Lookup the experiment in the database, and the file on S3. Then, do the
     build, upload the log, and fill in the parameters in the database.
     """
+    body = body.decode('ascii')
     logging.info("Build request received: %r", body)
 
     # Look up the experiment in the database
@@ -134,7 +136,7 @@ def build_request(channel, method, _properties, body):
                 name="cmdline_%d" % i, optional=False, default=cmdline,
                 description="Command-line for step %s" % run['id']))
         # Input/output files
-        for name, iofile in info.get('inputs_outputs', ()).iteritems():
+        for name, iofile in info.get('inputs_outputs', ()).items():
             path = iofile['path']
 
             # It's an input if it's read before it is written

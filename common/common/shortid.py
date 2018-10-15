@@ -1,7 +1,7 @@
 __all__ = ['ShortIDs']
 
 
-CHARS = u'023456789abcdefghijkmnopqrstuvwxyz'
+CHARS = '023456789abcdefghijkmnopqrstuvwxyz'
 
 
 def _encode(nb, min_chars, chars):
@@ -15,7 +15,7 @@ def _encode(nb, min_chars, chars):
         idx += 1
         nb = nb // nb_chars
         i += 1
-    return u''.join(reversed(shortid))
+    return ''.join(reversed(shortid))
 
 
 def _decode(shortid, cmap):
@@ -48,7 +48,7 @@ class ShortIDs(object):
             s = ord(salt[i % salt_len])
             j = i + s % (nb_chars - i)
             chars[i], chars[j] = chars[j], chars[i]
-        self.chars = u''.join(chars)
+        self.chars = ''.join(chars)
         self.cmap = dict((c, i) for i, c in enumerate(self.chars))
 
     def encode(self, nb, min_chars=5):

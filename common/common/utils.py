@@ -11,13 +11,13 @@ safe_shell_chars = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 def shell_escape(s):
     r"""Given bl"a, returns "bl\\"a".
     """
-    if not isinstance(s, bytes):
-        s = s.encode('utf-8')
+    if isinstance(s, bytes):
+        s = s.decode('utf-8')
     if not s or any(c not in safe_shell_chars for c in s):
         return '"%s"' % (s.replace('\\', '\\\\')
-                          .replace('"', '\\"')
-                          .replace('`', '\\`')
-                          .replace('$', '\\$'))
+                         .replace('"', '\\"')
+                         .replace('`', '\\`')
+                         .replace('$', '\\$'))
     else:
         return s
 

@@ -318,7 +318,7 @@ def start_run(upload_short_id, session):
             params.add(param.name)
 
         # Get run parameters
-        for k, v in request.form.iteritems():
+        for k, v in request.form.items():
             if k.startswith('param_'):
                 name = k[6:]
                 if name not in params:
@@ -339,7 +339,7 @@ def start_run(upload_short_id, session):
                 .filter(database.Path.is_input).all()))
 
         # Get input files
-        for k, uploaded_file in request.files.iteritems():
+        for k, uploaded_file in request.files.items():
             if not uploaded_file:
                 continue
 
