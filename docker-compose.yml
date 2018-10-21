@@ -1,0 +1,74 @@
+version: '3'
+services:
+  web:
+    image: reproserver-web
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    depends_on:
+      - rabbitmq
+    env_file:
+      - ".env"
+    command: ["debug"]
+    volumes:
+      - ./web/static:/usr/src/app/static
+      - ./web/web:/usr/src/app/web
+    ports:
+      - 8000:8000
+  builder:
+    image: reproserver-builder
+    build:
+      context: .
+      dockerfile: builder/Dockerfile
+    depends_on:
+      - rabbitmq
+      - registry
+      - minio
+    user: "0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - ".env"
+    environment:
+      REPROZIP_USAGE_STATS: "off"
+  runner:
+    image: reproserver-runner
+    build:
+      context: .
+      dockerfile: runner/Dockerfile
+    depends_on:
+      - rabbitmq
+      - registry
+      - minio
+    user: "0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - ".env"
+  rabbitmq:
+    image: rabbitmq:3.6.9-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${ADMIN_USER}
+      RABBITMQ_DEFAULT_PASS: ${ADMIN_PASSWORD}
+    ports:
+      - 8080:15672
+  minio:
+    image: minio/minio:RELEASE.2017-04-29T00-40-27Z
+    command: ["server", "/export"]
+    environment:
+      MINIO_ACCESS_KEY: ${ADMIN_USER}
+      MINIO_SECRET_KEY: ${ADMIN_PASSWORD}
+    ports:
+      - 9000:9000
+  registry:
+    image: registry:2.6
+    ports:
+      - 5000:5000
+  postgres:
+    image: postgres:9.6
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_USER: ${ADMIN_USER}
+      POSTGRES_PASSWORD: ${ADMIN_PASSWORD}
+    ports:
+      - 5432:5432
