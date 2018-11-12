@@ -1,3 +1,8 @@
+# nginx proxy notes:
+#   * set `proxy_set_header Host` for Minio
+#   * set `s3_client_url` below
+#   * increase `client_max_body_size` to allow uploading big packages
+
 # Production version
 prod:
   # Don't use Minio, connect to S3
