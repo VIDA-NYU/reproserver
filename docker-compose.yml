@@ -10,9 +10,6 @@ services:
     env_file:
       - ".env"
     command: ["debug"]
-    volumes:
-      - ./web/static:/usr/src/app/static
-      - ./web/web:/usr/src/app/web
     ports:
       - 8000:8000
   builder:
