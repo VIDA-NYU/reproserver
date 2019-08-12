@@ -1,7 +1,6 @@
 version: '3'
 services:
   web:
-    image: reproserver-web
     build:
       context: .
       dockerfile: web/Dockerfile
@@ -13,7 +12,6 @@ services:
     ports:
       - 8000:8000
   builder:
-    image: reproserver-builder
     build:
       context: .
       dockerfile: builder/Dockerfile
@@ -29,7 +27,6 @@ services:
     environment:
       REPROZIP_USAGE_STATS: "off"
   runner:
-    image: reproserver-runner
     build:
       context: .
       dockerfile: runner/Dockerfile

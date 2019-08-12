@@ -25,6 +25,9 @@ make_images:
     - "export PATH=\"/usr/local/docker:$PATH\""
     - export DOCKER_HOST=docker
   script:
-    - doit -v 2 build
+    - docker-compose build
     - docker login -u "gitlab-ci-token" -p "$CI_JOB_TOKEN" "$CI_REGISTRY"
+    - docker tag reproserver_web $REGISTRY_URL/reproserver_web
+    - docker tag reproserver_builder $REGISTRY_URL/reproserver_builder
+    - docker tag reproserver_runner $REGISTRY_URL/reproserver_runner
     - doit -v 2 push registry="$REGISTRY_URL" tag="$(git describe --always --tags)"
