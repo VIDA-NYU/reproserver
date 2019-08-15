@@ -1,3 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config
+data:
+  s3.url: http://minio:9000
+  s3.bucket-prefix: prod-
+  s3.client-url: http://192.168.99.100:30090
+---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -17,9 +26,10 @@ spec:
       containers:
       - name: web
         image: reproserver_web
+        imagePullPolicy: IfNotPresent
         env:
         - name: REPROSERVER_VERSION
-          value: 0.6
+          value: "0.6"
         - name: SHORTIDS_SALT
           valueFrom:
             secretKeyRef:
@@ -106,6 +116,7 @@ spec:
       containers:
       - name: builder
         image: reproserver_builder
+        imagePullPolicy: IfNotPresent
         env:
         - name: REPROZIP_USAGE_STATS
           value: "off"
@@ -169,7 +180,7 @@ spec:
         securityContext:
           privileged: true
         args:
-        - "--storage-driver={{ storage_driver }}"
+        - "--storage-driver=overlay2"
         - "--userns-remap=default"
         - "--insecure-registry=registry:5000"
 ---
@@ -192,6 +203,7 @@ spec:
       containers:
       - name: runner
         image: reproserver_runner
+        imagePullPolicy: IfNotPresent
         env:
         - name: REGISTRY
           value: "registry:5000"
@@ -253,7 +265,7 @@ spec:
         securityContext:
           privileged: true
         args:
-        - "--storage-driver={{ storage_driver }}"
+        - "--storage-driver=overlay2"
         - "--userns-remap=default"
         - "--insecure-registry=registry:5000"
 ---
@@ -306,36 +318,6 @@ spec:
         image: registry:2.6
         ports:
         - containerPort: 5000
----
-kind: PersistentVolume
-apiVersion: v1
-metadata:
-  name: postgres-pv
-  labels:
-    type: local
-    app: postgres
-spec:
-  capacity:
-    storage: 5Gi
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: "/var/lib/reproserver/prod/postgres"
----
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: postgres-pvc
-spec:
-  storageClassName: ""
-  selector:
-    matchLabels:
-      app: postgres
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -427,3 +409,18 @@ spec:
   ports:
   - protocol: TCP
     port: 5432
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  labels:
+    app: web
+spec:
+  selector:
+    app: web
+  type: NodePort
+  ports:
+  - protocol: TCP
+    port: 8000
+    nodePort: 30080

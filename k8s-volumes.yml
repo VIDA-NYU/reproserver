@@ -1,29 +1,27 @@
 kind: PersistentVolume
 apiVersion: v1
 metadata:
-  name: reproserver-postgres-prod
+  name: postgres-pv
   labels:
     type: local
-    app: reproserver
-    tier: prod
+    app: postgres
 spec:
   capacity:
     storage: 5Gi
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: "/var/reproserver/postgres-prod"
+    path: "/data/reproserver/prod/postgres"
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: reproserver-postgres-prod
+  name: postgres-pvc
 spec:
   storageClassName: ""
   selector:
     matchLabels:
-      app: reproserver
-      tier: prod
+      app: postgres
   accessModes:
     - ReadWriteOnce
   resources:
@@ -33,31 +31,29 @@ spec:
 kind: PersistentVolume
 apiVersion: v1
 metadata:
-  name: reproserver-minio-prod
+  name: minio-pv
   labels:
     type: local
-    app: reproserver
-    tier: prod
+    app: minio
 spec:
   capacity:
-    storage: 10Gi
+    storage: 5Gi
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: "/var/reproserver/minio-prod"
+    path: "/data/reproserver/prod/minio"
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: reproserver-minio-prod
+  name: minio-pvc
 spec:
   storageClassName: ""
   selector:
     matchLabels:
-      app: reproserver
-      tier: prod
+      app: minio
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi
+      storage: 5Gi
