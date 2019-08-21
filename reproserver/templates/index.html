@@ -4,7 +4,7 @@
 
 <h1>Select a package to unpack</h1>
 
-<form method="POST" action="{{ url_for('unpack') }}" enctype="multipart/form-data">
+<form method="POST" action="{{ reverse_url('unpack') }}" enctype="multipart/form-data">
   <div class="form-group">
     <label for="rpz_file">Upload a file</label>
     <input type="file" class="form-control-file" id="rpz_file" name="rpz_file" placeholder="experiment.rpz">
@@ -29,8 +29,8 @@
 
 <h2>Examples</h2>
 
-<p><a href="{{ url_for('reproduce_provider', provider='osf.io', provider_path='r2ptb') }}">bechdel.rpz</a>: Attempt to replicate the findings from a FiveThirtyEight article examining gender bias in the movie business</p>
-<p><a href="{{ url_for('reproduce_provider', provider='osf.io', provider_path='5ztp2') }}">digits_sklearn_opencv.rpz</a>: Recognizing the value of hand-written digits using OpenCV and scikit-learn</p>
-<p><a href="{{ url_for('reproduce_provider', provider='osf.io', provider_path='5ke97') }}">bash-count.rpz</a>: Simple bash script counting the lines in a file</p>
+<p><a href="{{ reverse_url('reproduce_provider', 'osf.io', 'r2ptb') }}">bechdel.rpz</a>: Attempt to replicate the findings from a FiveThirtyEight article examining gender bias in the movie business</p>
+<p><a href="{{ reverse_url('reproduce_provider', 'osf.io', '5ztp2') }}">digits_sklearn_opencv.rpz</a>: Recognizing the value of hand-written digits using OpenCV and scikit-learn</p>
+<p><a href="{{ reverse_url('reproduce_provider', 'osf.io', '5ke97') }}">bash-count.rpz</a>: Simple bash script counting the lines in a file</p>
 
 {% endblock content %}

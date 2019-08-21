@@ -1,4 +1,3 @@
-from common.shortid import MultiShortIDs
 import enum
 import logging
 import os
@@ -7,6 +6,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.sql import functions
 from sqlalchemy.types import Boolean, DateTime, Enum, Integer, String
+
+from .shortid import MultiShortIDs
 
 
 Base = declarative_base()

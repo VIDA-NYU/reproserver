@@ -1,3 +1,5 @@
+# TODO: Rewrite async with aio-pika
+
 import logging
 import os
 import pika

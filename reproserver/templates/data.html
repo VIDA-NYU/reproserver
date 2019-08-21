@@ -33,7 +33,7 @@
 
   {% for run in experiment.runs %}
 
-  <h2><a href="{{ url_for('results', run_short_id=run.short_id) }}">Run {{ run.id }}</a> submitted at {{ run.submitted }}</h2>
+  <h2><a href="{{ reverse_url('results', run.short_id) }}">Run {{ run.id }}</a> submitted at {{ run.submitted }}</h2>
 
   <p>Started: {{ run.started }}<br/>
   Done: {{ run.done }}</p>

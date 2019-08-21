@@ -1,13 +1,14 @@
+import jinja2
 import json
 import logging
-
-import jinja2
+import mimetypes
+import os
 import pkg_resources
-import tornado.locale
-from tornado.web import HTTPError, RequestHandler
+import tornado.web
 
 from .. import __version__ as version
 from .. import database
+from ..objectstore import get_object_store
 
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ class Application(tornado.web.Application):
         self.db_engine, self.DBSession = database.connect()
 
 
-class BaseHandler(RequestHandler):
+class BaseHandler(tornado.web.RequestHandler):
     """Base class for all request handlers.
     """
     template_env = jinja2.Environment(
@@ -47,6 +48,38 @@ class BaseHandler(RequestHandler):
         return jinja2.Markup(context['handler'].xsrf_form_html())
     template_env.globals['xsrf_form_html'] = _tpl_xsrf_form_html
 
+    @jinja2.contextfunction
+    def _tpl_url_for_upload(context, upload):
+        if upload.provider_key is not None:
+            provider, path = upload.provider_key.split('/', 1)
+            return context['handler'].reverse_url(
+                'reproduce_provider',
+                provider=provider, provider_path=path,
+            )
+        else:
+            return context['handler'].reverse_url(
+                'reproduce_local',
+                upload_short_id=upload.short_id,
+            )
+    template_env.globals['url_for_upload'] = _tpl_url_for_upload
+
+    @jinja2.contextfunction
+    def _tpl_output_link(context, output_file):
+        client_endpoint_url = os.environ.get('S3_CLIENT_URL')
+        if client_endpoint_url:
+            client = get_object_store(client_endpoint_url)
+        else:
+            client = get_object_store()
+        db = context['handler'].db
+        path = db.query(database.Path).filter(
+            database.Path.experiment_hash == output_file.run.experiment_hash,
+            database.Path.name == output_file.name).one().path
+        mime = mimetypes.guess_type(path)[0]
+        return client.presigned_serve_url('outputs', output_file.hash,
+                                          output_file.name,
+                                          mime)
+    template_env.globals['output_link'] = _tpl_output_link
+
     def __init__(self, application, request, **kwargs):
         super(BaseHandler, self).__init__(application, request, **kwargs)
         self.db = application.DBSession()
@@ -66,11 +99,11 @@ class BaseHandler(RequestHandler):
     def get_json(self):
         type_ = self.request.headers.get('Content-Type', '')
         if not type_.startswith('application/json'):
-            raise HTTPError(400, "Expected JSON")
+            raise tornado.web.HTTPError(400, "Expected JSON")
         try:
             return json.loads(self.request.body.decode('utf-8'))
         except json.JSONDecodeError:
-            raise HTTPError(400, "Invalid JSON")
+            raise tornado.web.HTTPError(400, "Invalid JSON")
 
     def send_json(self, obj):
         if isinstance(obj, list):

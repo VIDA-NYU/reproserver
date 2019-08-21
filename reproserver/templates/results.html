@@ -67,7 +67,7 @@ function update_page() {
     }
     setTimeout(update_page, 3000);
   });
-  req.open("GET", "{{ url_for('results', run_short_id=run.short_id) }}?log_from=" + log_lines);
+  req.open("GET", "{{ reverse_url('results', run.short_id) }}?log_from=" + log_lines);
   req.responseType = "json";
   req.send();
 }
