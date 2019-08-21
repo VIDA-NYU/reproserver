@@ -18,7 +18,12 @@ class Application(tornado.web.Application):
     def __init__(self, handlers, **kwargs):
         super(Application, self).__init__(handlers, **kwargs)
 
-        self.db_engine, self.DBSession = database.connect()
+        engine, self.DBSession = database.connect()
+
+        if not engine.dialect.has_table(engine.connect(), 'experiments'):
+            logging.warning("The tables don't seem to exist; creating")
+
+            database.Base.metadata.create_all(bind=engine)
 
 
 class BaseHandler(tornado.web.RequestHandler):
