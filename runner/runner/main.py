@@ -1,6 +1,3 @@
-from common import database
-from common import TaskQueues, get_object_store
-from common.utils import setup_logging, shell_escape
 from hashlib import sha256
 import logging
 import os
@@ -9,6 +6,14 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import functions
 import subprocess
 import tempfile
+
+from reproserver import database
+from reproserver.objectstore import get_object_store
+from reproserver.tasks import TaskQueues
+from reproserver.utils import shell_escape
+
+
+logger = logging.getLogger(__name__)
 
 
 SQLSession = None
@@ -27,7 +32,7 @@ def run_cmd_and_log(session, run_id, cmd):
     proc.stdin.close()
     for line in iter(proc.stdout.readline, b''):
         line = line.decode('utf-8', 'replace')
-        logging.info("> %s", line)
+        logger.info("> %s", line)
         session.add(database.RunLogLine(
             run_id=run_id,
             line=line.rstrip()))
@@ -42,7 +47,7 @@ def run_request(channel, method, _properties, body):
     from the Docker image, upload the log and the output files.
     """
     body = body.decode('ascii')
-    logging.info("Run request received: %r", body)
+    logger.info("Run request received: %r", body)
 
     # Look up the run in the database
     session = SQLSession()
@@ -54,15 +59,15 @@ def run_request(channel, method, _properties, body):
                     exp.joinedload(database.Experiment.paths))
            .get(int(body)))
     if not run:
-        logging.error("Got a run request but couldn't get the run from the "
-                      "database (body=%r)", body)
+        logger.error("Got a run request but couldn't get the run from the "
+                     "database (body=%r)", body)
         # ACK anyway
         channel.basic_ack(delivery_tag=method.delivery_tag)
         return
 
     # Update status in database
     if run.started:
-        logging.warning("Starting run which has already been started")
+        logger.warning("Starting run which has already been started")
     else:
         run.started = functions.now()
         session.commit()
@@ -72,7 +77,7 @@ def run_request(channel, method, _properties, body):
     run.output_files[:] = []
 
     def set_error(msg):
-        logging.warning("Got error: %s", msg)
+        logger.warning("Got error: %s", msg)
         run.done = functions.now()
         session.add(database.RunLogLine(run_id=run.id, line=msg))
         session.commit()
@@ -99,7 +104,7 @@ def run_request(channel, method, _properties, body):
         # Get parameter values
         for param in run.parameter_values:
             if param.name in params:
-                logging.info("Param: %s=%r", param.name, param.value)
+                logger.info("Param: %s=%r", param.name, param.value)
                 params[param.name] = param.value
                 params_unset.discard(param.name)
             else:
@@ -123,13 +128,13 @@ def run_request(channel, method, _properties, body):
                                  input_file.name)
             inputs.append((input_file,
                            paths[input_file.name]))
-        logging.info("Using %d input files: %s", len(inputs),
-                     ", ".join(f.name for f, p in inputs))
+        logger.info("Using %d input files: %s", len(inputs),
+                    ", ".join(f.name for f, p in inputs))
 
         # Create container
         container = 'run_%s' % body
-        logging.info("Creating container %s with image %s",
-                     container, run.experiment.docker_image)
+        logger.info("Creating container %s with image %s",
+                    container, run.experiment.docker_image)
         # Turn parameters into a command-line
         cmdline = []
         for k, v in params.items():
@@ -138,19 +143,19 @@ def run_request(channel, method, _properties, body):
                 cmdline.extend(['cmd', v, 'run', i])
         cmdline = ['docker', 'create', '-i', '--name', container,
                    '--', fq_image_name] + cmdline
-        logging.info('$ %s', ' '.join(shell_escape(a) for a in cmdline))
+        logger.info('$ %s', ' '.join(shell_escape(a) for a in cmdline))
         subprocess.check_call(cmdline)
 
         for input_file, path in inputs:
             local_path = os.path.join(directory, 'input_%s' % input_file.hash)
 
             # Download file from S3
-            logging.info("Downloading input file: %s, %s, %d bytes",
-                         input_file.name, input_file.hash, input_file.size)
+            logger.info("Downloading input file: %s, %s, %d bytes",
+                        input_file.name, input_file.hash, input_file.size)
             object_store.download_file('inputs', input_file.hash, local_path)
 
             # Put file in container
-            logging.info("Copying file to container")
+            logger.info("Copying file to container")
             subprocess.check_call(['docker', 'cp', '--',
                                    local_path,
                                    '%s:%s' % (container, path)])
@@ -159,7 +164,7 @@ def run_request(channel, method, _properties, body):
             os.remove(local_path)
 
         # Start container using parameters
-        logging.info("Starting container")
+        logger.info("Starting container")
         try:
             ret = run_cmd_and_log(session, run.id,
                                   ['docker', 'start', '-ai', '--', container])
@@ -175,12 +180,12 @@ def run_request(channel, method, _properties, body):
                 local_path = os.path.join(directory, 'output_%s' % path.name)
 
                 # Copy file out of container
-                logging.info("Getting output file %s", path.name)
+                logger.info("Getting output file %s", path.name)
                 ret = subprocess.call(['docker', 'cp', '--',
                                        '%s:%s' % (container, path.path),
                                        local_path])
                 if ret != 0:
-                    logging.warning("Couldn't get output %s", path.name)
+                    logger.warning("Couldn't get output %s", path.name)
                     session.add(database.RunLogLine(
                         run_id=run.id,
                         line="Couldn't get output %s" % path.name))
@@ -200,7 +205,7 @@ def run_request(channel, method, _properties, body):
                     fp.seek(0, 0)
 
                     # Upload file to S3
-                    logging.info("Uploading file, size: %d bytes" % filesize)
+                    logger.info("Uploading file, size: %d bytes" % filesize)
                     object_store.upload_fileobj('outputs', filehash, fp)
 
                 # Add OutputFile to database
@@ -214,9 +219,9 @@ def run_request(channel, method, _properties, body):
         # ACK
         session.commit()
         channel.basic_ack(delivery_tag=method.delivery_tag)
-        logging.info("Done!")
+        logger.info("Done!")
     except Exception:
-        logging.exception("Error processing run!")
+        logger.exception("Error processing run!")
         if True:
             set_error("Internal error!")
         else:
@@ -236,7 +241,8 @@ def run_request(channel, method, _properties, body):
 
 
 def main():
-    setup_logging('REPROSERVER-RUNNER')
+    logging.basicConfig(level=logging.INFO,
+                        format="%(asctime)s %(levelname)s: %(message)s")
 
     # SQL database
     global SQLSession
@@ -249,5 +255,5 @@ def main():
     global object_store
     object_store = get_object_store()
 
-    logging.info("Ready, listening for requests")
+    logger.info("Ready, listening for requests")
     tasks.consume_run_tasks(run_request)
