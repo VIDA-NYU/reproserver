@@ -1,5 +1,6 @@
 import boto3
 from botocore.client import Config
+import io
 import logging
 import os
 
@@ -40,6 +41,9 @@ class ObjectStore(object):
     def upload_file(self, bucket, objectname, filename):
         self.s3.meta.client.upload_file(filename,
                                         self.bucket_name(bucket), objectname)
+
+    def upload_bytes(self, bucket, objectname, bytestr):
+        self.upload_fileobj(bucket, objectname, io.BytesIO(bytestr))
 
     def create_buckets(self):
         buckets = set(bucket.name for bucket in self.s3.buckets.all())

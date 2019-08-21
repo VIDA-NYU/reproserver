@@ -24,6 +24,13 @@ class Application(tornado.web.Application):
 class BaseHandler(tornado.web.RequestHandler):
     """Base class for all request handlers.
     """
+    def url_for_upload(self, upload):
+        if upload.provider_key is not None:
+            provider, path = upload.provider_key.split('/', 1)
+            return self.reverse_url('reproduce_provider', provider, path)
+        else:
+            return self.reverse_url('reproduce_local', upload.short_id)
+
     template_env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(
             [pkg_resources.resource_filename('reproserver', 'templates')]
@@ -50,17 +57,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
     @jinja2.contextfunction
     def _tpl_url_for_upload(context, upload):
-        if upload.provider_key is not None:
-            provider, path = upload.provider_key.split('/', 1)
-            return context['handler'].reverse_url(
-                'reproduce_provider',
-                provider=provider, provider_path=path,
-            )
-        else:
-            return context['handler'].reverse_url(
-                'reproduce_local',
-                upload_short_id=upload.short_id,
-            )
+        return context['handler'].url_for_upload(upload)
     template_env.globals['url_for_upload'] = _tpl_url_for_upload
 
     @jinja2.contextfunction
@@ -95,6 +92,20 @@ class BaseHandler(tornado.web.RequestHandler):
             current_user=self.current_user,
             version=version,
             **kwargs)
+
+    def is_json_requested(self):
+        if any(a.lower().startswith('text/html')
+               for a in self.request.headers.get('Accept', '').split(',')):
+            # Browsers might say they accept JSON, in addition to HTML
+            return False
+        elif any(a.lower().startswith('application/json') or
+                 a.lower().startswith('text/json')
+                 for a in self.request.headers.get('Accept', '').split(',')):
+            # No HTML and JSON: we should send JSON
+            return True
+        else:
+            # Neither requested, send HTML
+            return False
 
     def get_json(self):
         type_ = self.request.headers.get('Content-Type', '')
