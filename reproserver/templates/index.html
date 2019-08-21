@@ -5,6 +5,7 @@
 <h1>Select a package to unpack</h1>
 
 <form method="POST" action="{{ reverse_url('unpack') }}" enctype="multipart/form-data">
+  {{ xsrf_form_html() }}
   <div class="form-group">
     <label for="rpz_file">Upload a file</label>
     <input type="file" class="form-control-file" id="rpz_file" name="rpz_file" placeholder="experiment.rpz">
