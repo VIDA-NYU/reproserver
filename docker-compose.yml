@@ -3,12 +3,11 @@ services:
   web:
     build:
       context: .
-      dockerfile: web/Dockerfile
+      dockerfile: Dockerfile
     depends_on:
       - rabbitmq
     env_file:
       - ".env"
-    command: ["debug"]
     ports:
       - 8000:8000
   builder:
