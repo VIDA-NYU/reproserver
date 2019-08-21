@@ -1,33 +1,27 @@
-image: "python:3"
+image: "python:3.6"
 
-services:
-  - docker:dind
+#variables:
+#  DOCKER_HOST: tcp://docker:2375
+#  DOCKER_DRIVER: overlay2
+#
+#services:
+#  - docker:dind
 
-stages:
-  - codecheck
-  - deploy
+before_script:
+#  # Install Docker
+#  - curl -Lo /tmp/docker.tgz https://get.docker.com/builds/Linux/x86_64/docker-17.05.0-ce.tgz && tar -xf /tmp/docker.tgz -C /usr/local && rm /tmp/docker.tgz && export PATH=/usr/local/docker:$PATH && export DOCKER_HOST=tcp://docker:2375
+#  - docker info
+#  # Install docker-compose
+#  - curl -Lo /usr/local/bin/docker-compose "https://github.com/docker/compose/releases/download/1.24.0/docker-compose-$(uname -s)-$(uname -m)"
+#  - chmod +x /usr/local/bin/docker-compose
+  # Install Poetry
+  - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python && /root/.poetry/bin/poetry config settings.virtualenvs.create false
+  - $HOME/.poetry/bin/poetry install --no-interaction
+  # Install dependencies
+  - $HOME/.poetry/bin/poetry install --no-interaction
 
-flake8:
-  stage: codecheck
-  before_script:
-    - pip install flake8
+checks:
+  stage: test
   script:
-    - flake8 --ignore=E731,W504 dodo.py common/common builder/builder runner/runner web/web
-
-make_images:
-  stage: deploy
-  when: manual
-  before_script:
-    - git submodule sync --recursive
-    - git submodule update --init --recursive
-    - pip install doit
-    - curl -Lo /tmp/docker.tgz https://get.docker.com/builds/Linux/x86_64/docker-17.05.0-ce.tgz && tar -xf /tmp/docker.tgz -C /usr/local && rm /tmp/docker.tgz
-    - "export PATH=\"/usr/local/docker:$PATH\""
-    - export DOCKER_HOST=docker
-  script:
-    - docker-compose build
-    - docker login -u "gitlab-ci-token" -p "$CI_JOB_TOKEN" "$CI_REGISTRY"
-    - docker tag reproserver_web $REGISTRY_URL/reproserver_web
-    - docker tag reproserver_builder $REGISTRY_URL/reproserver_builder
-    - docker tag reproserver_runner $REGISTRY_URL/reproserver_runner
-    - doit -v 2 push registry="$REGISTRY_URL" tag="$(git describe --always --tags)"
+    - flake8 --ignore=E731,W504 common/common builder/builder runner/runner web/web reproserver
+    - python -m readme_renderer README.rst >/dev/null

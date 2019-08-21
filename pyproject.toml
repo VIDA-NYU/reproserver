@@ -1,0 +1,52 @@
+[tool.poetry]
+name = "reproserver"
+version = "0.7"
+description = "A web application reproducing ReproZip packages in the cloud. Runs on Kubernetes"
+
+license = "BSD-3-Clause"
+
+authors = [
+    "Remi Rampin <r@remirampin.com>"
+]
+
+readme = "README.rst"
+
+repository = "https://github.com/VIDA-NYU/reproserver"
+homepage = "https://server.reprozip.org/"
+
+keywords = ["reprozip", "reprounzip", "docker", "kubernetes", "reproducibility", "reproducible-research", "linux", "science", "nyu"]
+
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: Web Environment",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Scientific/Engineering",
+    "Topic :: System :: Archiving",
+    "Topic :: System :: Emulators",
+]
+
+include = [
+    # LICENSE.txt README.rst
+    "reproserver/static/favicon.png",
+    "reproserver/static/css/*.css",
+    "reproserver/static/js/*.js",
+    "reproserver/static/fonts/*",
+    "reproserver/templates/*.html",
+]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+tornado = ">=5.0"
+sqlalchemy = "~1"
+jinja2 = "*"
+
+[tool.poetry.dev-dependencies]
+coverage = "*"
+flake8 = "*"
+readme_renderer = "*"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
