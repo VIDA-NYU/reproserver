@@ -4,21 +4,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    depends_on:
-      - rabbitmq
-    env_file:
-      - ".env"
-    ports:
-      - 8000:8000
-  builder:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: ["reproserver", "builder"]
-    depends_on:
-      - rabbitmq
-      - registry
-      - minio
     user: "0"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -26,27 +11,8 @@ services:
       - ".env"
     environment:
       REPROZIP_USAGE_STATS: "off"
-  runner:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: ["reproserver", "runner"]
-    depends_on:
-      - rabbitmq
-      - registry
-      - minio
-    user: "0"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    env_file:
-      - ".env"
-  rabbitmq:
-    image: rabbitmq:3.6.9-management
-    environment:
-      RABBITMQ_DEFAULT_USER: ${ADMIN_USER}
-      RABBITMQ_DEFAULT_PASS: ${ADMIN_PASSWORD}
     ports:
-      - 8080:15672
+      - 8000:8000
   minio:
     image: minio/minio:RELEASE.2017-04-29T00-40-27Z
     command: ["server", "/export"]

@@ -42,7 +42,6 @@ tornado = ">=5.0"
 sqlalchemy = "~1"
 jinja2 = "*"
 boto3 = "^1"
-pika = "0.10"
 psycopg2 = "^2.8"
 requests = "^2"
 

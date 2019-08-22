@@ -1,3 +1,4 @@
+import asyncio
 from hashlib import sha256
 import logging
 import os
@@ -5,10 +6,8 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import functions
 
 from .. import database
-from ..objectstore import get_object_store
 from ..providers import ProviderError, get_experiment_from_provider
 from ..shortid import MultiShortIDs
-from ..tasks import TaskQueues
 from ..utils import secure_filename
 from .base import BaseHandler
 
@@ -17,10 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 short_ids = MultiShortIDs(os.environ['SHORTIDS_SALT'])
-
-
-# AMQP
-tasks = TaskQueues()
 
 
 class Index(BaseHandler):
@@ -144,7 +139,11 @@ class BaseReproduce(BaseHandler):
                     if experiment.status == database.Status.NOBUILD:
                         logger.info("Triggering a build, sending message")
                         experiment.status = database.Status.QUEUED
-                        tasks.publish_build_task(experiment.hash)
+                        asyncio.get_event_loop().run_in_executor(
+                            None,
+                            self.application.builder.build,
+                            experiment.hash,
+                        )
                     return self.render(
                         'setup.html',
                         filename=filename,
@@ -310,7 +309,11 @@ class StartRun(BaseHandler):
 
         # Trigger run
         self.db.commit()
-        tasks.publish_run_task(str(run.id))
+        asyncio.get_event_loop().run_in_executor(
+            None,
+            self.application.runner.run,
+            run.id,
+        )
 
         # Redirect to results page
         return self.redirect(
