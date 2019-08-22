@@ -5,7 +5,8 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import functions
 
 from .. import database
-from ..providers import ProviderError, get_experiment_from_provider
+from ..providers import ProviderError, get_experiment_from_provider, \
+    parse_provider_url
 from ..shortid import MultiShortIDs
 from ..utils import secure_filename
 from .base import BaseHandler
@@ -30,6 +31,22 @@ class Unpack(BaseHandler):
     An experiment has been provided, store it and start the build process.
     """
     async def post(self):
+        # If a URL was provided, and no file
+        if self.get_body_argument('rpz_url', None):
+            # Redirect to reproduce_provider view
+            try:
+                provider, provider_path = await parse_provider_url(
+                    self.get_body_argument('rpz_url')
+                )
+            except ProviderError as e:
+                self.set_status(404)
+                return self.render('provider_notfound.html', message=str(e))
+            else:
+                return self.redirect(self.reverse_url(
+                    'reproduce_provider',
+                    provider, provider_path,
+                ))
+
         # Get uploaded file
         uploaded_file = self.request.files['rpz_file'][0]
         assert uploaded_file.filename
