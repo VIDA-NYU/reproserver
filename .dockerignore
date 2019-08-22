@@ -1,12 +1,12 @@
 **/.env
 
-builder/reprozip/docs
-builder/reprozip/reprounzip-qt
-builder/reprozip/reprounzip-vagrant
-builder/reprozip/reprounzip-vistrails
-builder/reprozip/reprozip
-builder/reprozip/scripts
-builder/reprozip/tests
+reprozip/docs
+reprozip/reprounzip-qt
+reprozip/reprounzip-vagrant
+reprozip/reprounzip-vistrails
+reprozip/reprozip
+reprozip/scripts
+reprozip/tests
 
 # Git
 .git

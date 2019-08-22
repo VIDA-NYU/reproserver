@@ -13,7 +13,8 @@ services:
   builder:
     build:
       context: .
-      dockerfile: builder/Dockerfile
+      dockerfile: Dockerfile
+    command: ["reproserver", "builder"]
     depends_on:
       - rabbitmq
       - registry
@@ -28,7 +29,8 @@ services:
   runner:
     build:
       context: .
-      dockerfile: runner/Dockerfile
+      dockerfile: Dockerfile
+    command: ["reproserver", "runner"]
     depends_on:
       - rabbitmq
       - registry

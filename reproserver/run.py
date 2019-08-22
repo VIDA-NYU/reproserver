@@ -241,9 +241,6 @@ def run_request(channel, method, _properties, body):
 
 
 def main():
-    logging.basicConfig(level=logging.INFO,
-                        format="%(asctime)s %(levelname)s: %(message)s")
-
     # SQL database
     global SQLSession
     engine, SQLSession = database.connect()

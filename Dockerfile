@@ -6,9 +6,19 @@ RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poet
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
+# Copy reprounzip-docker
+COPY reprozip /usr/src/app/reprozip
+
 # Install dependencies
 COPY pyproject.toml poetry.lock /usr/src/app/
 RUN /root/.poetry/bin/poetry install --no-interaction --no-dev
+
+# Install Docker
+RUN curl -Lo /tmp/docker.tgz https://get.docker.com/builds/Linux/x86_64/docker-17.05.0-ce.tgz && \
+    tar -xf /tmp/docker.tgz -C /usr/local && \
+    mv /usr/local/docker/* /usr/local/bin/ && \
+    rmdir /usr/local/docker && \
+    rm /tmp/docker.tgz
 
 # Install package
 COPY reproserver /usr/src/app/reproserver

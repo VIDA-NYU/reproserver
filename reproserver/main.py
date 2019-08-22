@@ -1,4 +1,6 @@
 import logging
+import sys
+
 import tornado.ioloop
 
 from .web import make_app
@@ -11,6 +13,13 @@ def main():
     logging.root.handlers.clear()
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s: %(message)s")
+
+    if len(sys.argv) >= 2 and sys.argv[1] == 'builder':
+        from .build import main as builder
+        builder()
+    elif len(sys.argv) >= 2 and sys.argv[1] == 'runner':
+        from .run import main as runner
+        runner()
 
     app = make_app()
     app.listen(8000, address='0.0.0.0')
