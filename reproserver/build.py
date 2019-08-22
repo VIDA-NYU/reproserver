@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -47,6 +48,13 @@ class Builder(object):
         self.object_store = object_store
 
     def build(self, experiment_hash):
+        return asyncio.get_event_loop().run_in_executor(
+            None,
+            self.build_sync,
+            experiment_hash,
+        )
+
+    def build_sync(self, experiment_hash):
         """Process a build task.
 
         Lookup the experiment in the database, and the file on S3. Then, do the

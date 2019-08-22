@@ -1,3 +1,4 @@
+import asyncio
 from hashlib import sha256
 import logging
 import os
@@ -40,7 +41,14 @@ class Runner(object):
         self.object_store = object_store
 
     def run(self, run_id):
-        """Process a run task.
+        return asyncio.get_event_loop().run_in_executor(
+            None,
+            self.run_sync,
+            run_id,
+        )
+
+    def run_sync(self, run_id):
+        """Run a built experiment.
 
         Lookup a run in the database, get the input files from S3, then do the
         run from the Docker image, upload the log and the output files.

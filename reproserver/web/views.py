@@ -1,4 +1,3 @@
-import asyncio
 from hashlib import sha256
 import logging
 import os
@@ -139,11 +138,7 @@ class BaseReproduce(BaseHandler):
                     if experiment.status == database.Status.NOBUILD:
                         logger.info("Triggering a build, sending message")
                         experiment.status = database.Status.QUEUED
-                        asyncio.get_event_loop().run_in_executor(
-                            None,
-                            self.application.builder.build,
-                            experiment.hash,
-                        )
+                        self.application.builder.build(experiment.hash)
                     return self.render(
                         'setup.html',
                         filename=filename,
@@ -309,11 +304,7 @@ class StartRun(BaseHandler):
 
         # Trigger run
         self.db.commit()
-        asyncio.get_event_loop().run_in_executor(
-            None,
-            self.application.runner.run,
-            run.id,
-        )
+        self.application.runner.run(run.id)
 
         # Redirect to results page
         return self.redirect(
