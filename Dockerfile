@@ -3,6 +3,10 @@ FROM python:3.6
 RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python && \
     /root/.poetry/bin/poetry config settings.virtualenvs.create false
 
+ENV TINI_VERSION v0.18.0
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+RUN chmod +x /tini
+
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
@@ -33,4 +37,5 @@ USER appuser
 ENV HOME=/usr/src/app/home
 
 EXPOSE 8000
+ENTRYPOINT ["/tini", "--"]
 CMD ["reproserver"]
