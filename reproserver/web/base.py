@@ -35,9 +35,9 @@ class BaseHandler(tornado.web.RequestHandler):
     """Base class for all request handlers.
     """
     def url_for_upload(self, upload):
-        if upload.provider_key is not None:
-            provider, path = upload.provider_key.split('/', 1)
-            return self.reverse_url('reproduce_provider', provider, path)
+        if upload.repository_key is not None:
+            repo, repo_path = upload.repository_key.split('/', 1)
+            return self.reverse_url('reproduce_repo', repo, repo_path)
         else:
             return self.reverse_url('reproduce_local', upload.short_id)
 

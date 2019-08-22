@@ -5,8 +5,8 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import functions
 
 from .. import database
-from ..providers import ProviderError, get_experiment_from_provider, \
-    parse_provider_url
+from ..repositories import RepositoryError, get_experiment_from_repository, \
+    parse_repository_url
 from ..shortid import MultiShortIDs
 from ..utils import secure_filename
 from .base import BaseHandler
@@ -33,18 +33,18 @@ class Unpack(BaseHandler):
     async def post(self):
         # If a URL was provided, and no file
         if self.get_body_argument('rpz_url', None):
-            # Redirect to reproduce_provider view
+            # Redirect to reproduce_repo view
             try:
-                provider, provider_path = await parse_provider_url(
+                repo, repo_path = await parse_repository_url(
                     self.get_body_argument('rpz_url')
                 )
-            except ProviderError as e:
+            except RepositoryError as e:
                 self.set_status(404)
-                return self.render('provider_notfound.html', message=str(e))
+                return self.render('repository_notfound.html', message=str(e))
             else:
                 return self.redirect(self.reverse_url(
-                    'reproduce_provider',
-                    provider, provider_path,
+                    'reproduce_repo',
+                    repo, repo_path,
                 ))
 
         # Get uploaded file
@@ -167,26 +167,26 @@ class BaseReproduce(BaseHandler):
             self.db.commit()
 
 
-class ReproduceProvider(BaseReproduce):
-    async def get(self, provider, provider_path):
-        """Reproduce an experiment from a data repository (provider).
+class ReproduceRepo(BaseReproduce):
+    async def get(self, repo, repo_path):
+        """Reproduce an experiment from a data repository.
         """
         # Check the database for an experiment already stored matching the URI
-        provider_key = '%s/%s' % (provider, provider_path)
+        repository_key = '%s/%s' % (repo, repo_path)
         upload = (
             self.db.query(database.Upload)
             .options(joinedload(database.Upload.experiment))
-            .filter(database.Upload.provider_key == provider_key)
+            .filter(database.Upload.repository_key == repository_key)
             .order_by(database.Upload.id.desc())
         ).first()
         if not upload:
             try:
-                upload = await get_experiment_from_provider(
+                upload = await get_experiment_from_repository(
                     self.db, self.application.object_store,
                     self.request.remote_ip,
-                    provider, provider_path,
+                    repo, repo_path,
                 )
-            except ProviderError as e:
+            except RepositoryError as e:
                 self.set_status(404)
                 return self.render('setup_notfound.html', message=str(e))
 

@@ -11,7 +11,7 @@ def make_app(debug=False, xsrf_cookies=True):
             URLSpec('/', views.Index, name='index'),
             URLSpec('/upload', views.Unpack, name='unpack'),
             URLSpec('/reproduce/([^/]+)/(.+)',
-                    views.ReproduceProvider, name='reproduce_provider'),
+                    views.ReproduceRepo, name='reproduce_repo'),
             URLSpec('/reproduce/([^/]+)', views.ReproduceLocal,
                     name='reproduce_local'),
             URLSpec('/run/([^/]+)', views.StartRun, name='start_run'),
