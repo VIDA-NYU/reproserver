@@ -136,6 +136,21 @@ async def _osf(db, object_store, remote_addr, provider, path):
         )
 
 
+_zenodo_path = re.compile(r'^([0-9]+)/files/([^/]+)')
+
+
+def _zenodo(db, object_store, remote_addr, provider, path):
+    m = _zenodo_path.match(path)
+    if m is None:
+        raise ProviderError("Path is not in the Zenodo format")
+    return _get_from_link(
+        db, object_store, remote_addr,
+        provider, path,
+        'https://zenodo.org/record/{0}?download=1'.format(path),
+        m.group(2),
+    )
+
+
 async def _figshare(db, object_store, remote_addr, provider, path):
     # article_id/file_id
     try:
@@ -183,5 +198,6 @@ async def _figshare(db, object_store, remote_addr, provider, path):
 
 _PROVIDERS = {
     'osf.io': _osf,
+    'zenodo.org': _zenodo,
     'figshare.com': _figshare,
 }
