@@ -91,8 +91,9 @@ function update_page() {
     }
     setTimeout(update_page, 3000);
   });
-  req.open("GET", "{{ experiment_url }}?log_from=" + log_lines);
   req.responseType = "json";
+  req.open("GET", "{{ experiment_url }}?log_from=" + log_lines);
+  req.setRequestHeader("Accept", "application/json");
   req.send();
 }
 
