@@ -42,6 +42,18 @@ class BaseHandler(tornado.web.RequestHandler):
         else:
             return self.reverse_url('reproduce_local', upload.short_id)
 
+    def output_link(self, output_file):
+        path = self.db.query(database.Path).filter(
+            database.Path.experiment_hash == output_file.run.experiment_hash,
+            database.Path.name == output_file.name,
+        ).one().path
+        mime = mimetypes.guess_type(path)[0]
+        return self.application.object_store.presigned_serve_url(
+            'outputs', output_file.hash,
+            output_file.name,
+            mime,
+        )
+
     template_env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(
             [pkg_resources.resource_filename('reproserver', 'templates')]
@@ -73,19 +85,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
     @jinja2.contextfunction
     def _tpl_output_link(context, output_file):
-        client_endpoint_url = os.environ.get('S3_CLIENT_URL')
-        if client_endpoint_url:
-            client = get_object_store(client_endpoint_url)
-        else:
-            client = get_object_store()
-        db = context['handler'].db
-        path = db.query(database.Path).filter(
-            database.Path.experiment_hash == output_file.run.experiment_hash,
-            database.Path.name == output_file.name).one().path
-        mime = mimetypes.guess_type(path)[0]
-        return client.presigned_serve_url('outputs', output_file.hash,
-                                          output_file.name,
-                                          mime)
+        return context['handler'].output_link(output_file)
     template_env.globals['output_link'] = _tpl_output_link
 
     def __init__(self, application, request, **kwargs):

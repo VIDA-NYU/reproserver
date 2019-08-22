@@ -6,7 +6,6 @@ import requests
 import tempfile
 
 from . import database
-from .objectstore import get_object_store
 
 
 __all__ = ['get_experiment_from_provider']
@@ -19,16 +18,16 @@ class ProviderError(Exception):
     pass
 
 
-def get_experiment_from_provider(db, remote_addr,
+def get_experiment_from_provider(db, object_store, remote_addr,
                                  provider, provider_path):
     try:
         getter = _PROVIDERS[provider]
     except KeyError:
         raise ProviderError("No such provider %s" % provider)
-    return getter(db, remote_addr, provider, provider_path)
+    return getter(db, object_store, remote_addr, provider, provider_path)
 
 
-def _get_from_link(db, remote_addr, provider, provider_path,
+def _get_from_link(db, object_store, remote_addr, provider, provider_path,
                    link, filename, filehash=None):
     # Check for existence of experiment
     if filehash is not None:
@@ -58,7 +57,6 @@ def _get_from_link(db, remote_addr, provider, provider_path,
                 logger.info("File exists")
             else:
                 # Insert it on S3
-                object_store = get_object_store()
                 object_store.upload_file('experiments', filehash,
                                          local_path)
                 logger.info("Inserted file in storage")
@@ -87,7 +85,7 @@ def _get_from_link(db, remote_addr, provider, provider_path,
 _osf_path = re.compile('^[a-zA-Z0-9]+$')
 
 
-def _osf(db, remote_addr, provider, path):
+def _osf(db, object_store, remote_addr, provider, path):
     if _osf_path.match(path) is None:
         raise ProviderError("ID is not in the OSF format")
     logger.info("Querying OSF for '%s'", path)
@@ -116,11 +114,11 @@ def _osf(db, remote_addr, provider, path):
         except KeyError:
             filename = 'unnamed_osf_file'
         logger.info("Got response: %s %s %s", link, filehash, filename)
-        return _get_from_link(db, remote_addr, provider, path,
+        return _get_from_link(db, object_store, remote_addr, provider, path,
                               link, filename, filehash)
 
 
-def _figshare(db, remote_addr, provider, path):
+def _figshare(db, object_store, remote_addr, provider, path):
     # article_id/file_id
     try:
         article_id, file_id = path.split('/', 1)
@@ -150,7 +148,7 @@ def _figshare(db, remote_addr, provider, path):
         except KeyError:
             filename = 'unnamed_figshare_file'
         logger.info("Got response: %s %s", link, filename)
-        return _get_from_link(db, remote_addr, provider, path,
+        return _get_from_link(db, object_store, remote_addr, provider, path,
                               link, filename)
 
 

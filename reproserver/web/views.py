@@ -165,7 +165,8 @@ class ReproduceProvider(BaseReproduce):
         if not upload:
             try:
                 upload = get_experiment_from_provider(
-                    self.db, self.request.remote_ip,
+                    self.db, self.application.object_store,
+                    self.request.remote_ip,
                     provider, provider_path,
                 )
             except ProviderError as e:
