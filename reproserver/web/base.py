@@ -19,11 +19,12 @@ class Application(tornado.web.Application):
         super(Application, self).__init__(handlers, **kwargs)
 
         engine, self.DBSession = database.connect()
-
         if not engine.dialect.has_table(engine.connect(), 'experiments'):
             logging.warning("The tables don't seem to exist; creating")
-
             database.Base.metadata.create_all(bind=engine)
+
+        self.object_store = get_object_store()
+        self.object_store.create_buckets()
 
 
 class BaseHandler(tornado.web.RequestHandler):

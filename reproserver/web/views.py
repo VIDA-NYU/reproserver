@@ -23,11 +23,6 @@ short_ids = MultiShortIDs(os.environ['SHORTIDS_SALT'])
 tasks = TaskQueues()
 
 
-# Object storage
-object_store = get_object_store()
-object_store.create_buckets()
-
-
 class Index(BaseHandler):
     """Landing page from which a user can select an experiment to unpack.
     """
@@ -59,7 +54,7 @@ class Unpack(BaseHandler):
             logger.info("File exists in storage")
         else:
             # Insert it on S3
-            object_store.upload_bytes(
+            self.application.object_store.upload_bytes(
                 'experiments',
                 filehash,
                 uploaded_file.body,
@@ -299,7 +294,7 @@ class StartRun(BaseHandler):
             logger.info("Computed hash: %s", inputfilehash)
 
             # Insert it on S3
-            object_store.upload_bytes(
+            self.application.object_store.upload_bytes(
                 'inputs',
                 inputfilehash,
                 uploaded_file.body,
