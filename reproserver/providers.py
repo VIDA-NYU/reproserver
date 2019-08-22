@@ -36,10 +36,10 @@ _zenodo_url = re.compile(
     r'zenodo\.org/record/([0-9]+)'
     r'(?:/'
     r'(?:'
-    r'files/([^/]+)'
+    r'files/([^/?]+)'
     r'(?:\?download=1)?'
     r')?'
-    r')?'
+    r')?$'
 )
 
 
@@ -215,7 +215,7 @@ async def _osf(db, object_store, remote_addr, provider, path):
         )
 
 
-_zenodo_path = re.compile(r'^([0-9]+)/files/([^/]+)')
+_zenodo_path = re.compile(r'^([0-9]+)/files/([^/?]+)$')
 
 
 def _zenodo(db, object_store, remote_addr, provider, path):
