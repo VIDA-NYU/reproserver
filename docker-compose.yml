@@ -4,13 +4,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    user: "0"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
     env_file:
       - ".env"
     environment:
       REPROZIP_USAGE_STATS: "off"
+      DOCKER_HOST: tcp://docker:2375
+      REGISTRY: registry:5000
     ports:
       - 8000:8000
   minio:
@@ -33,3 +32,7 @@ services:
       POSTGRES_PASSWORD: ${ADMIN_PASSWORD}
     ports:
       - 5432:5432
+  docker:
+    image: docker:18.09-dind
+    privileged: true
+    command: ["--insecure-registry=registry:5000"]
