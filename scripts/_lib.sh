@@ -11,15 +11,13 @@ run_python_on_web(){
 
     case "$1" in
         k8s)
-            if [ "$#" != 2 ]; then usage; exit 1; fi
-            TIER="$2"
             POD=$(kubectl get pod \
-                -l "repro-pod=web,tier=$TIER" \
+                -l "app=web" \
                 -o jsonpath='{.items[0].metadata.name}' | head -n 1)
             echo "kubectl exec -i \"$POD\" python"
         ;;
         docker)
-            echo 'docker exec -i reproserver-web python'
+            echo 'docker exec -i reproserver_web_1 python'
         ;;
         *)
             usage
