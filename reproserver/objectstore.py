@@ -26,7 +26,7 @@ class ObjectStore(object):
         if name not in ('experiments', 'inputs', 'outputs'):
             raise ValueError("Invalid bucket name %s" % name)
 
-        name = '%s-%s-%s' % ('reproserver', self.bucket_prefix, name)
+        name = '%s%s' % (self.bucket_prefix, name)
         return name
 
     def bucket(self, name):
