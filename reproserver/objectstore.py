@@ -1,3 +1,4 @@
+import asyncio
 import boto3
 from botocore.client import Config
 import io
@@ -52,8 +53,22 @@ class ObjectStore(object):
         self.s3.meta.client.upload_file(filename,
                                         self.bucket_name(bucket), objectname)
 
+    def upload_file_async(self, bucket, objectname, filename):
+        return asyncio.get_event_loop().run_in_executor(
+            None,
+            self.upload_file,
+            bucket, objectname, filename,
+        )
+
     def upload_bytes(self, bucket, objectname, bytestr):
         self.upload_fileobj(bucket, objectname, io.BytesIO(bytestr))
+
+    def upload_bytes_async(self, bucket, objectname, bytestr):
+        return asyncio.get_event_loop().run_in_executor(
+            None,
+            self.upload_bytes,
+            bucket, objectname, bytestr,
+        )
 
     def create_buckets(self):
         buckets = set(bucket.name for bucket in self.s3.buckets.all())

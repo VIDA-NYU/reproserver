@@ -29,7 +29,7 @@ class Unpack(BaseHandler):
 
     An experiment has been provided, store it and start the build process.
     """
-    def post(self):
+    async def post(self):
         # Get uploaded file
         uploaded_file = self.request.files['rpz_file'][0]
         assert uploaded_file.filename
@@ -48,7 +48,7 @@ class Unpack(BaseHandler):
             logger.info("File exists in storage")
         else:
             # Insert it on S3
-            self.application.object_store.upload_bytes(
+            await self.application.object_store.upload_bytes_async(
                 'experiments',
                 filehash,
                 uploaded_file.body,
@@ -151,7 +151,7 @@ class BaseReproduce(BaseHandler):
 
 
 class ReproduceProvider(BaseReproduce):
-    def get(self, provider, provider_path):
+    async def get(self, provider, provider_path):
         """Reproduce an experiment from a data repository (provider).
         """
         # Check the database for an experiment already stored matching the URI
@@ -164,7 +164,7 @@ class ReproduceProvider(BaseReproduce):
         ).first()
         if not upload:
             try:
-                upload = get_experiment_from_provider(
+                upload = await get_experiment_from_provider(
                     self.db, self.application.object_store,
                     self.request.remote_ip,
                     provider, provider_path,
@@ -208,7 +208,7 @@ class ReproduceLocal(BaseReproduce):
 
 
 class StartRun(BaseHandler):
-    def post(self, upload_short_id):
+    async def post(self, upload_short_id):
         """Gets the run parameters POSTed to from /reproduce.
 
         Triggers the run and redirects to the results page.
@@ -288,8 +288,8 @@ class StartRun(BaseHandler):
             inputfilehash = hasher.hexdigest()
             logger.info("Computed hash: %s", inputfilehash)
 
-            # Insert it on S3
-            self.application.object_store.upload_bytes(
+            # Insert it into S3
+            await self.application.object_store.upload_bytes_async(
                 'inputs',
                 inputfilehash,
                 uploaded_file.body,

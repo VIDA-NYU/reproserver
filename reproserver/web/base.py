@@ -2,7 +2,6 @@ import jinja2
 import json
 import logging
 import mimetypes
-import os
 import pkg_resources
 import tornado.web
 

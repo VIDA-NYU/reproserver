@@ -1,10 +1,12 @@
 from hashlib import sha256
+import json
 import logging
 import os
 import re
-import requests
 import tempfile
+from tornado.httpclient import AsyncHTTPClient
 
+from . import __version__
 from . import database
 
 
@@ -27,8 +29,9 @@ def get_experiment_from_provider(db, object_store, remote_addr,
     return getter(db, object_store, remote_addr, provider, provider_path)
 
 
-def _get_from_link(db, object_store, remote_addr, provider, provider_path,
-                   link, filename, filehash=None):
+async def _get_from_link(db, object_store, remote_addr,
+                         provider, provider_path,
+                         link, filename, filehash=None):
     # Check for existence of experiment
     if filehash is not None:
         experiment = db.query(database.Experiment).get(filehash)
@@ -39,15 +42,19 @@ def _get_from_link(db, object_store, remote_addr, provider, provider_path,
     else:
         logger.info("Downloading %s", link)
         fd, local_path = tempfile.mkstemp(prefix='provider_download_')
+        http_client = AsyncHTTPClient()
         try:
             # Download file & hash it
-            response = requests.get(link, stream=True)
-            response.raise_for_status()
             hasher = sha256()
             with open(local_path, 'wb') as f:
-                for chunk in response.iter_content(4096):
+                def callback(chunk):
                     f.write(chunk)
                     hasher.update(chunk)
+
+                await http_client.fetch(
+                    link,
+                    streaming_callback=callback,
+                )
 
             filehash = hasher.hexdigest()
 
@@ -57,8 +64,10 @@ def _get_from_link(db, object_store, remote_addr, provider, provider_path,
                 logger.info("File exists")
             else:
                 # Insert it on S3
-                object_store.upload_file('experiments', filehash,
-                                         local_path)
+                await object_store.upload_file_async(
+                    'experiments', filehash,
+                    local_path,
+                )
                 logger.info("Inserted file in storage")
 
                 # Insert it in database
@@ -85,18 +94,24 @@ def _get_from_link(db, object_store, remote_addr, provider, provider_path,
 _osf_path = re.compile('^[a-zA-Z0-9]+$')
 
 
-def _osf(db, object_store, remote_addr, provider, path):
+async def _osf(db, object_store, remote_addr, provider, path):
     if _osf_path.match(path) is None:
         raise ProviderError("ID is not in the OSF format")
     logger.info("Querying OSF for '%s'", path)
-    req = requests.get('https://api.osf.io/v2/files/{0}/'.format(path),
-                       headers={'Content-Type': 'application/json',
-                                'Accept': 'application/json'})
-    if req.status_code != 200:
-        logger.info("Got error %s", req.status_code)
+    http_client = AsyncHTTPClient()
+    resp = await http_client.fetch(
+        'https://api.osf.io/v2/files/{0}/'.format(path),
+        headers={
+            'Accept': 'application/json',
+            'User-Agent': 'reproserver %s' % __version__,
+        },
+        raise_error=False,
+    )
+    if resp.code != 200:
+        logger.info("Got error %s", resp.code)
         raise ProviderError("HTTP error from OSF")
     try:
-        response = req.json()
+        response = json.loads(resp.body.decode('utf-8'))
         link = response['data']['links']['download']
     except KeyError:
         raise ProviderError("Invalid data returned from the OSF")
@@ -114,11 +129,14 @@ def _osf(db, object_store, remote_addr, provider, path):
         except KeyError:
             filename = 'unnamed_osf_file'
         logger.info("Got response: %s %s %s", link, filehash, filename)
-        return _get_from_link(db, object_store, remote_addr, provider, path,
-                              link, filename, filehash)
+        return await _get_from_link(
+            db, object_store, remote_addr,
+            provider, path,
+            link, filename, filehash,
+        )
 
 
-def _figshare(db, object_store, remote_addr, provider, path):
+async def _figshare(db, object_store, remote_addr, provider, path):
     # article_id/file_id
     try:
         article_id, file_id = path.split('/', 1)
@@ -128,14 +146,22 @@ def _figshare(db, object_store, remote_addr, provider, path):
         raise ProviderError("ID is not in 'article_id/file_id' format")
     logger.info("Querying Figshare for article=%s file=%s",
                 article_id, file_id)
-    req = requests.get('https://api.figshare.com/v2/articles/{0}/files/{1}'
-                       .format(article_id, file_id),
-                       headers={'Accept': 'application/json'})
-    if req.status_code != 200:
-        logger.info("Got error %s", req.status_code)
+    http_client = AsyncHTTPClient()
+    resp = await http_client.fetch(
+        'https://api.figshare.com/v2/articles/{0}/files/{1}'.format(
+            article_id, file_id,
+        ),
+        headers={
+            'Accept': 'application/json',
+            'User-Agent': 'reproserver %s' % __version__,
+        },
+        raise_error=False,
+    )
+    if resp.code != 200:
+        logger.info("Got error %s", resp.code)
         raise ProviderError("HTTP error from Figshare")
     try:
-        response = req.json()
+        response = json.loads(resp.body.decode('utf-8'))
         link = response['download_url']
     except KeyError:
         raise ProviderError("Invalid data returned from Figshare")
@@ -148,8 +174,11 @@ def _figshare(db, object_store, remote_addr, provider, path):
         except KeyError:
             filename = 'unnamed_figshare_file'
         logger.info("Got response: %s %s", link, filename)
-        return _get_from_link(db, object_store, remote_addr, provider, path,
-                              link, filename)
+        return await _get_from_link(
+            db, object_store, remote_addr,
+            provider, path,
+            link, filename,
+        )
 
 
 _PROVIDERS = {
