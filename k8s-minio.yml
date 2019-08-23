@@ -28,6 +28,12 @@ spec:
               key: s3_secret
         ports:
         - containerPort: 9000
+        livenessProbe:
+          httpGet:
+            path: /minio/
+            port: 9000
+          initialDelaySeconds: 30
+          periodSeconds: 30
         volumeMounts:
         - mountPath: /export
           name: data

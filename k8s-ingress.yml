@@ -1,10 +1,17 @@
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: reproserver-ingress-prod
+  name: ingress-web
 spec:
-  tls:
-  - secretName: reproserver-tls
   backend:
-    serviceName: reproserver-web-prod
+    serviceName: web
     servicePort: 8000
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-minio
+spec:
+  backend:
+    serviceName: minio-host
+    servicePort: 9000

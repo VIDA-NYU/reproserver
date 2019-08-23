@@ -35,18 +35,6 @@ spec:
             secretKeyRef:
               name: reproserver-secret
               key: salt
-        - name: AMQP_USER
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: user
-        - name: AMQP_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: password
-        - name: AMQP_HOST
-          value: rabbitmq
         - name: S3_KEY
           valueFrom:
             secretKeyRef:
@@ -86,219 +74,31 @@ spec:
           value: postgres
         - name: POSTGRES_DB
           value: reproserver
-        - name: WEB_BEHIND_PROXY
-          value: "1"
+        - name: DOCKER_HOST
+          value: tcp://127.0.0.1:2375
+        - name: REGISTRY
+          value: registry:5000
+        - name: ZENODO_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: reproserver-secret
+              key: zenodo_token
         ports:
         - containerPort: 8000
         livenessProbe:
           httpGet:
-            path: /healthz
+            path: /health
             port: 8000
           initialDelaySeconds: 30
           periodSeconds: 30
----
-apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: builder
-spec:
-  replicas: 1
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
-  template:
-    metadata:
-      labels:
-        app: builder
-    spec:
-      containers:
-      - name: builder
-        image: reproserver_builder
-        imagePullPolicy: IfNotPresent
-        env:
-        - name: REPROZIP_USAGE_STATS
-          value: "off"
-        - name: REGISTRY
-          value: "registry:5000"
-        - name: DOCKER_HOST
-          value: 127.0.0.1:2375
-        - name: SHORTIDS_SALT
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: salt
-        - name: AMQP_USER
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: user
-        - name: AMQP_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: password
-        - name: AMQP_HOST
-          value: rabbitmq
-        - name: S3_KEY
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: s3_key
-        - name: S3_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: s3_secret
-        - name: S3_URL
-          valueFrom:
-            configMapKeyRef:
-              name: config
-              key: s3.url
-        - name: S3_BUCKET_PREFIX
-          valueFrom:
-            configMapKeyRef:
-              name: config
-              key: s3.bucket-prefix
-        - name: POSTGRES_USER
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: user
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: password
-        - name: POSTGRES_HOST
-          value: postgres
-        - name: POSTGRES_DB
-          value: reproserver
       - name: docker
-        image: docker:dind
+        image: docker:18.09-dind
         securityContext:
           privileged: true
         args:
         - "--storage-driver=overlay2"
         - "--userns-remap=default"
         - "--insecure-registry=registry:5000"
----
-apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: runner
-spec:
-  replicas: 1
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
-  template:
-    metadata:
-      labels:
-        app: runner
-    spec:
-      containers:
-      - name: runner
-        image: reproserver_runner
-        imagePullPolicy: IfNotPresent
-        env:
-        - name: REGISTRY
-          value: "registry:5000"
-        - name: DOCKER_HOST
-          value: 127.0.0.1:2375
-        - name: SHORTIDS_SALT
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: salt
-        - name: AMQP_USER
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: user
-        - name: AMQP_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: password
-        - name: AMQP_HOST
-          value: rabbitmq
-        - name: S3_KEY
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: s3_key
-        - name: S3_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: s3_secret
-        - name: S3_URL
-          valueFrom:
-            configMapKeyRef:
-              name: config
-              key: s3.url
-        - name: S3_BUCKET_PREFIX
-          valueFrom:
-            configMapKeyRef:
-              name: config
-              key: s3.bucket-prefix
-        - name: POSTGRES_USER
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: user
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: password
-        - name: POSTGRES_HOST
-          value: postgres
-        - name: POSTGRES_DB
-          value: reproserver
-      - name: docker
-        image: docker:dind
-        securityContext:
-          privileged: true
-        args:
-        - "--storage-driver=overlay2"
-        - "--userns-remap=default"
-        - "--insecure-registry=registry:5000"
----
-apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: rabbitmq
-spec:
-  replicas: 1
-  strategy:
-    type: Recreate
-  template:
-    metadata:
-      labels:
-        app: rabbitmq
-    spec:
-      containers:
-      - name: rabbitmq
-        image: rabbitmq:3.6.9-management
-        env:
-        - name: RABBITMQ_DEFAULT_USER
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: user
-        - name: RABBITMQ_DEFAULT_PASS
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: password
-        ports:
-        - containerPort: 5672
-        - containerPort: 8080
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -357,32 +157,6 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: postgres-pvc
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: rabbitmq
-  labels:
-    app: rabbitmq
-spec:
-  selector:
-    app: rabbitmq
-  ports:
-  - protocol: TCP
-    port: 5672
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: rabbitmq-management
-  labels:
-    app: rabbitmq
-spec:
-  selector:
-    app: rabbitmq
-  ports:
-  - protocol: TCP
-    port: 15672
 ---
 apiVersion: v1
 kind: Service
