@@ -153,7 +153,7 @@ class BaseReproduce(BaseHandler):
                 # Else, trigger the build
                 else:
                     if experiment.status == database.Status.NOBUILD:
-                        logger.info("Triggering a build, sending message")
+                        logger.info("Triggering a build")
                         experiment.status = database.Status.QUEUED
                         self.application.builder.build(experiment.hash)
                     return self.render(

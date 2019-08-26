@@ -1,12 +1,17 @@
 import asyncio
 import json
+import kubernetes.client as k8s
+import kubernetes.config
+import kubernetes.watch
 import logging
 import os
 import shutil
 import subprocess
 import tempfile
+import time
 
 from reproserver import database
+from reproserver.objectstore import get_object_store
 from reproserver.utils import shell_escape
 
 
@@ -55,6 +60,14 @@ class Builder(object):
         )
 
     def build_sync(self, experiment_hash):
+        raise NotImplementedError
+
+
+class DockerBuilder(Builder):
+    def build_sync(self, experiment_hash):
+        self._docker_build(experiment_hash)
+
+    def _docker_build(self, experiment_hash):
         """Process a build task.
 
         Lookup the experiment in the database, and the file on S3. Then, do the
@@ -108,6 +121,20 @@ class Builder(object):
             # Remove previous build log
             experiment.log[:] = []
             db.commit()
+
+            # Wait for Docker to come up
+            for _ in range(6):
+                proc = subprocess.Popen(
+                    ['docker', 'version'],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                proc.communicate()
+                if proc.returncode == 0:
+                    break
+                time.sleep(5)
+            else:
+                raise RuntimeError("Couldn't connect to Docker")
 
             # Build the experiment
             image_name = 'rpuz_exp_%s' % experiment.hash
@@ -185,3 +212,200 @@ class Builder(object):
         finally:
             # Remove build directory
             shutil.rmtree(directory)
+
+
+class K8sBuilder(DockerBuilder):
+    def __init__(self, *, namespace, **kwargs):
+        super(K8sBuilder, self).__init__(**kwargs)
+        self.namespace = namespace
+
+    @classmethod
+    def _build_in_pod(cls, namespace, experiment_hash):
+        engine, DBSession = database.connect()
+        object_store = get_object_store()
+        builder = cls(
+            namespace=namespace,
+            DBSession=DBSession,
+            object_store=object_store,
+        )
+        builder._docker_build(experiment_hash)
+
+    def build_sync(self, experiment_hash):
+        kubernetes.config.load_incluster_config()
+
+        name = 'build-{0}'.format(experiment_hash[:55])
+
+        # Create a Kubernetes job to build
+        batch_client = k8s.BatchV1Api()
+        pod_tpl = k8s.V1PodTemplateSpec(
+            spec=k8s.V1PodSpec(
+                restart_policy='Never',
+                containers=[
+                    k8s.V1Container(
+                        name='docker',
+                        image='docker:18.09-dind',
+                        security_context=k8s.V1SecurityContext(
+                            privileged=True,
+                        ),
+                        args=[
+                            '--storage-driver=overlay2',
+                            '--userns-remap=default',
+                            '--insecure-registry=registry:5000',
+                        ],
+                    ),
+                    k8s.V1Container(
+                        name='builder',
+                        image='reproserver_web',
+                        image_pull_policy='IfNotPresent',
+                        args=[
+                            'python3', '-c',
+                            'from reproserver.build import K8sBuilder; ' +
+                            'K8sBuilder._build_in_pod{0!r}'.format((
+                                self.namespace,
+                                experiment_hash,
+                            )),
+                        ],
+                        env=[
+                            k8s.V1EnvVar(
+                                name='SHORTIDS_SALT',
+                                value_from=k8s.V1EnvVarSource(
+                                    secret_key_ref=k8s.V1SecretKeySelector(
+                                        name='reproserver-secret',
+                                        key='salt',
+                                    ),
+                                ),
+                            ),
+                            k8s.V1EnvVar(
+                                name='S3_KEY',
+                                value_from=k8s.V1EnvVarSource(
+                                    secret_key_ref=k8s.V1SecretKeySelector(
+                                        name='reproserver-secret',
+                                        key='s3_key',
+                                    ),
+                                ),
+                            ),
+                            k8s.V1EnvVar(
+                                name='S3_SECRET',
+                                value_from=k8s.V1EnvVarSource(
+                                    secret_key_ref=k8s.V1SecretKeySelector(
+                                        name='reproserver-secret',
+                                        key='s3_secret',
+                                    ),
+                                ),
+                            ),
+                            k8s.V1EnvVar(
+                                name='S3_URL',
+                                value_from=k8s.V1EnvVarSource(
+                                    config_map_key_ref=k8s.V1ConfigMapKeySelector(
+                                        name='config',
+                                        key='s3.url',
+                                    ),
+                                ),
+                            ),
+                            k8s.V1EnvVar(
+                                name='S3_BUCKET_PREFIX',
+                                value_from=k8s.V1EnvVarSource(
+                                    config_map_key_ref=k8s.V1ConfigMapKeySelector(
+                                        name='config',
+                                        key='s3.bucket-prefix',
+                                    ),
+                                ),
+                            ),
+                            k8s.V1EnvVar(
+                                name='S3_CLIENT_URL',
+                                value_from=k8s.V1EnvVarSource(
+                                    config_map_key_ref=k8s.V1ConfigMapKeySelector(
+                                        name='config',
+                                        key='s3.client-url',
+                                    ),
+                                ),
+                            ),
+                            k8s.V1EnvVar(
+                                name='POSTGRES_USER',
+                                value_from=k8s.V1EnvVarSource(
+                                    secret_key_ref=k8s.V1SecretKeySelector(
+                                        name='reproserver-secret',
+                                        key='user',
+                                    ),
+                                ),
+                            ),
+                            k8s.V1EnvVar(
+                                name='POSTGRES_PASSWORD',
+                                value_from=k8s.V1EnvVarSource(
+                                    secret_key_ref=k8s.V1SecretKeySelector(
+                                        name='reproserver-secret',
+                                        key='password',
+                                    ),
+                                ),
+                            ),
+                            k8s.V1EnvVar(
+                                name='POSTGRES_HOST',
+                                value='postgres',
+                            ),
+                            k8s.V1EnvVar(
+                                name='POSTGRES_DB',
+                                value='reproserver',
+                            ),
+                            k8s.V1EnvVar(
+                                name='DOCKER_HOST',
+                                value='tcp://127.0.0.1:2375',
+                            ),
+                            k8s.V1EnvVar(
+                                name='REGISTRY',
+                                value='registry:5000',
+                            ),
+                            k8s.V1EnvVar(
+                                name='REPROZIP_USAGE_STATS',
+                                value='off',
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+        )
+        job = k8s.V1Job(
+            api_version='batch/v1',
+            kind='Job',
+            metadata=k8s.V1ObjectMeta(
+                name=name,
+                labels={
+                    'what': 'build',
+                    'experiment': experiment_hash[:55],
+                },
+            ),
+            spec=k8s.V1JobSpec(
+                template=pod_tpl,
+                backoff_limit=2,
+            ),
+        )
+
+        batch_client.create_namespaced_job(
+            namespace=self.namespace,
+            body=job,
+        )
+
+        # Watch the job
+        w = kubernetes.watch.Watch()
+        f, kwargs = batch_client.list_namespaced_job, dict(
+            namespace=self.namespace,
+            label_selector='what=build,experiment={0}'.format(
+                experiment_hash[:55]
+            ),
+        )
+        started = None
+        for event in w.stream(f, **kwargs):
+            if not started and event['status']['start_time']:
+                started = event['status']['start_time']
+                logger.info("Build pod started: %s", started.isoformat())
+            if event['status']['succeeded']:
+                w.stop()
+                logger.info("Build pod succeeded")
+
+        # Delete the job
+        batch_client.delete_namespaced_job(
+            name=name,
+            namespace=self.namespace,
+            body=k8s.V1DeleteOptions(
+                propagation_policy='Background',
+            ),
+        )
