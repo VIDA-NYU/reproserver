@@ -43,6 +43,7 @@ sqlalchemy = "~1"
 jinja2 = "*"
 boto3 = "^1"
 psycopg2 = "^2.8"
+kubernetes = "*"
 
 reprounzip = { path = "reprozip/reprounzip" }
 reprounzip-docker = { path = "reprozip/reprounzip-docker" }
