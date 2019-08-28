@@ -235,9 +235,20 @@ class K8sBuilder(DockerBuilder):
 
         name = 'build-{0}'.format(experiment_hash[:55])
 
-        # Create a Kubernetes job to build
-        batch_client = k8s.BatchV1Api()
-        pod_tpl = k8s.V1PodTemplateSpec(
+        # Create a Kubernetes pod to build
+        # FIXME: This should be a job, but that doesn't work with multiple
+        # containers: https://github.com/kubernetes/kubernetes/issues/25908
+        client = k8s.CoreV1Api()
+        pod = k8s.V1Pod(
+            api_version='v1',
+            kind='Pod',
+            metadata=k8s.V1ObjectMeta(
+                name=name,
+                labels={
+                    'app': 'build',
+                    'experiment': experiment_hash[:55],
+                },
+            ),
             spec=k8s.V1PodSpec(
                 restart_policy='Never',
                 containers=[
@@ -363,49 +374,34 @@ class K8sBuilder(DockerBuilder):
                 ],
             ),
         )
-        job = k8s.V1Job(
-            api_version='batch/v1',
-            kind='Job',
-            metadata=k8s.V1ObjectMeta(
-                name=name,
-                labels={
-                    'what': 'build',
-                    'experiment': experiment_hash[:55],
-                },
-            ),
-            spec=k8s.V1JobSpec(
-                template=pod_tpl,
-                backoff_limit=2,
-            ),
-        )
 
-        batch_client.create_namespaced_job(
+        client.create_namespaced_pod(
             namespace=self.namespace,
-            body=job,
+            body=pod,
         )
 
-        # Watch the job
+        # Watch the pod
         w = kubernetes.watch.Watch()
-        f, kwargs = batch_client.list_namespaced_job, dict(
+        f, kwargs = client.list_namespaced_pod, dict(
             namespace=self.namespace,
-            label_selector='what=build,experiment={0}'.format(
+            label_selector='app=build,experiment={0}'.format(
                 experiment_hash[:55]
             ),
         )
         started = None
         for event in w.stream(f, **kwargs):
-            if not started and event['status']['start_time']:
-                started = event['status']['start_time']
+            status = event['object'].status
+            if not started and status.start_time:
+                started = status.start_time
                 logger.info("Build pod started: %s", started.isoformat())
-            if event['status']['succeeded']:
+            if (status.container_statuses and
+                    any(c.state.terminated
+                        for c in status.container_statuses)):
                 w.stop()
                 logger.info("Build pod succeeded")
 
-        # Delete the job
-        batch_client.delete_namespaced_job(
+        # Delete the pod
+        client.delete_namespaced_pod(
             name=name,
             namespace=self.namespace,
-            body=k8s.V1DeleteOptions(
-                propagation_policy='Background',
-            ),
         )
