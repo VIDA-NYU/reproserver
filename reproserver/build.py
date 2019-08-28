@@ -1,6 +1,7 @@
 import asyncio
 import json
 import kubernetes.client as k8s
+from kubernetes.client.rest import ApiException as K8sException
 import kubernetes.config
 import kubernetes.watch
 import logging
@@ -9,6 +10,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+
 
 from reproserver import database
 from reproserver.objectstore import get_object_store
@@ -52,12 +54,31 @@ class Builder(object):
         self.DBSession = DBSession
         self.object_store = object_store
 
+        self._builds = {}
+
     def build(self, experiment_hash):
-        return asyncio.get_event_loop().run_in_executor(
+        # We keep a cache of future
+        # If we already have a task building this, return its future
+        if experiment_hash in self._builds:
+            return self._builds[experiment_hash]
+
+        # At the end of the build task, remove from dict and log
+        def callback(future):
+            del self._builds[experiment_hash]
+            try:
+                future.result()
+            except Exception:
+                logger.exception("Exception in build task")
+
+        # Run the task in threadpool
+        future = asyncio.get_event_loop().run_in_executor(
             None,
             self.build_sync,
             experiment_hash,
         )
+        self._builds[experiment_hash] = future
+        future.add_done_callback(callback)
+        return future
 
     def build_sync(self, experiment_hash):
         raise NotImplementedError
@@ -375,10 +396,18 @@ class K8sBuilder(DockerBuilder):
             ),
         )
 
-        client.create_namespaced_pod(
-            namespace=self.namespace,
-            body=pod,
-        )
+        try:
+            client.create_namespaced_pod(
+                namespace=self.namespace,
+                body=pod,
+            )
+        except K8sException as e:
+            if e.status == 409:  # Conflict: pod already exists
+                logger.info("Pod already exists")
+            else:
+                raise
+        else:
+            logger.info("Pod created")
 
         # Watch the pod
         w = kubernetes.watch.Watch()
@@ -401,7 +430,13 @@ class K8sBuilder(DockerBuilder):
                 logger.info("Build pod succeeded")
 
         # Delete the pod
-        client.delete_namespaced_pod(
-            name=name,
-            namespace=self.namespace,
-        )
+        try:
+            client.delete_namespaced_pod(
+                name=name,
+                namespace=self.namespace,
+            )
+        except K8sException as e:
+            if e.status == 404:  # Not found: deleted concurrently
+                pass
+            else:
+                raise
