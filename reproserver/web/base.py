@@ -9,7 +9,7 @@ from .. import __version__ as version
 from .. import database
 from ..build import K8sBuilder
 from ..objectstore import get_object_store
-from ..run import Runner
+from ..run import K8sRunner
 
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,11 @@ class Application(tornado.web.Application):
             object_store=self.object_store,
             namespace='default',
         )
-        self.runner = Runner(self.DBSession, self.object_store)
+        self.runner = K8sRunner(
+            DBSession=self.DBSession,
+            object_store=self.object_store,
+            namespace='default',
+        )
 
 
 class BaseHandler(tornado.web.RequestHandler):
