@@ -28,10 +28,10 @@ def get_experiment_from_repository(db, object_store, remote_addr,
     """Get a file from a reference in a repository.
     """
     try:
-        repo = _map[repo]
+        repo_obj = _map[repo]
     except KeyError:
         raise RepositoryError("No such repository %s" % repo)
-    return repo.get_experiment(
+    return repo_obj.get_experiment(
         db, object_store, remote_addr,
         repo, repo_path,
     )
