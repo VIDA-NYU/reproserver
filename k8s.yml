@@ -73,10 +73,6 @@ spec:
               value: postgres
             - name: POSTGRES_DB
               value: reproserver
-            - name: DOCKER_HOST
-              value: tcp://127.0.0.1:2375
-            - name: REGISTRY
-              value: registry:5000
             - name: ZENODO_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -90,14 +86,6 @@ spec:
               port: 8000
             initialDelaySeconds: 30
             periodSeconds: 30
-        - name: docker
-          image: docker:18.09-dind
-          securityContext:
-            privileged: true
-          args:
-            - "--storage-driver=overlay2"
-            - "--userns-remap=default"
-            - "--insecure-registry=registry:5000"
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
