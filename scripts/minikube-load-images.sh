@@ -10,7 +10,7 @@ else
     echo "DOCKER_HOST is set" >&2
 fi
 
-for image in reproserver_web reproserver_builder reproserver_runner; do
+for image in reproserver_web; do
     echo "Loading image $image..."
     DOCKER_HOST= sudo -g docker docker save $image | docker load
 done
