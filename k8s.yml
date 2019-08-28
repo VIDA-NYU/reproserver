@@ -76,6 +76,8 @@ spec:
           value: tcp://127.0.0.1:2375
         - name: REGISTRY
           value: registry:5000
+        - name: REPROZIP_USAGE_STATS
+          value: "off"
         - name: ZENODO_TOKEN
           valueFrom:
             secretKeyRef:
