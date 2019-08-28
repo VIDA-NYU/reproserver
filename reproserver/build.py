@@ -11,7 +11,6 @@ import subprocess
 import tempfile
 import time
 
-
 from reproserver import database
 from reproserver.objectstore import get_object_store
 from reproserver.utils import shell_escape
@@ -260,6 +259,24 @@ class K8sBuilder(DockerBuilder):
         # FIXME: This should be a job, but that doesn't work with multiple
         # containers: https://github.com/kubernetes/kubernetes/issues/25908
         client = k8s.CoreV1Api()
+        cm_var = lambda name, key: k8s.V1EnvVar(
+            name=name,
+            value_from=k8s.V1EnvVarSource(
+                config_map_key_ref=k8s.V1ConfigMapKeySelector(
+                    name='config',
+                    key=key,
+                ),
+            ),
+        )
+        secret_var = lambda name, key: k8s.V1EnvVar(
+            name=name,
+            value_from=k8s.V1EnvVarSource(
+                secret_key_ref=k8s.V1SecretKeySelector(
+                    name='reproserver-secret',
+                    key=key,
+                ),
+            ),
+        )
         pod = k8s.V1Pod(
             api_version='v1',
             kind='Pod',
@@ -298,98 +315,22 @@ class K8sBuilder(DockerBuilder):
                             )),
                         ],
                         env=[
+                            secret_var('SHORTIDS_SALT', 'salt'),
+                            secret_var('S3_KEY', 's3_key'),
+                            secret_var('S3_SECRET', 's3_secret'),
+                            cm_var('S3_URL', 's3.url'),
+                            cm_var('S3_BUCKET_PREFIX', 's3.bucket-prefix'),
+                            cm_var('S3_CLIENT_URL', 's3.client-url'),
+                            secret_var('POSTGRES_USER', 'user'),
+                            secret_var('POSTGRES_PASSWORD', 'password'),
+                            k8s.V1EnvVar('POSTGRES_HOST', 'postgres'),
+                            k8s.V1EnvVar('POSTGRES_DB', 'reproserver'),
                             k8s.V1EnvVar(
-                                name='SHORTIDS_SALT',
-                                value_from=k8s.V1EnvVarSource(
-                                    secret_key_ref=k8s.V1SecretKeySelector(
-                                        name='reproserver-secret',
-                                        key='salt',
-                                    ),
-                                ),
+                                'DOCKER_HOST',
+                                'tcp://127.0.0.1:2375',
                             ),
-                            k8s.V1EnvVar(
-                                name='S3_KEY',
-                                value_from=k8s.V1EnvVarSource(
-                                    secret_key_ref=k8s.V1SecretKeySelector(
-                                        name='reproserver-secret',
-                                        key='s3_key',
-                                    ),
-                                ),
-                            ),
-                            k8s.V1EnvVar(
-                                name='S3_SECRET',
-                                value_from=k8s.V1EnvVarSource(
-                                    secret_key_ref=k8s.V1SecretKeySelector(
-                                        name='reproserver-secret',
-                                        key='s3_secret',
-                                    ),
-                                ),
-                            ),
-                            k8s.V1EnvVar(
-                                name='S3_URL',
-                                value_from=k8s.V1EnvVarSource(
-                                    config_map_key_ref=k8s.V1ConfigMapKeySelector(
-                                        name='config',
-                                        key='s3.url',
-                                    ),
-                                ),
-                            ),
-                            k8s.V1EnvVar(
-                                name='S3_BUCKET_PREFIX',
-                                value_from=k8s.V1EnvVarSource(
-                                    config_map_key_ref=k8s.V1ConfigMapKeySelector(
-                                        name='config',
-                                        key='s3.bucket-prefix',
-                                    ),
-                                ),
-                            ),
-                            k8s.V1EnvVar(
-                                name='S3_CLIENT_URL',
-                                value_from=k8s.V1EnvVarSource(
-                                    config_map_key_ref=k8s.V1ConfigMapKeySelector(
-                                        name='config',
-                                        key='s3.client-url',
-                                    ),
-                                ),
-                            ),
-                            k8s.V1EnvVar(
-                                name='POSTGRES_USER',
-                                value_from=k8s.V1EnvVarSource(
-                                    secret_key_ref=k8s.V1SecretKeySelector(
-                                        name='reproserver-secret',
-                                        key='user',
-                                    ),
-                                ),
-                            ),
-                            k8s.V1EnvVar(
-                                name='POSTGRES_PASSWORD',
-                                value_from=k8s.V1EnvVarSource(
-                                    secret_key_ref=k8s.V1SecretKeySelector(
-                                        name='reproserver-secret',
-                                        key='password',
-                                    ),
-                                ),
-                            ),
-                            k8s.V1EnvVar(
-                                name='POSTGRES_HOST',
-                                value='postgres',
-                            ),
-                            k8s.V1EnvVar(
-                                name='POSTGRES_DB',
-                                value='reproserver',
-                            ),
-                            k8s.V1EnvVar(
-                                name='DOCKER_HOST',
-                                value='tcp://127.0.0.1:2375',
-                            ),
-                            k8s.V1EnvVar(
-                                name='REGISTRY',
-                                value='registry:5000',
-                            ),
-                            k8s.V1EnvVar(
-                                name='REPROZIP_USAGE_STATS',
-                                value='off',
-                            ),
+                            k8s.V1EnvVar('REGISTRY', 'registry:5000'),
+                            k8s.V1EnvVar('REPROZIP_USAGE_STATS', 'off'),
                         ],
                     ),
                 ],
