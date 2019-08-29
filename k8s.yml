@@ -24,81 +24,81 @@ spec:
         app: web
     spec:
       containers:
-      - name: web
-        image: reproserver_web
-        imagePullPolicy: IfNotPresent
-        env:
-        - name: SHORTIDS_SALT
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: salt
-        - name: S3_KEY
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: s3_key
-        - name: S3_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: s3_secret
-        - name: S3_URL
-          valueFrom:
-            configMapKeyRef:
-              name: config
-              key: s3.url
-        - name: S3_BUCKET_PREFIX
-          valueFrom:
-            configMapKeyRef:
-              name: config
-              key: s3.bucket-prefix
-        - name: S3_CLIENT_URL
-          valueFrom:
-            configMapKeyRef:
-              name: config
-              key: s3.client-url
-        - name: POSTGRES_USER
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: user
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: password
-        - name: POSTGRES_HOST
-          value: postgres
-        - name: POSTGRES_DB
-          value: reproserver
-        - name: DOCKER_HOST
-          value: tcp://127.0.0.1:2375
-        - name: REGISTRY
-          value: registry:5000
-        - name: REPROZIP_USAGE_STATS
-          value: "off"
-        - name: ZENODO_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: zenodo_token
-        ports:
-        - containerPort: 8000
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8000
-          initialDelaySeconds: 30
-          periodSeconds: 30
-      - name: docker
-        image: docker:18.09-dind
-        securityContext:
-          privileged: true
-        args:
-        - "--storage-driver=overlay2"
-        - "--userns-remap=default"
-        - "--insecure-registry=registry:5000"
+        - name: web
+          image: reproserver_web
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SHORTIDS_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: reproserver-secret
+                  key: salt
+            - name: S3_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: reproserver-secret
+                  key: s3_key
+            - name: S3_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: reproserver-secret
+                  key: s3_secret
+            - name: S3_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: config
+                  key: s3.url
+            - name: S3_BUCKET_PREFIX
+              valueFrom:
+                configMapKeyRef:
+                  name: config
+                  key: s3.bucket-prefix
+            - name: S3_CLIENT_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: config
+                  key: s3.client-url
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: reproserver-secret
+                  key: user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: reproserver-secret
+                  key: password
+            - name: POSTGRES_HOST
+              value: postgres
+            - name: POSTGRES_DB
+              value: reproserver
+            - name: DOCKER_HOST
+              value: tcp://127.0.0.1:2375
+            - name: REGISTRY
+              value: registry:5000
+            - name: REPROZIP_USAGE_STATS
+              value: "off"
+            - name: ZENODO_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: reproserver-secret
+                  key: zenodo_token
+          ports:
+            - containerPort: 8000
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+        - name: docker
+          image: docker:18.09-dind
+          securityContext:
+            privileged: true
+          args:
+            - "--storage-driver=overlay2"
+            - "--userns-remap=default"
+            - "--insecure-registry=registry:5000"
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -114,10 +114,10 @@ spec:
         app: registry
     spec:
       containers:
-      - name: registry
-        image: registry:2.6
-        ports:
-        - containerPort: 5000
+        - name: registry
+          image: registry:2.6
+          ports:
+            - containerPort: 5000
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -133,30 +133,30 @@ spec:
         app: postgres
     spec:
       containers:
-      - name: postgres
-        image: postgres:9.6
-        env:
-        - name: PGDATA
-          value: /var/lib/postgresql/data/pgdata
-        - name: POSTGRES_USER
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: user
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: reproserver-secret
-              key: password
-        ports:
-        - containerPort: 5432
-        volumeMounts:
-        - mountPath: /var/lib/postgresql/data
-          name: data
+        - name: postgres
+          image: postgres:9.6
+          env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: reproserver-secret
+                  key: user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: reproserver-secret
+                  key: password
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+          - mountPath: /var/lib/postgresql/data
+            name: data
       volumes:
-      - name: data
-        persistentVolumeClaim:
-          claimName: postgres-pvc
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgres-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -168,8 +168,8 @@ spec:
   selector:
     app: registry
   ports:
-  - protocol: TCP
-    port: 5000
+    - protocol: TCP
+      port: 5000
 ---
 apiVersion: v1
 kind: Service
@@ -181,8 +181,8 @@ spec:
   selector:
     app: postgres
   ports:
-  - protocol: TCP
-    port: 5432
+    - protocol: TCP
+      port: 5432
 ---
 apiVersion: v1
 kind: Service
@@ -195,6 +195,6 @@ spec:
     app: web
   type: NodePort
   ports:
-  - protocol: TCP
-    port: 8000
-    nodePort: 30080
+    - protocol: TCP
+      port: 8000
+      nodePort: 30080
