@@ -10,6 +10,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import functions
 import subprocess
 import tempfile
+import yaml
 
 from reproserver import database
 from reproserver.objectstore import get_object_store
@@ -303,26 +304,24 @@ class K8sRunner(DockerRunner):
 
         name = 'run-{0}'.format(run_id)
 
+        # Load configuration from configmap volume
+        with open('/etc/k8s-config/runner.pod_spec') as fp:
+            pod_spec = yaml.safe_load(fp)
+
+        # Make required changes
+        for container in pod_spec['containers']:
+            if container['name'] == 'runner':
+                container['args'] = [
+                    'python3', '-c',
+                    'from reproserver.run import K8sRunner; ' +
+                    'K8sRunner._run_in_pod{0!r}'.format((
+                        self.namespace,
+                        run_id,
+                    )),
+                ]
+
         # Create a Kubernetes pod to run
         client = k8s.CoreV1Api()
-        cm_var = lambda name, key: k8s.V1EnvVar(
-            name=name,
-            value_from=k8s.V1EnvVarSource(
-                config_map_key_ref=k8s.V1ConfigMapKeySelector(
-                    name='config',
-                    key=key,
-                ),
-            ),
-        )
-        secret_var = lambda name, key: k8s.V1EnvVar(
-            name=name,
-            value_from=k8s.V1EnvVarSource(
-                secret_key_ref=k8s.V1SecretKeySelector(
-                    name='reproserver-secret',
-                    key=key,
-                ),
-            ),
-        )
         pod = k8s.V1Pod(
             api_version='v1',
             kind='Pod',
@@ -333,56 +332,8 @@ class K8sRunner(DockerRunner):
                     'run': str(run_id),
                 },
             ),
-            spec=k8s.V1PodSpec(
-                restart_policy='Never',
-                containers=[
-                    k8s.V1Container(
-                        name='docker',
-                        image='docker:18.09-dind',
-                        security_context=k8s.V1SecurityContext(
-                            privileged=True,
-                        ),
-                        args=[
-                            '--storage-driver=overlay2',
-                            '--userns-remap=default',
-                            '--insecure-registry=registry:5000',
-                        ],
-                    ),
-                    k8s.V1Container(
-                        name='runner',
-                        image='reproserver_web',
-                        image_pull_policy='IfNotPresent',
-                        args=[
-                            'python3', '-c',
-                            'from reproserver.run import K8sRunner; ' +
-                            'K8sRunner._run_in_pod{0!r}'.format((
-                                self.namespace,
-                                run_id,
-                            )),
-                        ],
-                        env=[
-                            secret_var('SHORTIDS_SALT', 'salt'),
-                            secret_var('S3_KEY', 's3_key'),
-                            secret_var('S3_SECRET', 's3_secret'),
-                            cm_var('S3_URL', 's3.url'),
-                            cm_var('S3_BUCKET_PREFIX', 's3.bucket-prefix'),
-                            cm_var('S3_CLIENT_URL', 's3.client-url'),
-                            secret_var('POSTGRES_USER', 'user'),
-                            secret_var('POSTGRES_PASSWORD', 'password'),
-                            k8s.V1EnvVar('POSTGRES_HOST', 'postgres'),
-                            k8s.V1EnvVar('POSTGRES_DB', 'reproserver'),
-                            k8s.V1EnvVar(
-                                'DOCKER_HOST',
-                                'tcp://127.0.0.1:2375',
-                            ),
-                            k8s.V1EnvVar('REGISTRY', 'registry:5000'),
-                            k8s.V1EnvVar('REPROZIP_USAGE_STATS', 'off'),
-                        ],
-                    ),
-                ],
-            ),
+            spec=pod_spec,
         )
-
         client.create_namespaced_pod(
             namespace=self.namespace,
             body=pod,

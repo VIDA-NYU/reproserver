@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+import yaml
 
 from reproserver import database
 from reproserver.objectstore import get_object_store
@@ -255,28 +256,26 @@ class K8sBuilder(DockerBuilder):
 
         name = 'build-{0}'.format(experiment_hash[:55])
 
+        # Load configuration from configmap volume
+        with open('/etc/k8s-config/builder.pod_spec') as fp:
+            pod_spec = yaml.safe_load(fp)
+
+        # Make required changes
+        for container in pod_spec['containers']:
+            if container['name'] == 'builder':
+                container['args'] = [
+                    'python3', '-c',
+                    'from reproserver.build import K8sBuilder; ' +
+                    'K8sBuilder._build_in_pod{0!r}'.format((
+                        self.namespace,
+                        experiment_hash,
+                    )),
+                ]
+
         # Create a Kubernetes pod to build
-        # FIXME: This should be a job, but that doesn't work with multiple
+        # FIXME: This should be a Job, but that doesn't work with multiple
         # containers: https://github.com/kubernetes/kubernetes/issues/25908
         client = k8s.CoreV1Api()
-        cm_var = lambda name, key: k8s.V1EnvVar(
-            name=name,
-            value_from=k8s.V1EnvVarSource(
-                config_map_key_ref=k8s.V1ConfigMapKeySelector(
-                    name='config',
-                    key=key,
-                ),
-            ),
-        )
-        secret_var = lambda name, key: k8s.V1EnvVar(
-            name=name,
-            value_from=k8s.V1EnvVarSource(
-                secret_key_ref=k8s.V1SecretKeySelector(
-                    name='reproserver-secret',
-                    key=key,
-                ),
-            ),
-        )
         pod = k8s.V1Pod(
             api_version='v1',
             kind='Pod',
@@ -287,56 +286,8 @@ class K8sBuilder(DockerBuilder):
                     'experiment': experiment_hash[:55],
                 },
             ),
-            spec=k8s.V1PodSpec(
-                restart_policy='Never',
-                containers=[
-                    k8s.V1Container(
-                        name='docker',
-                        image='docker:18.09-dind',
-                        security_context=k8s.V1SecurityContext(
-                            privileged=True,
-                        ),
-                        args=[
-                            '--storage-driver=overlay2',
-                            '--userns-remap=default',
-                            '--insecure-registry=registry:5000',
-                        ],
-                    ),
-                    k8s.V1Container(
-                        name='builder',
-                        image='reproserver_web',
-                        image_pull_policy='IfNotPresent',
-                        args=[
-                            'python3', '-c',
-                            'from reproserver.build import K8sBuilder; ' +
-                            'K8sBuilder._build_in_pod{0!r}'.format((
-                                self.namespace,
-                                experiment_hash,
-                            )),
-                        ],
-                        env=[
-                            secret_var('SHORTIDS_SALT', 'salt'),
-                            secret_var('S3_KEY', 's3_key'),
-                            secret_var('S3_SECRET', 's3_secret'),
-                            cm_var('S3_URL', 's3.url'),
-                            cm_var('S3_BUCKET_PREFIX', 's3.bucket-prefix'),
-                            cm_var('S3_CLIENT_URL', 's3.client-url'),
-                            secret_var('POSTGRES_USER', 'user'),
-                            secret_var('POSTGRES_PASSWORD', 'password'),
-                            k8s.V1EnvVar('POSTGRES_HOST', 'postgres'),
-                            k8s.V1EnvVar('POSTGRES_DB', 'reproserver'),
-                            k8s.V1EnvVar(
-                                'DOCKER_HOST',
-                                'tcp://127.0.0.1:2375',
-                            ),
-                            k8s.V1EnvVar('REGISTRY', 'registry:5000'),
-                            k8s.V1EnvVar('REPROZIP_USAGE_STATS', 'off'),
-                        ],
-                    ),
-                ],
-            ),
+            spec=pod_spec,
         )
-
         try:
             client.create_namespaced_pod(
                 namespace=self.namespace,
