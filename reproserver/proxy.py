@@ -52,10 +52,15 @@ class ProxyHandler(WebSocketHandler):
                 streaming_callback=self.write,
             )
             self.alter_request(request)
-            await httpclient.AsyncHTTPClient().fetch(
-                request,
-                raise_error=False,
-            )
+            try:
+                await httpclient.AsyncHTTPClient().fetch(
+                    request,
+                    raise_error=False,
+                )
+            except OSError:
+                self.set_status(410)
+                self.set_header('Content-Type', 'text/plain')
+                return self.finish("This run is now over")
             return self.finish()
 
     def post(self):
