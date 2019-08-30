@@ -13,7 +13,7 @@ def main():
                         format="%(asctime)s %(levelname)s: %(message)s")
 
     app = make_app()
-    app.listen(8000, address='0.0.0.0')
+    app.listen(8000, address='0.0.0.0', max_buffer_size=1_073_741_824)
     loop = tornado.ioloop.IOLoop.current()
 
     print("\n    reproserver is now running: http://localhost:8000/\n")
