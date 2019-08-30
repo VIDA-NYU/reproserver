@@ -23,7 +23,7 @@ class OSF(BaseRepository):
             url = url[8:]
         else:
             raise RepositoryError("Invalid URL")
-        if url.lower().startswith('osf.io/'):
+        if not url.lower().startswith('osf.io/'):
             raise RepositoryError("Not OSF URL")
 
         path = url[7:]
