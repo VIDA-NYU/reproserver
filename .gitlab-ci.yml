@@ -24,5 +24,6 @@ before_script:
 checks:
   stage: test
   script:
-    - flake8 --ignore=E731,W504 reproserver
+    - flake8 --ignore=E731,W504 reproserver tests
     - python -m readme_renderer README.rst >/dev/null
+    - python tests

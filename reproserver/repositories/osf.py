@@ -1,7 +1,6 @@
 import json
 import logging
 import re
-from tornado.httpclient import AsyncHTTPClient
 
 from .. import __version__
 from .base import BaseRepository, RepositoryError
@@ -40,7 +39,7 @@ class OSF(BaseRepository):
         if _osf_path.match(repo_path) is None:
             raise RepositoryError("ID is not in the OSF format")
         logger.info("Querying OSF for '%s'", repo_path)
-        resp = await AsyncHTTPClient().fetch(
+        resp = await self.http_client.fetch(
             'https://api.osf.io/v2/files/{0}/'.format(repo_path),
             headers={
                 'Accept': 'application/json',

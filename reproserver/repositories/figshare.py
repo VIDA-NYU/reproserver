@@ -1,6 +1,5 @@
 import json
 import logging
-from tornado.httpclient import AsyncHTTPClient
 
 from .. import __version__
 from .base import BaseRepository, RepositoryError
@@ -37,7 +36,7 @@ class Figshare(BaseRepository):
             raise RepositoryError("ID is not in 'article_id/file_id' format")
         logger.info("Querying Figshare for article=%s file=%s",
                     article_id, file_id)
-        resp = await AsyncHTTPClient().fetch(
+        resp = await self.http_client.fetch(
             'https://api.figshare.com/v2/articles/{0}/files/{1}'.format(
                 article_id, file_id,
             ),

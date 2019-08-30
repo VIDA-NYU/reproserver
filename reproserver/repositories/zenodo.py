@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import re
-from tornado.httpclient import AsyncHTTPClient
 
 from .. import __version__
 from .base import BaseRepository, RepositoryError
@@ -40,7 +39,7 @@ class Zenodo(BaseRepository):
 
         if not filename:
             # Get the list of files, proceed if there's only one RPZ file
-            resp = await AsyncHTTPClient().fetch(
+            resp = await self.http_client.fetch(
                 'https://zenodo.org/api/deposit/depositions/{0}'.format(
                     record
                 ),

@@ -18,6 +18,9 @@ class BaseRepository(object):
     IDENTIFIER = ''
     URL_DOMAINS = []
 
+    def __init__(self):
+        self.http_client = AsyncHTTPClient()
+
     def parse_url(self, url):
         raise NotImplementedError
 
