@@ -20,6 +20,8 @@ data:
         securityContext:
           privileged: true
         args:
+          - "dockerd"
+          - "--host=tcp://127.0.0.1:2375"
           - "--storage-driver=overlay2"
           - "--userns-remap=default"
           - "--insecure-registry=registry:5000"
@@ -86,6 +88,8 @@ data:
         securityContext:
           privileged: true
         args:
+          - "dockerd"
+          - "--host=tcp://127.0.0.1:2375"
           - "--storage-driver=overlay2"
           - "--userns-remap=default"
           - "--insecure-registry=registry:5000"
