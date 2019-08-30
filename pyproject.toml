@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "reproserver"
-version = "0.7"
+version = "0.8"
 description = "A web application reproducing ReproZip packages in the cloud. Runs on Kubernetes"
 
 license = "BSD-3-Clause"
