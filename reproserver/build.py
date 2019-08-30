@@ -1,12 +1,19 @@
 import asyncio
 import json
+import kubernetes.client as k8s
+from kubernetes.client.rest import ApiException as K8sException
+import kubernetes.config
+import kubernetes.watch
 import logging
 import os
 import shutil
 import subprocess
 import tempfile
+import time
+import yaml
 
 from reproserver import database
+from reproserver.objectstore import get_object_store
 from reproserver.utils import shell_escape
 
 
@@ -47,14 +54,41 @@ class Builder(object):
         self.DBSession = DBSession
         self.object_store = object_store
 
+        self._builds = {}
+
     def build(self, experiment_hash):
-        return asyncio.get_event_loop().run_in_executor(
+        # We keep a cache of future
+        # If we already have a task building this, return its future
+        if experiment_hash in self._builds:
+            return self._builds[experiment_hash]
+
+        # At the end of the build task, remove from dict and log
+        def callback(future):
+            del self._builds[experiment_hash]
+            try:
+                future.result()
+            except Exception:
+                logger.exception("Exception in build task")
+
+        # Run the task in threadpool
+        future = asyncio.get_event_loop().run_in_executor(
             None,
             self.build_sync,
             experiment_hash,
         )
+        self._builds[experiment_hash] = future
+        future.add_done_callback(callback)
+        return future
 
     def build_sync(self, experiment_hash):
+        raise NotImplementedError
+
+
+class DockerBuilder(Builder):
+    def build_sync(self, experiment_hash):
+        self._docker_build(experiment_hash)
+
+    def _docker_build(self, experiment_hash):
         """Process a build task.
 
         Lookup the experiment in the database, and the file on S3. Then, do the
@@ -108,6 +142,20 @@ class Builder(object):
             # Remove previous build log
             experiment.log[:] = []
             db.commit()
+
+            # Wait for Docker to come up
+            for _ in range(6):
+                proc = subprocess.Popen(
+                    ['docker', 'version'],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                proc.communicate()
+                if proc.returncode == 0:
+                    break
+                time.sleep(5)
+            else:
+                raise RuntimeError("Couldn't connect to Docker")
 
             # Build the experiment
             image_name = 'rpuz_exp_%s' % experiment.hash
@@ -185,3 +233,102 @@ class Builder(object):
         finally:
             # Remove build directory
             shutil.rmtree(directory)
+
+
+class K8sBuilder(DockerBuilder):
+    def __init__(self, *, namespace, **kwargs):
+        super(K8sBuilder, self).__init__(**kwargs)
+        self.namespace = namespace
+
+    @classmethod
+    def _build_in_pod(cls, namespace, experiment_hash):
+        engine, DBSession = database.connect()
+        object_store = get_object_store()
+        builder = cls(
+            namespace=namespace,
+            DBSession=DBSession,
+            object_store=object_store,
+        )
+        builder._docker_build(experiment_hash)
+
+    def build_sync(self, experiment_hash):
+        kubernetes.config.load_incluster_config()
+
+        name = 'build-{0}'.format(experiment_hash[:55])
+
+        # Load configuration from configmap volume
+        with open('/etc/k8s-config/builder.pod_spec') as fp:
+            pod_spec = yaml.safe_load(fp)
+
+        # Make required changes
+        for container in pod_spec['containers']:
+            if container['name'] == 'builder':
+                container['args'] = [
+                    'python3', '-c',
+                    'from reproserver.build import K8sBuilder; ' +
+                    'K8sBuilder._build_in_pod{0!r}'.format((
+                        self.namespace,
+                        experiment_hash,
+                    )),
+                ]
+
+        # Create a Kubernetes pod to build
+        # FIXME: This should be a Job, but that doesn't work with multiple
+        # containers: https://github.com/kubernetes/kubernetes/issues/25908
+        client = k8s.CoreV1Api()
+        pod = k8s.V1Pod(
+            api_version='v1',
+            kind='Pod',
+            metadata=k8s.V1ObjectMeta(
+                name=name,
+                labels={
+                    'app': 'build',
+                    'experiment': experiment_hash[:55],
+                },
+            ),
+            spec=pod_spec,
+        )
+        try:
+            client.create_namespaced_pod(
+                namespace=self.namespace,
+                body=pod,
+            )
+        except K8sException as e:
+            if e.status == 409:  # Conflict: pod already exists
+                logger.info("Pod already exists")
+            else:
+                raise
+        else:
+            logger.info("Pod created")
+
+        # Watch the pod
+        w = kubernetes.watch.Watch()
+        f, kwargs = client.list_namespaced_pod, dict(
+            namespace=self.namespace,
+            label_selector='app=build,experiment={0}'.format(
+                experiment_hash[:55]
+            ),
+        )
+        started = None
+        for event in w.stream(f, **kwargs):
+            status = event['object'].status
+            if not started and status.start_time:
+                started = status.start_time
+                logger.info("Build pod started: %s", started.isoformat())
+            if (status.container_statuses and
+                    any(c.state.terminated
+                        for c in status.container_statuses)):
+                w.stop()
+                logger.info("Build pod succeeded")
+
+        # Delete the pod
+        try:
+            client.delete_namespaced_pod(
+                name=name,
+                namespace=self.namespace,
+            )
+        except K8sException as e:
+            if e.status == 404:  # Not found: deleted concurrently
+                pass
+            else:
+                raise

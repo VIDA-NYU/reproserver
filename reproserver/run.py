@@ -1,5 +1,8 @@
 import asyncio
 from hashlib import sha256
+import kubernetes.client as k8s
+import kubernetes.config
+import kubernetes.watch
 import logging
 import os
 import shutil
@@ -7,8 +10,10 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import functions
 import subprocess
 import tempfile
+import yaml
 
 from reproserver import database
+from reproserver.objectstore import get_object_store
 from reproserver.utils import shell_escape
 
 
@@ -48,6 +53,14 @@ class Runner(object):
         )
 
     def run_sync(self, run_id):
+        raise NotImplementedError
+
+
+class DockerRunner(Runner):
+    def run_sync(self, run_id):
+        self._docker_run(run_id)
+
+    def _docker_run(self, run_id):
         """Run a built experiment.
 
         Lookup a run in the database, get the input files from S3, then do the
@@ -268,3 +281,85 @@ class Runner(object):
             subprocess.call(['docker', 'rmi', '--', fq_image_name])
             # Remove build directory
             shutil.rmtree(directory)
+
+
+class K8sRunner(DockerRunner):
+    def __init__(self, *, namespace, **kwargs):
+        super(K8sRunner, self).__init__(**kwargs)
+        self.namespace = namespace
+
+    @classmethod
+    def _run_in_pod(cls, namespace, run_id):
+        engine, DBSession = database.connect()
+        object_store = get_object_store()
+        runner = cls(
+            namespace=namespace,
+            DBSession=DBSession,
+            object_store=object_store,
+        )
+        runner._docker_run(run_id)
+
+    def run_sync(self, run_id):
+        kubernetes.config.load_incluster_config()
+
+        name = 'run-{0}'.format(run_id)
+
+        # Load configuration from configmap volume
+        with open('/etc/k8s-config/runner.pod_spec') as fp:
+            pod_spec = yaml.safe_load(fp)
+
+        # Make required changes
+        for container in pod_spec['containers']:
+            if container['name'] == 'runner':
+                container['args'] = [
+                    'python3', '-c',
+                    'from reproserver.run import K8sRunner; ' +
+                    'K8sRunner._run_in_pod{0!r}'.format((
+                        self.namespace,
+                        run_id,
+                    )),
+                ]
+
+        # Create a Kubernetes pod to run
+        client = k8s.CoreV1Api()
+        pod = k8s.V1Pod(
+            api_version='v1',
+            kind='Pod',
+            metadata=k8s.V1ObjectMeta(
+                name=name,
+                labels={
+                    'app': 'run',
+                    'run': str(run_id),
+                },
+            ),
+            spec=pod_spec,
+        )
+        client.create_namespaced_pod(
+            namespace=self.namespace,
+            body=pod,
+        )
+        logger.info("Pod created")
+
+        # Watch the pod
+        w = kubernetes.watch.Watch()
+        f, kwargs = client.list_namespaced_pod, dict(
+            namespace=self.namespace,
+            label_selector='app=run,run={0}'.format(run_id),
+        )
+        started = None
+        for event in w.stream(f, **kwargs):
+            status = event['object'].status
+            if not started and status.start_time:
+                started = status.start_time
+                logger.info("Run pod started: %s", started.isoformat())
+            if (status.container_statuses and
+                    any(c.state.terminated
+                        for c in status.container_statuses)):
+                w.stop()
+                logger.info("Run pod succeeded")
+
+        # Delete the pod
+        client.delete_namespaced_pod(
+            name=name,
+            namespace=self.namespace,
+        )

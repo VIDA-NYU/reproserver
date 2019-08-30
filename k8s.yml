@@ -7,6 +7,144 @@ data:
   s3.bucket-prefix: prod-
   s3.client-url: http://192.168.99.100:30090
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k8s-config
+data:
+  builder.pod_spec: |
+    restartPolicy: Never
+    containers:
+      - name: docker
+        image: docker:18.09-dind
+        securityContext:
+          privileged: true
+        args:
+          - "--storage-driver=overlay2"
+          - "--userns-remap=default"
+          - "--insecure-registry=registry:5000"
+      - name: builder
+        image: reproserver_web
+        imagePullPolicy: IfNotPresent
+        args: rpz-placeholder
+        env:
+          - name: SHORTIDS_SALT
+            valueFrom:
+              secretKeyRef:
+                name: reproserver-secret
+                key: salt
+          - name: S3_KEY
+            valueFrom:
+              secretKeyRef:
+                name: reproserver-secret
+                key: s3_key
+          - name: S3_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: reproserver-secret
+                key: s3_secret
+          - name: S3_URL
+            valueFrom:
+              configMapKeyRef:
+                name: config
+                key: s3.url
+          - name: S3_BUCKET_PREFIX
+            valueFrom:
+              configMapKeyRef:
+                name: config
+                key: s3.bucket-prefix
+          - name: S3_CLIENT_URL
+            valueFrom:
+              configMapKeyRef:
+                name: config
+                key: s3.client-url
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: reproserver-secret
+                key: user
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: reproserver-secret
+                key: password
+          - name: POSTGRES_HOST
+            value: postgres
+          - name: POSTGRES_DB
+            value: reproserver
+          - name: DOCKER_HOST
+            value: tcp://127.0.0.1:2375
+          - name: REGISTRY
+            value: registry:5000
+          - name: REPROZIP_USAGE_STATS
+            value: "off"
+  runner.pod_spec: |
+    restartPolicy: Never
+    containers:
+      - name: docker
+        image: docker:18.09-dind
+        securityContext:
+          privileged: true
+        args:
+          - "--storage-driver=overlay2"
+          - "--userns-remap=default"
+          - "--insecure-registry=registry:5000"
+      - name: runner
+        image: reproserver_web
+        imagePullPolicy: IfNotPresent
+        args: rpz-placeholder
+        env:
+          - name: SHORTIDS_SALT
+            valueFrom:
+              secretKeyRef:
+                name: reproserver-secret
+                key: salt
+          - name: S3_KEY
+            valueFrom:
+              secretKeyRef:
+                name: reproserver-secret
+                key: s3_key
+          - name: S3_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: reproserver-secret
+                key: s3_secret
+          - name: S3_URL
+            valueFrom:
+              configMapKeyRef:
+                name: config
+                key: s3.url
+          - name: S3_BUCKET_PREFIX
+            valueFrom:
+              configMapKeyRef:
+                name: config
+                key: s3.bucket-prefix
+          - name: S3_CLIENT_URL
+            valueFrom:
+              configMapKeyRef:
+                name: config
+                key: s3.client-url
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: reproserver-secret
+                key: user
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: reproserver-secret
+                key: password
+          - name: POSTGRES_HOST
+            value: postgres
+          - name: POSTGRES_DB
+            value: reproserver
+          - name: DOCKER_HOST
+            value: tcp://127.0.0.1:2375
+          - name: REGISTRY
+            value: registry:5000
+          - name: REPROZIP_USAGE_STATS
+            value: "off"
+---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -23,6 +161,7 @@ spec:
       labels:
         app: web
     spec:
+      serviceAccountName: reproserver-sa
       containers:
         - name: web
           image: reproserver_web
@@ -72,17 +211,14 @@ spec:
               value: postgres
             - name: POSTGRES_DB
               value: reproserver
-            - name: DOCKER_HOST
-              value: tcp://127.0.0.1:2375
-            - name: REGISTRY
-              value: registry:5000
-            - name: REPROZIP_USAGE_STATS
-              value: "off"
             - name: ZENODO_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: reproserver-secret
                   key: zenodo_token
+          volumeMounts:
+            - name: k8s-config
+              mountPath: /etc/k8s-config
           ports:
             - containerPort: 8000
           livenessProbe:
@@ -91,14 +227,10 @@ spec:
               port: 8000
             initialDelaySeconds: 30
             periodSeconds: 30
-        - name: docker
-          image: docker:18.09-dind
-          securityContext:
-            privileged: true
-          args:
-            - "--storage-driver=overlay2"
-            - "--userns-remap=default"
-            - "--insecure-registry=registry:5000"
+      volumes:
+        - name: k8s-config
+          configMap:
+            name: k8s-config
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment

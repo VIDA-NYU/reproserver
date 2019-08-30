@@ -7,9 +7,9 @@ import tornado.web
 
 from .. import __version__ as version
 from .. import database
-from ..build import Builder
+from ..build import K8sBuilder
 from ..objectstore import get_object_store
-from ..run import Runner
+from ..run import K8sRunner
 
 
 logger = logging.getLogger(__name__)
@@ -27,8 +27,16 @@ class Application(tornado.web.Application):
         self.object_store = get_object_store()
         self.object_store.create_buckets()
 
-        self.builder = Builder(self.DBSession, self.object_store)
-        self.runner = Runner(self.DBSession, self.object_store)
+        self.builder = K8sBuilder(
+            DBSession=self.DBSession,
+            object_store=self.object_store,
+            namespace='default',
+        )
+        self.runner = K8sRunner(
+            DBSession=self.DBSession,
+            object_store=self.object_store,
+            namespace='default',
+        )
 
 
 class BaseHandler(tornado.web.RequestHandler):
