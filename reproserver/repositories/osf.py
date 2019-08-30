@@ -9,7 +9,16 @@ from .base import BaseRepository, RepositoryError
 
 logger = logging.getLogger(__name__)
 
-_osf_path = re.compile('^[a-zA-Z0-9]+$')
+
+# https://osf.io/5ztp2/
+# https://osf.io/5ztp2/download/
+_osf_url = re.compile(
+    r'https?://osf\.io/'
+    r'([a-zA-Z0-9]{3,10})'
+    r'(?:/(?:download/?)?)?$'
+)
+
+_osf_path = re.compile('^[a-zA-Z0-9]{3,10}$')
 
 
 class OSF(BaseRepository):
@@ -17,17 +26,11 @@ class OSF(BaseRepository):
     URL_DOMAINS = ['osf.io']
 
     async def parse_url(self, url):
-        if url.startswith('http://'):
-            url = url[7:]
-        elif url.startswith('https://'):
-            url = url[8:]
-        else:
-            raise RepositoryError("Invalid URL")
-        if not url.lower().startswith('osf.io/'):
+        m = _osf_url.match(url)
+        if m is None:
             raise RepositoryError("Not OSF URL")
+        path = m.group(1)
 
-        path = url[7:]
-        path = path.rstrip('/')
         if not (3 < len(path) < 10) or '/' in path:
             raise RepositoryError("Invalid OSF URL")
         return 'osf.io', path
