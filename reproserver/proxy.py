@@ -1,83 +1,59 @@
 import logging
-import os
-
 from tornado import httputil
 from tornado import httpclient
 from tornado.routing import URLSpec
 import tornado.web
 from tornado.websocket import WebSocketHandler, websocket_connect
 
-from . import database
-from .shortid import MultiShortIDs
-
 
 logger = logging.getLogger(__name__)
-
-
-short_ids = MultiShortIDs(os.environ['SHORTIDS_SALT'])
-
-
-# https://github.com/senko/tornado-proxy/blob/master/tornado_proxy/proxy.py
-
-
-class Application(tornado.web.Application):
-    def __init__(self, handlers, **kwargs):
-        super(Application, self).__init__(handlers, **kwargs)
-
-        #engine, self.DBSession = database.connect()
 
 
 class ProxyHandler(WebSocketHandler):
     def __init__(self, application, request, **kwargs):
         super(ProxyHandler, self).__init__(application, request, **kwargs)
         self.headers = []
-        #self.db = application.DBSession()
 
-    #def get_run(self):
-    #    # Decode the ID
-    #    try:
-    #        run_id = short_ids.decode('run', self.request.host_name)
-    #    except ValueError:
-    #        raise tornado.web.HTTPError(403)
-#
-    #    # Look up the run in the database
-    #    run = (
-    #        self.db.query(database.Run)
-    #        # FIXME: joinedload here probably
-    #    ).get(run_id)
-    #    if not run:
-    #        raise tornado.web.HTTPError(403)
+    def select_destination(self):
+        raise NotImplementedError
+
+    def alter_request(self, request):
+        pass
 
     async def get(self):
         logger.info("Incoming connection, host=%r", self.request.host)
 
-        # TODO: Check configuration for host, decide destination
-        logger.info("%s %r", self.request.method, self.request.uri)
-        host = 'localhost:8888'
-        url = 'http://localhost:8888' + self.request.uri
+        url = self.select_destination()
+        if self._finished:
+            return
 
         if self.request.headers.get('Upgrade', '').lower() == 'websocket':
-            url = 'ws://' + url[7:]
             headers = dict(self.request.headers)
-            headers['Host'] = host
+            headers.pop('Host', None)
+            request = httpclient.HTTPRequest(
+                'ws://' + url,
+                headers=headers,
+            )
+            self.alter_request(request)
             self.upstream_ws = await websocket_connect(
-                httpclient.HTTPRequest(
-                    url,
-                    headers=headers,
-                ),
+                request,
                 on_message_callback=self.on_upstream_message,
             )
             return await WebSocketHandler.get(self)
         else:
             headers = dict(self.request.headers)
-            headers['Host'] = host
-            await httpclient.AsyncHTTPClient().fetch(
-                url,
+            headers.pop('Host', None)
+            request = httpclient.HTTPRequest(
+                'http://' + url,
                 method=self.request.method,
                 headers=headers,
                 body=self.request.body or None,
                 header_callback=self.got_header,
                 streaming_callback=self.write,
+            )
+            self.alter_request(request)
+            await httpclient.AsyncHTTPClient().fetch(
+                request,
                 raise_error=False,
             )
             return self.finish()
@@ -109,10 +85,10 @@ class ProxyHandler(WebSocketHandler):
         else:
             return self.write_message(message, isinstance(message, bytes))
 
-
-def make_proxy():
-    return Application(
-        [
-            URLSpec('.*', ProxyHandler),
-        ],
-    )
+    @classmethod
+    def make_app(cls):
+        return tornado.web.Application(
+            [
+                URLSpec('.*', cls),
+            ],
+        )

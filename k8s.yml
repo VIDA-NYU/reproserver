@@ -148,6 +148,8 @@ data:
             value: registry:5000
           - name: REPROZIP_USAGE_STATS
             value: "off"
+        ports:
+          - containerPort: 5597
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -225,6 +227,7 @@ spec:
               mountPath: /etc/k8s-config
           ports:
             - containerPort: 8000
+            - containerPort: 8001
           livenessProbe:
             httpGet:
               path: /health
@@ -334,3 +337,19 @@ spec:
     - protocol: TCP
       port: 8000
       nodePort: 30080
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-proxy
+  labels:
+    app: web
+spec:
+  selector:
+    app: web
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 8001
+      nodePort: 30081
