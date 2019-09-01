@@ -13,7 +13,7 @@ services:
     ports:
       - 8000:8000
   minio:
-    image: minio/minio:RELEASE.2017-04-29T00-40-27Z
+    image: minio/minio:RELEASE.2019-08-29T00-25-01Z
     command: ["server", "/export"]
     environment:
       MINIO_ACCESS_KEY: ${S3_KEY}
