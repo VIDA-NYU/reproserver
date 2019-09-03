@@ -10,6 +10,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import functions
 import subprocess
 import tempfile
+import time
 import yaml
 
 from reproserver import database
@@ -359,6 +360,7 @@ class K8sRunner(DockerRunner):
                 logger.info("Run pod succeeded")
 
         # Delete the pod
+        time.sleep(60)
         client.delete_namespaced_pod(
             name=name,
             namespace=self.namespace,

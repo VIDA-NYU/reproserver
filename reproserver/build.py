@@ -322,6 +322,7 @@ class K8sBuilder(DockerBuilder):
                 logger.info("Build pod succeeded")
 
         # Delete the pod
+        time.sleep(60)
         try:
             client.delete_namespaced_pod(
                 name=name,
