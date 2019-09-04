@@ -179,7 +179,7 @@ class ReproduceRepo(BaseReproduce):
             .filter(database.Upload.repository_key == repository_key)
             .order_by(database.Upload.id.desc())
         ).first()
-        if not upload:
+        if upload is None:
             try:
                 upload = await get_experiment_from_repository(
                     self.db, self.application.object_store,
@@ -214,7 +214,7 @@ class ReproduceLocal(BaseReproduce):
             .options(joinedload(database.Upload.experiment))
             .get(upload_id)
         )
-        if not upload:
+        if upload is None:
             self.set_status(404)
             return self.render('setup_notfound.html')
 
@@ -244,7 +244,7 @@ class StartRun(BaseHandler):
             .options(joinedload(database.Upload.experiment))
             .get(upload_id)
         )
-        if not upload:
+        if upload is None:
             self.set_status(404)
             return self.render('setup_notfound.html')
         experiment = upload.experiment
@@ -352,7 +352,7 @@ class Results(BaseHandler):
                      joinedload(database.Run.input_files),
                      joinedload(database.Run.output_files))
         ).get(run_id)
-        if not run:
+        if run is None:
             self.set_status(404)
             return self.render('results_notfound.html')
         # Update last access

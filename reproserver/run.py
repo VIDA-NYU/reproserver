@@ -79,7 +79,7 @@ class DockerRunner(Runner):
                      exp.joinedload(database.Experiment.parameters),
                      exp.joinedload(database.Experiment.paths))
         ).get(run_id)
-        if not run:
+        if run is None:
             raise KeyError("Unknown run %r", run_id)
 
         # Update status in database

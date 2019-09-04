@@ -99,7 +99,7 @@ class DockerBuilder(Builder):
         # Look up the experiment in the database
         db = self.DBSession()
         experiment = db.query(database.Experiment).get(experiment_hash)
-        if not experiment:
+        if experiment is None:
             raise KeyError("Unknown experiment %r", experiment_hash)
 
         # Update status in database
