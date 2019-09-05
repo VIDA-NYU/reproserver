@@ -310,6 +310,7 @@ class K8sBuilder(DockerBuilder):
             ),
         )
         started = None
+        success = False
         for event in w.stream(f, **kwargs):
             status = event['object'].status
             if not started and status.start_time:
@@ -319,7 +320,44 @@ class K8sBuilder(DockerBuilder):
                     any(c.state.terminated
                         for c in status.container_statuses)):
                 w.stop()
-                logger.info("Build pod succeeded")
+
+                # Check the status of all containers
+                for container in status.container_statuses:
+                    terminated = container.state.terminated
+                    if terminated:
+                        exit_code = terminated.exit_code
+                        if container.name == 'builder' and exit_code == 0:
+                            logger.info("Build pod succeeded")
+                            success = True
+                        elif exit_code is not None:
+                            # Log any container that exited, including builder
+                            # if status is not zero
+                            log = client.read_namespaced_pod_log(
+                                name,
+                                self.namespace,
+                                container=container.name,
+                                tail_lines=300,
+                            )
+                            log = '\n'.join(
+                                '    %s' % l
+                                for l in log.splitlines()
+                            )
+                            logger.info(
+                                "Container %s exited with %d\n%s",
+                                container.name,
+                                exit_code,
+                                log,
+                            )
+
+        if not success:
+            logger.warning("Building experiment %r failed", experiment_hash)
+            db = self.DBSession()
+            experiment = db.query(database.Experiment).get(experiment_hash)
+            if experiment is None:
+                logger.warning("Experiment not in database, can't set status")
+            else:
+                experiment.status = database.Status.ERROR
+                db.commit()
 
         # Delete the pod
         time.sleep(60)

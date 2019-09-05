@@ -348,6 +348,7 @@ class K8sRunner(DockerRunner):
             label_selector='app=run,run={0}'.format(run_id),
         )
         started = None
+        success = False
         for event in w.stream(f, **kwargs):
             status = event['object'].status
             if not started and status.start_time:
@@ -357,7 +358,44 @@ class K8sRunner(DockerRunner):
                     any(c.state.terminated
                         for c in status.container_statuses)):
                 w.stop()
-                logger.info("Run pod succeeded")
+
+                # Check the status of all containers
+                for container in status.container_statuses:
+                    terminated = container.state.terminated
+                    if terminated:
+                        exit_code = terminated.exit_code
+                        if container.name == 'runner' and exit_code == 0:
+                            logger.info("Run pod succeeded")
+                            success = True
+                        elif exit_code is not None:
+                            # Log any container that exited, including runner
+                            # if status is not zero
+                            log = client.read_namespaced_pod_log(
+                                name,
+                                self.namespace,
+                                container=container.name,
+                                tail_lines=300,
+                            )
+                            log = '\n'.join(
+                                '    %s' % l
+                                for l in log.splitlines()
+                            )
+                            logger.info(
+                                "Container %s exited with %d\n%s",
+                                container.name,
+                                exit_code,
+                                log,
+                            )
+
+        if not success:
+            logger.warning("Run %d failed", run_id)
+            db = self.DBSession()
+            run = db.query(database.Run).get(run_id)
+            if run is None:
+                logger.warning("Run not in database, can't set status")
+            else:
+                run.done = functions.now()
+                db.commit()
 
         # Delete the pod
         time.sleep(60)
