@@ -91,9 +91,10 @@ class ProxyHandler(WebSocketHandler):
             return self.write_message(message, isinstance(message, bytes))
 
     @classmethod
-    def make_app(cls):
+    def make_app(cls, **settings):
         return tornado.web.Application(
             [
                 URLSpec('.*', cls),
             ],
+            **settings,
         )

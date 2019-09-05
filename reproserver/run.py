@@ -9,6 +9,7 @@ import shutil
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import functions
 import subprocess
+import sys
 import tempfile
 import time
 import yaml
@@ -79,6 +80,7 @@ class DockerRunner(Runner):
             db.query(database.Run)
             .options(joinedload(database.Run.parameter_values),
                      joinedload(database.Run.input_files),
+                     joinedload(database.Run.ports),
                      exp.joinedload(database.Experiment.parameters),
                      exp.joinedload(database.Experiment.paths))
         ).get(run_id)
@@ -159,16 +161,20 @@ class DockerRunner(Runner):
                 container, run.experiment.docker_image,
             )
             # Turn parameters into a command-line
-            cmdline = []
+            cmdline = [
+                'docker', 'create', '-i', '--name', container,
+            ]
+            for port in run.ports:
+                cmdline.extend([
+                    '-p', '127.0.0.1:{0}:{0}'.format(port.port_number),
+                ])
+            cmdline.extend([
+                '--', fq_image_name,
+            ])
             for k, v in params.items():
                 if k.startswith('cmdline_'):
                     i = k[8:]
                     cmdline.extend(['cmd', v, 'run', i])
-            cmdline = [
-                'docker', 'create', '-i', '--name', container,
-                '-p', '127.0.0.1:8000:8000',  # FIXME
-                '--', fq_image_name,
-            ] + cmdline
             logger.info('$ %s', ' '.join(shell_escape(a) for a in cmdline))
             subprocess.check_call(cmdline)
 
@@ -300,6 +306,8 @@ class InternalProxyHandler(ProxyHandler):
         # Read port from Host header
         port = self.request.headers['Host'].rsplit(':', 1)[1]
 
+        # TODO: Map Host value from `self.application.reproserver_run`?
+
         return 'localhost:{0}{1}'.format(port, self.request.uri)
 
 
@@ -323,6 +331,16 @@ class K8sRunner(DockerRunner):
             object_store=object_store,
         )
 
+        # Load run information
+        db = DBSession()
+        run = (
+            db.query(database.Run)
+            .options(joinedload(database.Run.ports))
+        ).get(run_id)
+        if run is None:
+            logger.critical("Cannot find run %d in database", run_id)
+            sys.exit(1)
+
         # Run
         fut = asyncio.get_event_loop().run_in_executor(
             None,
@@ -331,7 +349,7 @@ class K8sRunner(DockerRunner):
         )
 
         # Also set up a proxy
-        proxy = InternalProxyHandler.make_app()
+        proxy = InternalProxyHandler.make_app(reproserver_run=run)
         proxy.listen(5597, address='0.0.0.0')
 
         asyncio.get_event_loop().run_until_complete(fut)
