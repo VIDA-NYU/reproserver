@@ -47,6 +47,15 @@
 
 <p>Run in progress,<span id="time_elapsed"></span> please wait...</p>
 
+{% if run.ports %}
+<p>
+  Exposed ports:
+  {% for port in run.ports %}
+  <a href="{{ get_port_url(port.port_number) }}">{{ port.port_number }}</a>
+  {% endfor %}
+</p>
+{% endif %}
+
 <p>Run log:</p>
 <pre id="log">{% for line in log %}{{ line }}
 {% endfor %}</pre>

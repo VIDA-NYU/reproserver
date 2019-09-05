@@ -320,6 +320,20 @@ class StartRun(BaseHandler):
             )
             run.input_files.append(input_file)
 
+        # Get ports to expose
+        for port_str in self.get_body_argument('ports', '').split():
+            port_str = port_str.strip()
+            if port_str:
+                try:
+                    port = int(port_str)
+                    if not (1 <= port <= 65535):
+                        raise ValueError
+                except (ValueError, OverflowError):
+                    raise ValueError("Invalid port number %r" % port_str)
+                run.ports.append(database.RunPort(
+                    port_number=port,
+                ))
+
         # Trigger run
         self.db.commit()
         self.application.runner.run(run.id)
@@ -369,6 +383,16 @@ class Results(BaseHandler):
             })
         # HTML view, return the page
         else:
+            def get_port_url(port_number):
+                tpl = os.environ.get(
+                    'WEB_PROXY_URL',
+                    'http://{short_id}-{port}.127.0.0.1.xip.io:8001',
+                )
+                return tpl.format(
+                    short_id=run_short_id,
+                    port=port_number,
+                )
+
             return self.render(
                 'results.html',
                 run=run,
@@ -376,6 +400,7 @@ class Results(BaseHandler):
                 started=bool(run.started),
                 done=bool(run.done),
                 experiment_url=self.url_for_upload(run.upload),
+                get_port_url=get_port_url,
             )
 
 
