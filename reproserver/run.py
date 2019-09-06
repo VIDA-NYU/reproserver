@@ -291,6 +291,10 @@ class K8sRunner(DockerRunner):
 
     @classmethod
     def _run_in_pod(cls, namespace, run_id):
+        logging.root.handlers.clear()
+        logging.basicConfig(level=logging.INFO,
+                            format="%(asctime)s %(levelname)s: %(message)s")
+
         engine, DBSession = database.connect()
         object_store = get_object_store()
         runner = cls(

@@ -242,6 +242,10 @@ class K8sBuilder(DockerBuilder):
 
     @classmethod
     def _build_in_pod(cls, namespace, experiment_hash):
+        logging.root.handlers.clear()
+        logging.basicConfig(level=logging.INFO,
+                            format="%(asctime)s %(levelname)s: %(message)s")
+
         engine, DBSession = database.connect()
         object_store = get_object_store()
         builder = cls(
