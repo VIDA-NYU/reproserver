@@ -35,12 +35,16 @@ class ProxyHandler(WebSocketHandler):
                 headers=headers,
             )
             self.alter_request(request)
+            logger.info("Forwarding websocket connection, url=%r, headers=%r",
+                        request.url, request.headers)
             try:
                 self.upstream_ws = await websocket_connect(
                     request,
                     on_message_callback=self.on_upstream_message,
                 )
             except httpclient.HTTPClientError as e:
+                logger.info("Sending HTTP error from websocket client %r %r",
+                            e.code, e.message)
                 self.set_status(e.code, reason=e.message)
                 return self.finish()
             return await WebSocketHandler.get(self)
@@ -56,12 +60,15 @@ class ProxyHandler(WebSocketHandler):
                 streaming_callback=self.write,
             )
             self.alter_request(request)
+            logger.info("Forwarding HTTP connection, url=%r, headers=%r",
+                        request.url, request.headers)
             try:
                 await httpclient.AsyncHTTPClient().fetch(
                     request,
                     raise_error=False,
                 )
             except OSError:
+                logger.info("Got OSError, sending 410 error")
                 self.set_status(410)
                 self.set_header('Content-Type', 'text/plain')
                 return self.finish("This run is now over")
