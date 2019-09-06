@@ -35,10 +35,14 @@ class ProxyHandler(WebSocketHandler):
                 headers=headers,
             )
             self.alter_request(request)
-            self.upstream_ws = await websocket_connect(
-                request,
-                on_message_callback=self.on_upstream_message,
-            )
+            try:
+                self.upstream_ws = await websocket_connect(
+                    request,
+                    on_message_callback=self.on_upstream_message,
+                )
+            except httpclient.HTTPClientError as e:
+                self.set_status(e.code, reason=e.message)
+                return self.finish()
             return await WebSocketHandler.get(self)
         else:
             headers = dict(self.request.headers)
