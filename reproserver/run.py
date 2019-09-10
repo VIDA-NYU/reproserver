@@ -33,10 +33,12 @@ def run_cmd_and_log(session, run_id, cmd):
     proc.stdin.close()
     for line in iter(proc.stdout.readline, b''):
         line = line.decode('utf-8', 'replace')
+        line = line.rstrip()
         logger.info("> %s", line)
         session.add(database.RunLogLine(
             run_id=run_id,
-            line=line.rstrip()))
+            line=line,
+        ))
         session.commit()
     return proc.wait()
 

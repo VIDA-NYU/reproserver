@@ -37,10 +37,12 @@ def run_cmd_and_log(session, experiment_hash, cmd):
     try:
         for line in iter(proc.stdout.readline, b''):
             line = line.decode('utf-8', 'replace')
+            line = line.rstrip()
             logger.info("> %s", line)
             session.add(database.BuildLogLine(
                 experiment_hash=experiment_hash,
-                line=line.rstrip()))
+                line=line,
+            ))
             session.commit()
         ret = proc.wait()
         if ret != 0:

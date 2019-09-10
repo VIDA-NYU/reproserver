@@ -49,7 +49,7 @@ class BaseRepository(object):
                         f.write(chunk)
                         hasher.update(chunk)
 
-                    await AsyncHTTPClient().fetch(
+                    await self.http_client.fetch(
                         link,
                         streaming_callback=callback,
                     )
