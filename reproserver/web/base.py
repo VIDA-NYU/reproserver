@@ -5,7 +5,7 @@ import mimetypes
 import pkg_resources
 import tornado.web
 
-from .. import __version__ as version
+from .. import __version__
 from .. import database
 from ..build import K8sBuilder
 from ..objectstore import get_object_store
@@ -103,12 +103,15 @@ class BaseHandler(tornado.web.RequestHandler):
         super(BaseHandler, self).on_finish()
         self.db.close()
 
+    def set_default_headers(self):
+        self.set_header('Server', 'ReproServer/%s' % __version__)
+
     def render_string(self, template_name, **kwargs):
         template = self.template_env.get_template(template_name)
         return template.render(
             handler=self,
             current_user=self.current_user,
-            version=version,
+            version=__version__,
             **kwargs)
 
     def is_json_requested(self):

@@ -5,6 +5,8 @@ from tornado.routing import URLSpec
 import tornado.web
 from tornado.websocket import WebSocketHandler, websocket_connect
 
+from . import __version__
+
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +15,9 @@ class ProxyHandler(WebSocketHandler):
     def __init__(self, application, request, **kwargs):
         super(ProxyHandler, self).__init__(application, request, **kwargs)
         self.headers = []
+
+    def set_default_headers(self):
+        self.set_header('Server', 'ReproServer/%s' % __version__)
 
     def select_destination(self):
         raise NotImplementedError
