@@ -106,6 +106,28 @@ ash-count example"}\
                 ('zenodo.org', '1234567/files/bash-count.rpz'),
             )
 
+    @gen_test
+    async def test_parse_figshare(self):
+        mock_api = mock_fetch(
+            self,
+            'https://api.figshare.com/v2/articles/1234567/files',
+            b'''\
+[{"is_link_only": false, "name": "poster-force2018.rpz", "supplied_md5": "f2b4\
+37fce5fe1a43b3499ea4915ec718", "computed_md5": "f2b437fce5fe1a43b3499ea4915ec7\
+18", "id": 3456789, "download_url": "https://ndownloader.figshare.com/files/1\
+3246142", "size": 374688}]\
+            '''
+        )
+
+        with mock_api:
+            self.assertEqual(
+                await parse_repository_url(
+                    'https://figshare.com/articles/ReproZip_Computational_'
+                    'Reproducibility_With_Ease/1234567'
+                ),
+                ('figshare.com', '1234567/files/3456789')
+            )
+
 
 class TestGet(AsyncTestCase):
     db = object()
@@ -187,5 +209,34 @@ rent_user_can_comment":false,"guid":"ab12c","checkout":null,"tags":[],"size":8\
                     self.result,
                     'https://zenodo.org/record/1234567/files/bash-count.rpz' +
                     '?download=1',
+                ),
+            )
+
+    @gen_test
+    async def test_get_figshare(self):
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(patch(
+                'reproserver.repositories.base.BaseRepository._get_from_link',
+                TestGet.mock_get,
+            ))
+            mock_api = mock_fetch(
+                self,
+                'https://api.figshare.com/v2/articles/1234567/files/3456789',
+                b'''\
+{"is_link_only": false, "name": "poster-force2018.rpz", "supplied_md5": "f2b43\
+7fce5fe1a43b3499ea4915ec718", "computed_md5": "f2b437fce5fe1a43b3499ea4915ec71\
+8", "id": 3456789, "download_url": "https://ndownloader.figshare.com/files/345\
+6789", "size": 374688}\
+'''
+            )
+            stack.enter_context(mock_api)
+            self.assertEqual(
+                await get_experiment_from_repository(
+                    self.db, self.object_store, '1.2.3.4',
+                    'figshare.com', '1234567/files/3456789',
+                ),
+                (
+                    self.result,
+                    'https://ndownloader.figshare.com/files/3456789',
                 ),
             )
