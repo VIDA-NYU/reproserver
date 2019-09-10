@@ -164,6 +164,7 @@ class Run(Base):
 
     parameter_values = relationship('ParameterValue', back_populates='run')
     input_files = relationship('InputFile', back_populates='run')
+    ports = relationship('RunPort', back_populates='run')
 
     log = relationship('RunLogLine', back_populates='run')
     output_files = relationship('OutputFile', back_populates='run')
@@ -241,6 +242,19 @@ class ParameterValue(Base):
     def __repr__(self):
         return "<ParameterValue id=%d, run_id=%d, name=%r>" % (
             self.id, self.run_id, self.name)
+
+
+class RunPort(Base):
+    """A network port to be exposed from the experiment container.
+    """
+    __tablename__ = 'run_ports'
+
+    port_number = Column(Integer, primary_key=True)
+    run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'),
+                    primary_key=True)
+    run = relationship('Run', uselist=False, back_populates='ports')
+    type = Column(String, nullable=False, default='http')
+    map_host = Column(String, nullable=True)
 
 
 class InputFile(Base):

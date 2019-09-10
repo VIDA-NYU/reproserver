@@ -6,6 +6,7 @@ data:
   s3.url: http://minio:9000
   s3.bucket-prefix: prod-
   s3.client-url: http://192.168.99.100:30090
+  proxy.url: http://{short_id}-{port}.web.192.168.99.100.xip.io:30081/
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -148,6 +149,8 @@ data:
             value: registry:5000
           - name: REPROZIP_USAGE_STATS
             value: "off"
+        ports:
+          - containerPort: 5597
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -176,6 +179,11 @@ spec:
                 secretKeyRef:
                   name: reproserver-secret
                   key: salt
+            - name: WEB_PROXY_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: config
+                  key: proxy.url
             - name: S3_KEY
               valueFrom:
                 secretKeyRef:
@@ -225,6 +233,7 @@ spec:
               mountPath: /etc/k8s-config
           ports:
             - containerPort: 8000
+            - containerPort: 8001
           livenessProbe:
             httpGet:
               path: /health
@@ -334,3 +343,19 @@ spec:
     - protocol: TCP
       port: 8000
       nodePort: 30080
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-proxy
+  labels:
+    app: web
+spec:
+  selector:
+    app: web
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 8001
+      nodePort: 30081

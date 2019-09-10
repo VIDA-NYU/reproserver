@@ -9,12 +9,14 @@ import shutil
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import functions
 import subprocess
+import sys
 import tempfile
 import time
 import yaml
 
 from reproserver import database
 from reproserver.objectstore import get_object_store
+from reproserver.proxy import ProxyHandler
 from reproserver.utils import shell_escape
 
 
@@ -78,6 +80,7 @@ class DockerRunner(Runner):
             db.query(database.Run)
             .options(joinedload(database.Run.parameter_values),
                      joinedload(database.Run.input_files),
+                     joinedload(database.Run.ports),
                      exp.joinedload(database.Experiment.parameters),
                      exp.joinedload(database.Experiment.paths))
         ).get(run_id)
@@ -158,15 +161,20 @@ class DockerRunner(Runner):
                 container, run.experiment.docker_image,
             )
             # Turn parameters into a command-line
-            cmdline = []
+            cmdline = [
+                'docker', 'create', '-i', '--name', container,
+            ]
+            for port in run.ports:
+                cmdline.extend([
+                    '-p', '127.0.0.1:{0}:{0}'.format(port.port_number),
+                ])
+            cmdline.extend([
+                '--', fq_image_name,
+            ])
             for k, v in params.items():
                 if k.startswith('cmdline_'):
                     i = k[8:]
                     cmdline.extend(['cmd', v, 'run', i])
-            cmdline = [
-                'docker', 'create', '-i', '--name', container,
-                '--', fq_image_name,
-            ] + cmdline
             logger.info('$ %s', ' '.join(shell_escape(a) for a in cmdline))
             subprocess.check_call(cmdline)
 
@@ -286,6 +294,30 @@ class DockerRunner(Runner):
             shutil.rmtree(directory)
 
 
+class InternalProxyHandler(ProxyHandler):
+    def select_destination(self):
+        # Authentication
+        token = self.request.headers.pop('X-Reproserver-Authenticate', None)
+        if token != 'secret-token':
+            self.set_status(403)
+            logger.info("Unauthenticated pod communication")
+            self.finish("Unauthenticated pod communication")
+            return
+
+        # Read port from hostname
+        self.original_host = self.request.host
+        host_name = self.request.host_name.split('.', 1)[0]
+        run_short_id, port = host_name.split('-')
+        port = int(port)
+
+        # TODO: Map Host value from `self.application.reproserver_run`?
+
+        return 'localhost:{0}{1}'.format(port, self.request.uri)
+
+    def alter_request(self, request):
+        request.headers['Host'] = self.original_host
+
+
 class K8sRunner(DockerRunner):
     def __init__(self, *, namespace, **kwargs):
         super(K8sRunner, self).__init__(**kwargs)
@@ -297,6 +329,7 @@ class K8sRunner(DockerRunner):
         logging.basicConfig(level=logging.INFO,
                             format="%(asctime)s %(levelname)s: %(message)s")
 
+        # Get a runner from environment
         engine, DBSession = database.connect()
         object_store = get_object_store()
         runner = cls(
@@ -304,7 +337,29 @@ class K8sRunner(DockerRunner):
             DBSession=DBSession,
             object_store=object_store,
         )
-        runner._docker_run(run_id)
+
+        # Load run information
+        db = DBSession()
+        run = (
+            db.query(database.Run)
+            .options(joinedload(database.Run.ports))
+        ).get(run_id)
+        if run is None:
+            logger.critical("Cannot find run %d in database", run_id)
+            sys.exit(1)
+
+        # Run
+        fut = asyncio.get_event_loop().run_in_executor(
+            None,
+            runner._docker_run,
+            run_id,
+        )
+
+        # Also set up a proxy
+        proxy = InternalProxyHandler.make_app(reproserver_run=run)
+        proxy.listen(5597, address='0.0.0.0')
+
+        asyncio.get_event_loop().run_until_complete(fut)
 
     def run_sync(self, run_id):
         kubernetes.config.load_incluster_config()
@@ -346,6 +401,36 @@ class K8sRunner(DockerRunner):
             body=pod,
         )
         logger.info("Pod created")
+
+        # Create a service for proxy connections
+        svc = k8s.V1Service(
+            api_version='v1',
+            kind='Service',
+            metadata=k8s.V1ObjectMeta(
+                name=name,
+                labels={
+                    'app': 'run',
+                    'run': str(run_id),
+                },
+            ),
+            spec=k8s.V1ServiceSpec(
+                selector={
+                    'app': 'run',
+                    'run': str(run_id),
+                },
+                ports=[
+                    k8s.V1ServicePort(
+                        protocol='TCP',
+                        port=5597,
+                    ),
+                ],
+            ),
+        )
+        client.create_namespaced_service(
+            namespace=self.namespace,
+            body=svc,
+        )
+        logger.info("Service created")
 
         # Watch the pod
         w = kubernetes.watch.Watch()
@@ -403,9 +488,13 @@ class K8sRunner(DockerRunner):
                 run.done = functions.now()
                 db.commit()
 
-        # Delete the pod
+        # Delete the pod and service
         time.sleep(60)
         client.delete_namespaced_pod(
+            name=name,
+            namespace=self.namespace,
+        )
+        client.delete_namespaced_service(
             name=name,
             namespace=self.namespace,
         )

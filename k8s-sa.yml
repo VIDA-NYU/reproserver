@@ -10,7 +10,7 @@ metadata:
   name: reproserver-builder
 rules:
   - apiGroups: [""]
-    resources: ["pods", "pods/log"]
+    resources: ["pods", "pods/log", "services"]
     verbs: ["get", "watch", "list", "create", "update", "patch", "delete"]
   - apiGroups: ["batch"]
     resources: ["jobs"]
