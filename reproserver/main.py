@@ -16,21 +16,19 @@ short_ids = MultiShortIDs(os.environ['SHORTIDS_SALT'])
 class ExternalProxyHandler(ProxyHandler):
     def select_destination(self):
         # Read destination from hostname
+        self.original_host = self.request.host
         host_name = self.request.host_name.split('.', 1)[0]
         run_short_id, port = host_name.split('-')
         run_id = short_ids.decode('run', run_short_id)
-        port = int(port)
-
-        # Use the Host header to indicate the destination port
-        self.target_host = 'run-{0}:{1}'.format(run_id, port)
 
         url = 'run-{0}:5597{1}'.format(run_id, self.request.uri)
         return url
 
     def alter_request(self, request):
         # Authentication
-        request.headers['Host'] = self.target_host
         request.headers['X-Reproserver-Authenticate'] = 'secret-token'
+
+        request.headers['Host'] = self.original_host
 
 
 def main():

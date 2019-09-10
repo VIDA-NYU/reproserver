@@ -300,15 +300,22 @@ class InternalProxyHandler(ProxyHandler):
         token = self.request.headers.pop('X-Reproserver-Authenticate', None)
         if token != 'secret-token':
             self.set_status(403)
+            logger.info("Unauthenticated pod communication")
             self.finish("Unauthenticated pod communication")
             return
 
-        # Read port from Host header
-        port = self.request.headers['Host'].rsplit(':', 1)[1]
+        # Read port from hostname
+        self.original_host = self.request.host
+        host_name = self.request.host_name.split('.', 1)[0]
+        run_short_id, port = host_name.split('-')
+        port = int(port)
 
         # TODO: Map Host value from `self.application.reproserver_run`?
 
         return 'localhost:{0}{1}'.format(port, self.request.uri)
+
+    def alter_request(self, request):
+        request.headers['Host'] = self.original_host
 
 
 class K8sRunner(DockerRunner):
