@@ -34,7 +34,7 @@ class Zenodo(BaseRepository):
         m = _zenodo_url.match(url)
         if m is None:
             raise RepositoryError("Invalid Zenodo URL")
-        record = int(m.group(1))
+        record = m.group(1)
         filename = m.group(2)
 
         if not filename:
@@ -60,17 +60,17 @@ class Zenodo(BaseRepository):
             except ValueError:
                 logger.error("Got invalid JSON from zenodo.org")
                 raise RepositoryError("Invalid JSON returned from Zenodo")
+
+            logger.info("Fetched record, %d files", len(files))
+            files = [f for f in files
+                     if f['filename'].lower().endswith('.rpz')]
+            if not files:
+                raise RepositoryError("No RPZ file in that deposit")
+            elif len(files) > 1:
+                raise RepositoryError("Multiple RPZ files in that deposit")
             else:
-                logger.info("Fetched record, %d files", len(files))
-                files = [f for f in files
-                         if f['filename'].lower().endswith('.rpz')]
-                if not files:
-                    raise RepositoryError("No RPZ file in that deposit")
-                elif len(files) > 1:
-                    raise RepositoryError("Multiple RPZ files in that deposit")
-                else:
-                    filename = files[0]['filename']
-                    logger.info("Single RPZ selected: %r", filename)
+                filename = files[0]['filename']
+                logger.info("Single RPZ selected: %r", filename)
 
         return 'zenodo.org', '{0}/files/{1}'.format(record, filename)
 

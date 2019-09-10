@@ -58,19 +58,19 @@ class OSF(BaseRepository):
         except ValueError:
             logger.error("Got invalid JSON from osf.io")
             raise RepositoryError("Invalid JSON returned from the OSF")
-        else:
-            try:
-                attrs = response['data']['attributes']
-                filehash = attrs['extra']['hashes']['sha256']
-            except KeyError:
-                filehash = None
-            try:
-                filename = response['data']['attributes']['name']
-            except KeyError:
-                filename = 'unnamed_osf_file'
-            logger.info("Got response: %s %s %s", link, filehash, filename)
-            return await self._get_from_link(
-                db, object_store, remote_addr,
-                repo, repo_path,
-                link, filename, filehash,
-            )
+
+        try:
+            attrs = response['data']['attributes']
+            filehash = attrs['extra']['hashes']['sha256']
+        except KeyError:
+            filehash = None
+        try:
+            filename = response['data']['attributes']['name']
+        except KeyError:
+            filename = 'unnamed_osf_file'
+        logger.info("Got response: %s %s %s", link, filehash, filename)
+        return await self._get_from_link(
+            db, object_store, remote_addr,
+            repo, repo_path,
+            link, filename, filehash,
+        )
