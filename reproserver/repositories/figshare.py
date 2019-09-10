@@ -1,11 +1,15 @@
 import json
 import logging
+import re
 
 from .. import __version__
 from .base import BaseRepository, RepositoryError
 
 
 logger = logging.getLogger(__name__)
+
+
+_figshare_path = re.compile(r'^([0-9]+)/files/([0-9]+)$')
 
 
 class Figshare(BaseRepository):
@@ -27,13 +31,11 @@ class Figshare(BaseRepository):
 
     async def get_experiment(self, db, object_store, remote_addr,
                              repo, repo_path):
-        # article_id/file_id
-        try:
-            article_id, file_id = repo_path.split('/', 1)
-            article_id = int(article_id)
-            file_id = int(file_id)
-        except ValueError:
-            raise RepositoryError("ID is not in 'article_id/file_id' format")
+        m = _figshare_path.match(repo_path)
+        if m is None:
+            raise RepositoryError("ID is not in Figshare format")
+        article_id = m.group(1)
+        file_id = m.group(2)
         logger.info("Querying Figshare for article=%s file=%s",
                     article_id, file_id)
         resp = await self.http_client.fetch(
