@@ -30,12 +30,10 @@ class Application(tornado.web.Application):
         self.builder = K8sBuilder(
             DBSession=self.DBSession,
             object_store=self.object_store,
-            namespace='default',
         )
         self.runner = K8sRunner(
             DBSession=self.DBSession,
             object_store=self.object_store,
-            namespace='default',
         )
 
 

@@ -238,12 +238,8 @@ class DockerBuilder(Builder):
 
 
 class K8sBuilder(DockerBuilder):
-    def __init__(self, *, namespace, **kwargs):
-        super(K8sBuilder, self).__init__(**kwargs)
-        self.namespace = namespace
-
     @classmethod
-    def _build_in_pod(cls, namespace, experiment_hash):
+    def _build_in_pod(cls, experiment_hash):
         logging.root.handlers.clear()
         logging.basicConfig(level=logging.INFO,
                             format="%(asctime)s %(levelname)s: %(message)s")
@@ -251,7 +247,6 @@ class K8sBuilder(DockerBuilder):
         engine, DBSession = database.connect()
         object_store = get_object_store()
         builder = cls(
-            namespace=namespace,
             DBSession=DBSession,
             object_store=object_store,
         )
@@ -265,6 +260,8 @@ class K8sBuilder(DockerBuilder):
         # Load configuration from configmap volume
         with open('/etc/k8s-config/builder.pod_spec') as fp:
             pod_spec = yaml.safe_load(fp)
+        with open('/etc/k8s-config/builder.namespace') as fp:
+            namespace = fp.read().strip()
 
         # Make required changes
         for container in pod_spec['containers']:
@@ -273,7 +270,6 @@ class K8sBuilder(DockerBuilder):
                     'python3', '-c',
                     'from reproserver.build import K8sBuilder; ' +
                     'K8sBuilder._build_in_pod{0!r}'.format((
-                        self.namespace,
                         experiment_hash,
                     )),
                 ]
@@ -296,7 +292,7 @@ class K8sBuilder(DockerBuilder):
         )
         try:
             client.create_namespaced_pod(
-                namespace=self.namespace,
+                namespace=namespace,
                 body=pod,
             )
         except K8sException as e:
@@ -310,7 +306,7 @@ class K8sBuilder(DockerBuilder):
         # Watch the pod
         w = kubernetes.watch.Watch()
         f, kwargs = client.list_namespaced_pod, dict(
-            namespace=self.namespace,
+            namespace=namespace,
             label_selector='app=build,experiment={0}'.format(
                 experiment_hash[:55]
             ),
@@ -340,7 +336,7 @@ class K8sBuilder(DockerBuilder):
                             # if status is not zero
                             log = client.read_namespaced_pod_log(
                                 name,
-                                self.namespace,
+                                namespace,
                                 container=container.name,
                                 tail_lines=300,
                             )
@@ -370,7 +366,7 @@ class K8sBuilder(DockerBuilder):
         try:
             client.delete_namespaced_pod(
                 name=name,
-                namespace=self.namespace,
+                namespace=namespace,
             )
         except K8sException as e:
             if e.status == 404:  # Not found: deleted concurrently

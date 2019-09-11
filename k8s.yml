@@ -13,6 +13,7 @@ kind: ConfigMap
 metadata:
   name: k8s-config
 data:
+  builder.namespace: default
   builder.pod_spec: |
     restartPolicy: Never
     containers:
@@ -81,6 +82,7 @@ data:
             value: registry:5000
           - name: REPROZIP_USAGE_STATS
             value: "off"
+  runner.namespace: default
   runner.pod_spec: |
     restartPolicy: Never
     containers:

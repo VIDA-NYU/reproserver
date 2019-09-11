@@ -319,12 +319,8 @@ class InternalProxyHandler(ProxyHandler):
 
 
 class K8sRunner(DockerRunner):
-    def __init__(self, *, namespace, **kwargs):
-        super(K8sRunner, self).__init__(**kwargs)
-        self.namespace = namespace
-
     @classmethod
-    def _run_in_pod(cls, namespace, run_id):
+    def _run_in_pod(cls, run_id):
         logging.root.handlers.clear()
         logging.basicConfig(level=logging.INFO,
                             format="%(asctime)s %(levelname)s: %(message)s")
@@ -333,7 +329,6 @@ class K8sRunner(DockerRunner):
         engine, DBSession = database.connect()
         object_store = get_object_store()
         runner = cls(
-            namespace=namespace,
             DBSession=DBSession,
             object_store=object_store,
         )
@@ -369,6 +364,8 @@ class K8sRunner(DockerRunner):
         # Load configuration from configmap volume
         with open('/etc/k8s-config/runner.pod_spec') as fp:
             pod_spec = yaml.safe_load(fp)
+        with open('/etc/k8s-config/runner.namespace') as fp:
+            namespace = fp.read().strip()
 
         # Make required changes
         for container in pod_spec['containers']:
@@ -377,7 +374,6 @@ class K8sRunner(DockerRunner):
                     'python3', '-c',
                     'from reproserver.run import K8sRunner; ' +
                     'K8sRunner._run_in_pod{0!r}'.format((
-                        self.namespace,
                         run_id,
                     )),
                 ]
@@ -397,7 +393,7 @@ class K8sRunner(DockerRunner):
             spec=pod_spec,
         )
         client.create_namespaced_pod(
-            namespace=self.namespace,
+            namespace=namespace,
             body=pod,
         )
         logger.info("Pod created")
@@ -427,7 +423,7 @@ class K8sRunner(DockerRunner):
             ),
         )
         client.create_namespaced_service(
-            namespace=self.namespace,
+            namespace=namespace,
             body=svc,
         )
         logger.info("Service created")
@@ -435,7 +431,7 @@ class K8sRunner(DockerRunner):
         # Watch the pod
         w = kubernetes.watch.Watch()
         f, kwargs = client.list_namespaced_pod, dict(
-            namespace=self.namespace,
+            namespace=namespace,
             label_selector='app=run,run={0}'.format(run_id),
         )
         started = None
@@ -463,7 +459,7 @@ class K8sRunner(DockerRunner):
                             # if status is not zero
                             log = client.read_namespaced_pod_log(
                                 name,
-                                self.namespace,
+                                namespace,
                                 container=container.name,
                                 tail_lines=300,
                             )
@@ -492,9 +488,9 @@ class K8sRunner(DockerRunner):
         time.sleep(60)
         client.delete_namespaced_pod(
             name=name,
-            namespace=self.namespace,
+            namespace=namespace,
         )
         client.delete_namespaced_service(
             name=name,
-            namespace=self.namespace,
+            namespace=namespace,
         )
