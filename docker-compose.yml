@@ -18,6 +18,8 @@ services:
     environment:
       MINIO_ACCESS_KEY: ${S3_KEY}
       MINIO_SECRET_KEY: ${S3_SECRET}
+    healthcheck:
+      disable: true
     ports:
       - 9000:9000
   registry:
