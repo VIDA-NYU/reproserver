@@ -7,15 +7,11 @@ from sqlalchemy.sql import functions
 from .. import database
 from ..repositories import RepositoryError, get_experiment_from_repository, \
     parse_repository_url
-from ..shortid import MultiShortIDs
 from ..utils import secure_filename
 from .base import BaseHandler
 
 
 logger = logging.getLogger(__name__)
-
-
-short_ids = MultiShortIDs(os.environ['SHORTIDS_SALT'])
 
 
 class Index(BaseHandler):
@@ -203,7 +199,7 @@ class ReproduceLocal(BaseReproduce):
         # Decode info from URL
         logger.info("Decoding %r", upload_short_id)
         try:
-            upload_id = short_ids.decode(b'upload', upload_short_id)
+            upload_id = database.Upload.decode_id(upload_short_id)
         except ValueError:
             self.set_status(404)
             return self.render('setup_notfound.html')
@@ -233,7 +229,7 @@ class StartRun(BaseHandler):
         # Decode info from URL
         logger.info("Decoding %r", upload_short_id)
         try:
-            upload_id = short_ids.decode(b'upload', upload_short_id)
+            upload_id = database.Upload.decode_id(upload_short_id)
         except ValueError:
             self.set_status(404)
             return self.render('setup_notfound.html')
@@ -352,7 +348,7 @@ class Results(BaseHandler):
         # Decode info from URL
         logger.info("Decoding %r", run_short_id)
         try:
-            run_id = short_ids.decode(b'run', run_short_id)
+            run_id = database.Run.decode_id(run_short_id)
         except ValueError:
             self.set_status(404)
             return self.render('setup_notfound.html')

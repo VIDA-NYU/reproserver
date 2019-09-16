@@ -60,30 +60,3 @@ class ShortIDs(object):
         """Decode a random-looking short ID into the original number.
         """
         return _decode(shortid, self.cmap)
-
-
-class MultiShortIDs(object):
-    """Generates multiple sequences of short IDs.
-
-    You probably don't want IDs for different things to follow the same
-    sequence. Use this class to use multiple sequences, without having to keep
-    multiple generators around (or provide multiple salts).
-    """
-    def __init__(self, salt, min_chars=5):
-        self.salt = salt
-        self.min_chars = min_chars
-        self.shortids = {}
-
-    def encode(self, key, nb):
-        try:
-            s = self.shortids[key]
-        except KeyError:
-            s = self.shortids[key] = ShortIDs(key + self.salt)
-        return s.encode(nb, self.min_chars)
-
-    def decode(self, key, shortid):
-        try:
-            s = self.shortids[key]
-        except KeyError:
-            s = self.shortids[key] = ShortIDs(key + self.salt)
-        return s.decode(shortid)

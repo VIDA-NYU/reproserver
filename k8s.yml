@@ -32,11 +32,6 @@ data:
         imagePullPolicy: IfNotPresent
         args: rpz-placeholder
         env:
-          - name: SHORTIDS_SALT
-            valueFrom:
-              secretKeyRef:
-                name: reproserver-secret
-                key: salt
           - name: S3_KEY
             valueFrom:
               secretKeyRef:
@@ -101,11 +96,6 @@ data:
         imagePullPolicy: IfNotPresent
         args: rpz-placeholder
         env:
-          - name: SHORTIDS_SALT
-            valueFrom:
-              secretKeyRef:
-                name: reproserver-secret
-                key: salt
           - name: S3_KEY
             valueFrom:
               secretKeyRef:
@@ -176,11 +166,6 @@ spec:
           image: reproserver_web
           imagePullPolicy: IfNotPresent
           env:
-            - name: SHORTIDS_SALT
-              valueFrom:
-                secretKeyRef:
-                  name: reproserver-secret
-                  key: salt
             - name: WEB_PROXY_URL
               valueFrom:
                 configMapKeyRef:

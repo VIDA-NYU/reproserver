@@ -7,7 +7,7 @@ from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.sql import functions
 from sqlalchemy.types import Boolean, DateTime, Enum, Integer, String
 
-from .shortid import MultiShortIDs
+from .shortid import ShortIDs
 
 
 Base = declarative_base()
@@ -78,7 +78,11 @@ class Upload(Base):
 
     @property
     def short_id(self):
-        return short_ids.encode(b'upload', self.id)
+        return upload_short_ids.encode(self.id)
+
+    @staticmethod
+    def decode_id(short_id):
+        return upload_short_ids.decode(short_id)
 
     def __repr__(self):
         return ("<Upload id=%d, experiment_hash=%r, filename=%r, "
@@ -171,7 +175,11 @@ class Run(Base):
 
     @property
     def short_id(self):
-        return short_ids.encode(b'run', self.id)
+        return run_short_ids.encode(self.id)
+
+    @staticmethod
+    def decode_id(short_id):
+        return run_short_ids.decode(short_id)
 
     def get_log(self, from_line=0):
         return [log.line for log in self.log[from_line:]]
@@ -293,6 +301,15 @@ class OutputFile(Base):
             self.id, self.run_id, self.hash, self.name)
 
 
+class Setting(Base):
+    """Application setting and such.
+    """
+    __tablename__ = 'settings'
+
+    name = Column(String, nullable=False, primary_key=True)
+    value = Column(String, nullable=False)
+
+
 def purge(url=None):
     Session = connect(url)
 
@@ -304,9 +321,6 @@ def purge(url=None):
 def connect(url=None):
     """Connect to the database using an environment variable.
     """
-    global short_ids
-    short_ids = MultiShortIDs(os.environ['SHORTIDS_SALT'].encode('ascii'))
-
     logging.info("Connecting to SQL database")
     if url is None:
         url = 'postgresql://{user}:{password}@{host}/{database}'.format(
@@ -317,8 +331,29 @@ def connect(url=None):
         )
     engine = create_engine(url, echo=False)
 
-    if not engine.dialect.has_table(engine.connect(), 'experiments'):
+    tables_exist = engine.dialect.has_table(engine.connect(), 'experiments')
+
+    if not tables_exist:
         logging.warning("The tables don't seem to exist; creating")
         Base.metadata.create_all(bind=engine)
 
-    return sessionmaker(bind=engine)
+    DBSession = sessionmaker(bind=engine)
+    db = DBSession()
+    if not tables_exist:
+        shortids_salt = os.getrandom(64)
+        db.add(Setting(
+            name='shortids_salt',
+            value=shortids_salt.decode('iso-8859-15'),
+        ))
+        db.commit()
+    else:
+        shortids_salt = db.query(Setting).get('shortids_salt')
+        if shortids_salt is None:
+            raise RuntimeError("Database exists but no shortids_salt set")
+        shortids_salt = shortids_salt.value.encode('iso-8859-15')
+
+    global run_short_ids, upload_short_ids
+    run_short_ids = ShortIDs(b'run' + shortids_salt)
+    upload_short_ids = ShortIDs(b'upload' + shortids_salt)
+
+    return DBSession
