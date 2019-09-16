@@ -317,4 +317,8 @@ def connect(url=None):
         )
     engine = create_engine(url, echo=False)
 
+    if not engine.dialect.has_table(engine.connect(), 'experiments'):
+        logging.warning("The tables don't seem to exist; creating")
+        Base.metadata.create_all(bind=engine)
+
     return engine, sessionmaker(bind=engine)
