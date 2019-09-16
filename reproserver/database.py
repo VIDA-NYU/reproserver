@@ -294,7 +294,7 @@ class OutputFile(Base):
 
 
 def purge(url=None):
-    _, Session = connect(url)
+    Session = connect(url)
 
     session = Session()
     session.query(Experiment).delete()
@@ -321,4 +321,4 @@ def connect(url=None):
         logging.warning("The tables don't seem to exist; creating")
         Base.metadata.create_all(bind=engine)
 
-    return engine, sessionmaker(bind=engine)
+    return sessionmaker(bind=engine)

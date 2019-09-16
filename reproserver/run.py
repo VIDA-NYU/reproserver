@@ -326,7 +326,7 @@ class K8sRunner(DockerRunner):
                             format="%(asctime)s %(levelname)s: %(message)s")
 
         # Get a runner from environment
-        engine, DBSession = database.connect()
+        DBSession = database.connect()
         object_store = get_object_store()
         runner = cls(
             DBSession=DBSession,

@@ -244,7 +244,7 @@ class K8sBuilder(DockerBuilder):
         logging.basicConfig(level=logging.INFO,
                             format="%(asctime)s %(levelname)s: %(message)s")
 
-        engine, DBSession = database.connect()
+        DBSession = database.connect()
         object_store = get_object_store()
         builder = cls(
             DBSession=DBSession,
