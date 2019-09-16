@@ -78,7 +78,7 @@ class Upload(Base):
 
     @property
     def short_id(self):
-        return short_ids.encode('upload', self.id)
+        return short_ids.encode(b'upload', self.id)
 
     def __repr__(self):
         return ("<Upload id=%d, experiment_hash=%r, filename=%r, "
@@ -171,7 +171,7 @@ class Run(Base):
 
     @property
     def short_id(self):
-        return short_ids.encode('run', self.id)
+        return short_ids.encode(b'run', self.id)
 
     def get_log(self, from_line=0):
         return [log.line for log in self.log[from_line:]]
@@ -305,7 +305,7 @@ def connect(url=None):
     """Connect to the database using an environment variable.
     """
     global short_ids
-    short_ids = MultiShortIDs(os.environ['SHORTIDS_SALT'])
+    short_ids = MultiShortIDs(os.environ['SHORTIDS_SALT'].encode('ascii'))
 
     logging.info("Connecting to SQL database")
     if url is None:

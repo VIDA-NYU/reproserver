@@ -45,7 +45,7 @@ class ShortIDs(object):
         salt_len = len(salt)
         nb_chars = len(chars)
         for i in range(nb_chars):
-            s = ord(salt[i % salt_len])
+            s = salt[i % salt_len]
             j = i + s % (nb_chars - i)
             chars[i], chars[j] = chars[j], chars[i]
         self.chars = ''.join(chars)

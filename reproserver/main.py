@@ -19,7 +19,7 @@ class ExternalProxyHandler(ProxyHandler):
         self.original_host = self.request.host
         host_name = self.request.host_name.split('.', 1)[0]
         run_short_id, port = host_name.split('-')
-        run_id = short_ids.decode('run', run_short_id)
+        run_id = short_ids.decode(b'run', run_short_id)
 
         url = 'run-{0}:5597{1}'.format(run_id, self.request.uri)
         return url
