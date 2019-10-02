@@ -10,6 +10,8 @@ services:
       REPROZIP_USAGE_STATS: "off"
       DOCKER_HOST: tcp://docker:2375
       REGISTRY: registry:5000
+      BUILDER_TYPE: docker
+      RUNNER_TYPE: docker
     ports:
       - 8000:8000
   minio:

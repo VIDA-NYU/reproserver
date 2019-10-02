@@ -210,6 +210,10 @@ spec:
               value: postgres
             - name: POSTGRES_DB
               value: reproserver
+            - name: BUILDER_TYPE
+              value: k8s
+            - name: RUNNER_TYPE
+              value: k8s
             - name: ZENODO_TOKEN
               valueFrom:
                 secretKeyRef:
