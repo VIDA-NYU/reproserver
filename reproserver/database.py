@@ -1,3 +1,4 @@
+from base64 import b64decode, b64encode
 import enum
 import logging
 import os
@@ -364,14 +365,14 @@ def connect(url=None):
         shortids_salt = os.getrandom(64)
         db.add(Setting(
             name='shortids_salt',
-            value=shortids_salt.decode('iso-8859-15'),
+            value=b64encode(shortids_salt).decode('ascii'),
         ))
         db.commit()
     else:
         shortids_salt = db.query(Setting).get('shortids_salt')
         if shortids_salt is None:
             raise RuntimeError("Database exists but no shortids_salt set")
-        shortids_salt = shortids_salt.value.encode('iso-8859-15')
+        shortids_salt = b64decode(shortids_salt.value.encode('ascii'))
 
     global run_short_ids, upload_short_ids
     run_short_ids = ShortIDs(b'run' + shortids_salt)
