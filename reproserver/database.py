@@ -10,6 +10,9 @@ from sqlalchemy.types import Boolean, DateTime, Enum, Integer, String
 from .shortid import ShortIDs
 
 
+logger = logging.getLogger(__name__)
+
+
 Base = declarative_base()
 
 
@@ -321,7 +324,7 @@ def purge(url=None):
 def connect(url=None):
     """Connect to the database using an environment variable.
     """
-    logging.info("Connecting to SQL database")
+    logger.info("Connecting to SQL database")
     if url is None:
         url = 'postgresql://{user}:{password}@{host}/{database}'.format(
             user=os.environ['POSTGRES_USER'],
@@ -334,7 +337,7 @@ def connect(url=None):
     tables_exist = engine.dialect.has_table(engine.connect(), 'experiments')
 
     if not tables_exist:
-        logging.warning("The tables don't seem to exist; creating")
+        logger.warning("The tables don't seem to exist; creating")
         Base.metadata.create_all(bind=engine)
 
     DBSession = sessionmaker(bind=engine)

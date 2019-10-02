@@ -6,8 +6,11 @@ import logging
 import os
 
 
+logger = logging.getLogger(__name__)
+
+
 def get_object_store():
-    logging.info("Logging in to S3")
+    logger.info("Logging in to S3")
     return ObjectStore(
         os.environ['S3_URL'],
         os.environ['S3_CLIENT_URL'],
@@ -79,8 +82,8 @@ class ObjectStore(object):
                 missing.append(name)
 
         if missing:
-            logging.info("The buckets don't seem to exist; creating %s",
-                         ", ".join(missing))
+            logger.info("The buckets don't seem to exist; creating %s",
+                        ", ".join(missing))
             for name in missing:
                 self.s3.create_bucket(Bucket=name)
 
