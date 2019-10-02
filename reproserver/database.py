@@ -2,10 +2,12 @@ import enum
 import logging
 import os
 from sqlalchemy import Column, ForeignKey, create_engine
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.sql import functions
 from sqlalchemy.types import Boolean, DateTime, Enum, Integer, String
+import time
 
 from .shortid import ShortIDs
 
@@ -332,9 +334,25 @@ def connect(url=None):
             host=os.environ['POSTGRES_HOST'],
             database=os.environ['POSTGRES_DB'],
         )
-    engine = create_engine(url, echo=False)
+        engine = create_engine(url, connect_args={'connect_timeout': 10})
+    else:
+        engine = create_engine(url)
 
-    tables_exist = engine.dialect.has_table(engine.connect(), 'experiments')
+    start = time.perf_counter()
+    while True:
+        try:
+            conn = engine.connect()
+        except OperationalError as e:
+            # Retry for 2 minutes
+            if time.perf_counter() < start + 120:
+                logger.info("Could not connect to database, retrying; %s", e)
+                time.sleep(5)
+            else:
+                raise
+        else:
+            break
+
+    tables_exist = engine.dialect.has_table(conn, 'experiments')
 
     if not tables_exist:
         logger.warning("The tables don't seem to exist; creating")
