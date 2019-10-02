@@ -1,4 +1,5 @@
 import logging
+import os
 import tornado.ioloop
 
 from . import database
@@ -9,7 +10,22 @@ from .web import make_app
 logger = logging.getLogger(__name__)
 
 
-class ExternalProxyHandler(ProxyHandler):
+class DockerProxyHandler(ProxyHandler):
+    def select_destination(self):
+        # Read destination from hostname
+        self.original_host = self.request.host
+        host_name = self.request.host_name.split('.', 1)[0]
+        run_short_id, port = host_name.split('-')
+        database.Run.decode_id(run_short_id)
+
+        url = 'docker:{0}{1}'.format(port, self.request.uri)
+        return url
+
+    def alter_request(self, request):
+        request.headers['Host'] = self.original_host
+
+
+class K8sProxyHandler(ProxyHandler):
     def select_destination(self):
         # Read destination from hostname
         self.original_host = self.request.host
@@ -35,7 +51,10 @@ def main():
     app = make_app()
     app.listen(8000, address='0.0.0.0', max_buffer_size=1_073_741_824)
 
-    proxy = ExternalProxyHandler.make_app()
+    if os.environ.get('RUNNER_TYPE') == 'docker':
+        proxy = DockerProxyHandler.make_app()
+    else:
+        proxy = K8sProxyHandler.make_app()
     proxy.listen(8001, address='0.0.0.0')
 
     loop = tornado.ioloop.IOLoop.current()

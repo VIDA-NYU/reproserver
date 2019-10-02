@@ -63,9 +63,9 @@ class Runner(object):
 
 class DockerRunner(Runner):
     def run_sync(self, run_id):
-        self._docker_run(run_id)
+        self._docker_run(run_id, '0.0.0.0')
 
-    def _docker_run(self, run_id):
+    def _docker_run(self, run_id, bind_host):
         """Run a built experiment.
 
         Lookup a run in the database, get the input files from S3, then do the
@@ -166,7 +166,7 @@ class DockerRunner(Runner):
             ]
             for port in run.ports:
                 cmdline.extend([
-                    '-p', '127.0.0.1:{0}:{0}'.format(port.port_number),
+                    '-p', '{0}:{1}:{1}'.format(bind_host, port.port_number),
                 ])
             cmdline.extend([
                 '--', fq_image_name,
@@ -348,6 +348,7 @@ class K8sRunner(DockerRunner):
             None,
             runner._docker_run,
             run_id,
+            '127.0.0.1',
         )
 
         # Also set up a proxy
