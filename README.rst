@@ -19,6 +19,7 @@ How to run this with docker-compose
 
 You will need `Docker <https://hub.docker.com/search/?type=edition&offering=community>`__ and `docker-compose <https://docs.docker.com/compose/install/>`__.
 
+- Make sure you have checked out the submodule with ``git submodule init && git submodule update``
 - Copy ``env.dist`` to ``.env`` (you probably don't need to change the settings)
 - Start services by running ``docker-compose up -d --build``
 - Open `localhost:8000 <http://localhost:8000/>`__ in your browser
@@ -30,6 +31,7 @@ How to run this with minikube
 
 You will need `minikube <https://minikube.sigs.k8s.io/docs/start/>`__ and `kubectl <https://minikube.sigs.k8s.io/docs/start/>`__.
 
+- Make sure you have checked out the submodule with ``git submodule init && git submodule update``
 - Start a minikube cluster using ``minikube start``
 - Create the volumes using ``kubectl apply -f k8s-volumes-minikube.yml``
 - Create the secrets using ``kubectl apply -f k8s-secrets.yml``
