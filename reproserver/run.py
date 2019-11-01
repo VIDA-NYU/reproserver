@@ -438,6 +438,10 @@ class K8sRunner(DockerRunner):
         started = None
         success = False
         for event in w.stream(f, **kwargs):
+            if event['type'] == 'DELETED':
+                w.stop()
+                logger.warning("Run pod was deleted")
+                continue
             status = event['object'].status
             if not started and status.start_time:
                 started = status.start_time

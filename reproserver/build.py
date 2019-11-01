@@ -62,6 +62,7 @@ class Builder(object):
         # We keep a cache of future
         # If we already have a task building this, return its future
         if experiment_hash in self._builds:
+            logger.info("Build already in progress")
             return self._builds[experiment_hash]
 
         # At the end of the build task, remove from dict and log
@@ -69,10 +70,12 @@ class Builder(object):
             del self._builds[experiment_hash]
             try:
                 future.result()
+                logger.info("Build successful")
             except Exception:
                 logger.exception("Exception in build task")
 
         # Run the task in threadpool
+        logger.info("Starting build")
         future = asyncio.get_event_loop().run_in_executor(
             None,
             self.build_sync,
@@ -314,6 +317,10 @@ class K8sBuilder(DockerBuilder):
         started = None
         success = False
         for event in w.stream(f, **kwargs):
+            if event['type'] == 'DELETED':
+                w.stop()
+                logger.warning("Build pod was deleted")
+                continue
             status = event['object'].status
             if not started and status.start_time:
                 started = status.start_time
