@@ -254,6 +254,13 @@ spec:
           image: registry:2.6
           ports:
             - containerPort: 5000
+          volumeMounts:
+            - mountPath: /var/lib/registry
+              name: data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: registry-pvc
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -287,8 +294,8 @@ spec:
           ports:
             - containerPort: 5432
           volumeMounts:
-          - mountPath: /var/lib/postgresql/data
-            name: data
+            - mountPath: /var/lib/postgresql/data
+              name: data
       volumes:
         - name: data
           persistentVolumeClaim:

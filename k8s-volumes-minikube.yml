@@ -31,6 +31,36 @@ spec:
 kind: PersistentVolume
 apiVersion: v1
 metadata:
+  name: registry-pv
+  labels:
+    type: local
+    app: registry
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/data/reproserver/prod/registry"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: registry-pvc
+spec:
+  storageClassName: ""
+  selector:
+    matchLabels:
+      app: registry
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
   name: minio-pv
   labels:
     type: local
