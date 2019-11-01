@@ -10,7 +10,7 @@ Note that this does not remove the input and output files from S3.'
 
 eval "$(run_python_on_web "$USAGE_MSG" "$@")" <<'END'
 from reproserver import database
-_, S = database.connect()
+S = database.connect()
 s = S()
 s.query(database.Run).delete()
 s.commit()

@@ -10,7 +10,7 @@ Note that this does not actually delete the images; you should probably restart 
 
 eval "$(run_python_on_web "$USAGE_MSG" "$@")" <<'END'
 from reproserver import database
-_, S = database.connect()
+S = database.connect()
 s = S()
 s.query(database.Experiment).update({
     database.Experiment.status: database.Status.NOBUILD
