@@ -49,13 +49,15 @@ def main():
                         format="%(asctime)s %(levelname)s: %(message)s")
 
     app = make_app()
-    app.listen(8000, address='0.0.0.0', max_buffer_size=1_073_741_824)
+    app.listen(8000, address='0.0.0.0',
+               xheaders=True,
+               max_buffer_size=1_073_741_824)
 
     if os.environ.get('RUNNER_TYPE') == 'docker':
         proxy = DockerProxyHandler.make_app()
     else:
         proxy = K8sProxyHandler.make_app()
-    proxy.listen(8001, address='0.0.0.0')
+    proxy.listen(8001, address='0.0.0.0', xheaders=True)
 
     loop = tornado.ioloop.IOLoop.current()
     print("\n    reproserver is now running: http://localhost:8000/\n")
