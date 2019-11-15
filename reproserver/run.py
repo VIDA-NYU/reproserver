@@ -50,20 +50,23 @@ class Runner(object):
         self.DBSession = DBSession
         self.object_store = object_store
 
-    def run(self, run_id):
+    def _run_callback(self, run_id):
         def callback(future):
             try:
                 future.result()
-                logger.info("Run successful")
+                logger.info("Run %d successful", run_id)
             except Exception:
                 logger.exception("Exception in run task")
 
+        return callback
+
+    def run(self, run_id):
         future = asyncio.get_event_loop().run_in_executor(
             None,
             self.run_sync,
             run_id,
         )
-        future.add_done_callback(callback)
+        future.add_done_callback(self._run_callback(run_id))
         return future
 
     def run_sync(self, run_id):
@@ -328,8 +331,34 @@ class InternalProxyHandler(ProxyHandler):
 
 
 class K8sRunner(DockerRunner):
-    @classmethod
-    def _run_in_pod(cls, run_id):
+    def __init__(self, *args, **kwargs):
+        super(K8sRunner, self).__init__(*args, **kwargs)
+
+        kubernetes.config.load_incluster_config()
+
+        # Find existing run pods
+        client = k8s.CoreV1Api()
+        with open('/etc/k8s-config/builder.namespace') as fp:
+            namespace = fp.read().strip()
+        pods = client.list_namespaced_pod(
+            namespace=namespace,
+            label_selector='app=run',
+        )
+        for pod in pods.items:
+            run_id = int(pod.metadata.labels['run'], 10)
+            logger.info("Attaching to run pod for %d", run_id)
+            future = asyncio.get_event_loop().run_in_executor(
+                None,
+                self._watch_pod,
+                client, namespace, run_id,
+            )
+            future.add_done_callback(self._run_callback(run_id))
+
+    def _pod_name(self, run_id):
+        return 'run-{0}'.format(run_id)
+
+    @staticmethod
+    def _run_in_pod(run_id):
         logging.root.handlers.clear()
         logging.basicConfig(level=logging.INFO,
                             format="%(asctime)s %(levelname)s: %(message)s")
@@ -337,7 +366,7 @@ class K8sRunner(DockerRunner):
         # Get a runner from environment
         DBSession = database.connect()
         object_store = get_object_store()
-        runner = cls(
+        runner = DockerRunner(
             DBSession=DBSession,
             object_store=object_store,
         )
@@ -369,7 +398,7 @@ class K8sRunner(DockerRunner):
     def run_sync(self, run_id):
         kubernetes.config.load_incluster_config()
 
-        name = 'run-{0}'.format(run_id)
+        name = self._pod_name(run_id)
 
         # Load configuration from configmap volume
         with open('/etc/k8s-config/runner.pod_spec') as fp:
@@ -438,7 +467,11 @@ class K8sRunner(DockerRunner):
         )
         logger.info("Service created")
 
-        # Watch the pod
+        self._watch_pod(client, namespace, run_id)
+
+    def _watch_pod(self, client, namespace, run_id):
+        name = self._pod_name(run_id)
+
         w = kubernetes.watch.Watch()
         f, kwargs = client.list_namespaced_pod, dict(
             namespace=namespace,
