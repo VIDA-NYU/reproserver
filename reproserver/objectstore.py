@@ -1,6 +1,7 @@
 import asyncio
 import boto3
 from botocore.client import Config
+import botocore.exceptions
 import io
 import logging
 import os
@@ -74,11 +75,12 @@ class ObjectStore(object):
         )
 
     def create_buckets(self):
-        buckets = set(bucket.name for bucket in self.s3.buckets.all())
         missing = []
         for name in ('experiments', 'inputs', 'outputs'):
             name = self.bucket_name(name)
-            if name not in buckets:
+            try:
+                self.s3.meta.client.head_bucket(Bucket=name)
+            except botocore.exceptions.ClientError:
                 missing.append(name)
 
         if missing:
