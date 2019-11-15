@@ -16,3 +16,9 @@ spec:
           - backend:
               serviceName: minio-host
               servicePort: 9000
+    - host: "*.web.server.reprozip.org"
+      http:
+        paths:
+          - backend:
+              serviceName: web-proxy
+              servicePort: 8001
