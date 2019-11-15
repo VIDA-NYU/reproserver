@@ -259,8 +259,8 @@ class K8sBuilder(DockerBuilder):
         )
         for pod in pods.items:
             experiment_hash = (
-                pod.metadata.labels['experiment1']
-                + pod.metadata.labels['experiment2']
+                pod.metadata.labels['experiment1'] +
+                pod.metadata.labels['experiment2']
             )
             logger.info("Attaching to build pod for %s", experiment_hash)
             future = asyncio.get_event_loop().run_in_executor(
