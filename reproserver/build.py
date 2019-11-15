@@ -58,21 +58,24 @@ class Builder(object):
 
         self._builds = {}
 
+    def _build_callback(self, experiment_hash):
+        # At the end of the build task, remove from dict and log
+        def callback(future):
+            del self._builds[experiment_hash]
+            try:
+                future.result()
+                logger.info("Build successful for %s", experiment_hash)
+            except Exception:
+                logger.exception("Exception in build task")
+
+        return callback
+
     def build(self, experiment_hash):
         # We keep a cache of future
         # If we already have a task building this, return its future
         if experiment_hash in self._builds:
             logger.info("Build already in progress")
             return self._builds[experiment_hash]
-
-        # At the end of the build task, remove from dict and log
-        def callback(future):
-            del self._builds[experiment_hash]
-            try:
-                future.result()
-                logger.info("Build successful")
-            except Exception:
-                logger.exception("Exception in build task")
 
         # Run the task in threadpool
         logger.info("Starting build")
@@ -82,7 +85,7 @@ class Builder(object):
             experiment_hash,
         )
         self._builds[experiment_hash] = future
-        future.add_done_callback(callback)
+        future.add_done_callback(self._build_callback(experiment_hash))
         return future
 
     def build_sync(self, experiment_hash):
@@ -241,18 +244,45 @@ class DockerBuilder(Builder):
 
 
 class K8sBuilder(DockerBuilder):
+    def __init__(self, *args, **kwargs):
+        super(K8sBuilder, self).__init__(*args, **kwargs)
+
+        kubernetes.config.load_incluster_config()
+
+        # Find existing build pods
+        client = k8s.CoreV1Api()
+        with open('/etc/k8s-config/builder.namespace') as fp:
+            namespace = fp.read().strip()
+        pods = client.list_namespaced_pod(
+            namespace=namespace,
+            label_selector='app=build',
+        )
+        for pod in pods.items:
+            experiment_hash = (
+                pod.metadata.labels['experiment1']
+                + pod.metadata.labels['experiment2']
+            )
+            logger.info("Attaching to build pod for %s", experiment_hash)
+            future = asyncio.get_event_loop().run_in_executor(
+                None,
+                self._watch_pod,
+                client, namespace, experiment_hash,
+            )
+            self._builds[experiment_hash] = future
+            future.add_done_callback(self._build_callback(experiment_hash))
+
     def _pod_name(self, experiment_hash):
         return 'build-{0}'.format(experiment_hash[:55])
 
-    @classmethod
-    def _build_in_pod(cls, experiment_hash):
+    @staticmethod
+    def _build_in_pod(experiment_hash):
         logging.root.handlers.clear()
         logging.basicConfig(level=logging.INFO,
                             format="%(asctime)s %(levelname)s: %(message)s")
 
         DBSession = database.connect()
         object_store = get_object_store()
-        builder = cls(
+        builder = DockerBuilder(
             DBSession=DBSession,
             object_store=object_store,
         )
@@ -310,7 +340,11 @@ class K8sBuilder(DockerBuilder):
         else:
             logger.info("Pod created")
 
-        # Watch the pod
+        self._watch_pod(client, namespace, experiment_hash)
+
+    def _watch_pod(self, client, namespace, experiment_hash):
+        name = self._pod_name(experiment_hash)
+
         w = kubernetes.watch.Watch()
         f, kwargs = client.list_namespaced_pod, dict(
             namespace=namespace,
