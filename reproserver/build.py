@@ -241,6 +241,9 @@ class DockerBuilder(Builder):
 
 
 class K8sBuilder(DockerBuilder):
+    def _pod_name(self, experiment_hash):
+        return 'build-{0}'.format(experiment_hash[:55])
+
     @classmethod
     def _build_in_pod(cls, experiment_hash):
         logging.root.handlers.clear()
@@ -258,7 +261,7 @@ class K8sBuilder(DockerBuilder):
     def build_sync(self, experiment_hash):
         kubernetes.config.load_incluster_config()
 
-        name = 'build-{0}'.format(experiment_hash[:55])
+        name = self._pod_name(experiment_hash)
 
         # Load configuration from configmap volume
         with open('/etc/k8s-config/builder.pod_spec') as fp:
@@ -288,7 +291,8 @@ class K8sBuilder(DockerBuilder):
                 name=name,
                 labels={
                     'app': 'build',
-                    'experiment': experiment_hash[:55],
+                    'experiment1': experiment_hash[:32],
+                    'experiment2': experiment_hash[32:],
                 },
             ),
             spec=pod_spec,
@@ -310,8 +314,9 @@ class K8sBuilder(DockerBuilder):
         w = kubernetes.watch.Watch()
         f, kwargs = client.list_namespaced_pod, dict(
             namespace=namespace,
-            label_selector='app=build,experiment={0}'.format(
-                experiment_hash[:55]
+            label_selector='app=build,experiment1={0},experiment2={1}'.format(
+                experiment_hash[:32],
+                experiment_hash[32:],
             ),
         )
         started = None
