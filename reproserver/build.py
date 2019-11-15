@@ -1,5 +1,4 @@
 import asyncio
-import json
 import kubernetes.client as k8s
 from kubernetes.client.rest import ApiException as K8sException
 import kubernetes.config
@@ -15,7 +14,6 @@ import yaml
 
 from . import database
 from .objectstore import get_object_store
-from .utils import shell_escape
 
 
 logger = logging.getLogger(__name__)
@@ -128,8 +126,6 @@ class DockerBuilder(Builder):
                            experiment.status)
         experiment.status = database.Status.BUILDING
         experiment.docker_image = None
-        experiment.parameters[:] = []
-        experiment.paths[:] = []
         experiment.log[:] = []
         db.commit()
         logger.info("Set status to BUILDING")
@@ -147,17 +143,6 @@ class DockerBuilder(Builder):
                 local_path,
             )
             logger.info("Got file, %d bytes", os.stat(local_path).st_size)
-
-            # Get metadata
-            info_proc = subprocess.Popen(
-                ['reprounzip', 'info', '--json', local_path],
-                stdout=subprocess.PIPE,
-            )
-            info_stdout, _ = info_proc.communicate()
-            if info_proc.wait() != 0:
-                raise ValueError("Error getting info from package")
-            info = json.loads(info_stdout.decode('utf-8'))
-            logger.info("Got metadata, %d runs", len(info['runs']))
 
             # Remove previous build log
             experiment.log[:] = []
@@ -204,38 +189,6 @@ class DockerBuilder(Builder):
             # Push image to Docker repository
             subprocess.check_call(['docker', 'push', fq_image_name])
             logger.info("Push complete, finishing up")
-
-            # Add parameters
-            # Command-line of each run
-            for i, run in enumerate(info['runs']):
-                cmdline = ' '.join(shell_escape(a) for a in run['argv'])
-                db.add(database.Parameter(
-                    experiment_hash=experiment.hash,
-                    name="cmdline_%05d" % i, optional=False, default=cmdline,
-                    description="Command-line for step %s" % run['id']),
-                )
-            # Input/output files
-            for name, iofile in info.get('inputs_outputs', ()).items():
-                path = iofile['path']
-
-                # It's an input if it's read before it is written
-                if iofile['read_runs'] and iofile['write_runs']:
-                    first_write = min(iofile['write_runs'])
-                    first_read = min(iofile['read_runs'])
-                    is_input = first_read <= first_write
-                else:
-                    is_input = bool(iofile['read_runs'])
-
-                # It's an output if it's ever written
-                is_output = bool(iofile['write_runs'])
-
-                db.add(database.Path(
-                    experiment_hash=experiment.hash,
-                    is_input=is_input,
-                    is_output=is_output,
-                    name=name,
-                    path=path),
-                )
 
             # Set status
             experiment.status = database.Status.BUILT

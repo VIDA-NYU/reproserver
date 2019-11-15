@@ -4,10 +4,12 @@ import os
 import prometheus_client
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import functions
+import tempfile
 
 from .. import database
 from ..repositories import RepositoryError, get_experiment_from_repository, \
     parse_repository_url
+from .. import rpz_metadata
 from ..utils import secure_filename
 from .base import BaseHandler
 
@@ -59,6 +61,7 @@ class Upload(BaseHandler):
                 ))
 
         # Get uploaded file
+        # FIXME: Don't hold the file in memory!
         uploaded_file = self.request.files['rpz_file'][0]
         assert uploaded_file.filename
         logger.info("Incoming file: %r", uploaded_file.filename)
@@ -75,17 +78,21 @@ class Upload(BaseHandler):
             experiment.last_access = functions.now()
             logger.info("File exists in storage")
         else:
-            # Insert it on S3
-            await self.application.object_store.upload_bytes_async(
-                'experiments',
-                filehash,
-                uploaded_file.body,
-            )
-            logger.info("Inserted file in storage")
+            # Write it to disk
+            with tempfile.NamedTemporaryFile('w+b', suffix='.rpz') as tfile:
+                tfile.write(uploaded_file.body)
 
-            # Insert it in database
-            experiment = database.Experiment(hash=filehash)
-            self.db.add(experiment)
+                # Insert it in database
+                experiment = rpz_metadata.make_experiment(filehash, tfile.name)
+                self.db.add(experiment)
+
+                # Insert it on S3
+                await self.application.object_store.upload_file_async(
+                    'experiments',
+                    filehash,
+                    tfile.name,
+                )
+                logger.info("Inserted file in storage")
 
         # Insert Upload in database
         upload = database.Upload(experiment=experiment,

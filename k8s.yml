@@ -218,6 +218,8 @@ spec:
                 secretKeyRef:
                   name: reproserver-secret
                   key: connection_token
+            - name: REPROZIP_USAGE_STATS
+              value: "off"
             - name: BUILDER_TYPE
               value: k8s
             - name: RUNNER_TYPE
