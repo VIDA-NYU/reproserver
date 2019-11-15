@@ -17,7 +17,6 @@ before_script:
 #  - chmod +x /usr/local/bin/docker-compose
   # Install Poetry
   - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python && /root/.poetry/bin/poetry config settings.virtualenvs.create false
-  - $HOME/.poetry/bin/poetry install --no-interaction
   # Install dependencies
   - $HOME/.poetry/bin/poetry install --no-interaction
 
