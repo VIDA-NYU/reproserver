@@ -1,17 +1,18 @@
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: ingress-web
+  name: ingress-app
 spec:
-  backend:
-    serviceName: web
-    servicePort: 8000
----
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  name: ingress-minio
-spec:
-  backend:
-    serviceName: minio-host
-    servicePort: 9000
+  rules:
+    - host: server.reprozip.org
+      http:
+        paths:
+          - backend:
+              serviceName: web
+              servicePort: 8000
+    - host: files.server.reprozip.org
+      http:
+        paths:
+          - backend:
+              serviceName: minio-host
+              servicePort: 9000
