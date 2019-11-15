@@ -9,7 +9,7 @@ def make_app(debug=False, xsrf_cookies=True):
     return Application(
         [
             URLSpec('/', views.Index, name='index'),
-            URLSpec('/upload', views.Unpack, name='unpack'),
+            URLSpec('/upload', views.Upload, name='upload'),
             URLSpec('/reproduce/([^/]+)/(.+)',
                     views.ReproduceRepo, name='reproduce_repo'),
             URLSpec('/reproduce/([^/]+)', views.ReproduceLocal,

@@ -23,7 +23,7 @@ PROM_PAGE = prometheus_client.Counter(
 
 
 class Index(BaseHandler):
-    """Landing page from which a user can select an experiment to unpack.
+    """Landing page from which a user can select an experiment to upload.
     """
     PROM_PAGE.labels('index').inc(0)
 
@@ -32,10 +32,10 @@ class Index(BaseHandler):
         return self.render('index.html')
 
 
-class Unpack(BaseHandler):
+class Upload(BaseHandler):
     """Target of the landing page.
 
-    An experiment has been provided, store it and start the build process.
+    An experiment has been provided, store it and extract metadata.
     """
     PROM_PAGE.labels('upload').inc(0)
 
