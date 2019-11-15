@@ -51,11 +51,20 @@ class Runner(object):
         self.object_store = object_store
 
     def run(self, run_id):
-        return asyncio.get_event_loop().run_in_executor(
+        def callback(future):
+            try:
+                future.result()
+                logger.info("Run successful")
+            except Exception:
+                logger.exception("Exception in run task")
+
+        future = asyncio.get_event_loop().run_in_executor(
             None,
             self.run_sync,
             run_id,
         )
+        future.add_done_callback(callback)
+        return future
 
     def run_sync(self, run_id):
         raise NotImplementedError
