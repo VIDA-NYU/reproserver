@@ -1,6 +1,5 @@
 from hashlib import sha256
 import logging
-import os
 import tempfile
 from tornado.httpclient import AsyncHTTPClient
 
@@ -40,19 +39,21 @@ class BaseRepository(object):
             logger.info("Experiment with hash exists, no need to download")
         else:
             logger.info("Downloading %s", link)
-            fd, local_path = tempfile.mkstemp(prefix='repo_download_')
-            try:
+            with tempfile.NamedTemporaryFile(
+                    'w+b', prefix='repo_download_',
+            ) as tfile:
                 # Download file & hash it
                 hasher = sha256()
-                with open(local_path, 'wb') as f:
-                    def callback(chunk):
-                        f.write(chunk)
-                        hasher.update(chunk)
 
-                    await self.http_client.fetch(
-                        link,
-                        streaming_callback=callback,
-                    )
+                def callback(chunk):
+                    tfile.write(chunk)
+                    hasher.update(chunk)
+
+                await self.http_client.fetch(
+                    link,
+                    streaming_callback=callback,
+                )
+                tfile.flush()
 
                 filehash = hasher.hexdigest()
 
@@ -64,16 +65,13 @@ class BaseRepository(object):
                     # Insert it on S3
                     await object_store.upload_file_async(
                         'experiments', filehash,
-                        local_path,
+                        tfile.name,
                     )
                     logger.info("Inserted file in storage")
 
                     # Insert it in database
                     experiment = database.Experiment(hash=filehash)
                     db.add(experiment)
-            finally:
-                os.close(fd)
-                os.remove(local_path)
 
         # Insert Upload in database
         upload = database.Upload(
