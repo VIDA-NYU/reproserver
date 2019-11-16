@@ -66,7 +66,10 @@ class Builder(object):
                 future.result()
                 logger.info("Build successful for %s", experiment_hash)
             except Exception:
-                logger.exception("Exception in build task")
+                logger.exception(
+                    "Exception in build task for %s",
+                    experiment_hash,
+                )
 
         return callback
 
@@ -336,11 +339,11 @@ class K8sBuilder(DockerBuilder):
             )
         except K8sException as e:
             if e.status == 409:  # Conflict: pod already exists
-                logger.info("Pod already exists")
+                logger.info("Pod already exists: %s", name)
             else:
                 raise
         else:
-            logger.info("Pod created")
+            logger.info("Pod created: %s", name)
 
         self._watch_pod(client, namespace, experiment_hash)
 

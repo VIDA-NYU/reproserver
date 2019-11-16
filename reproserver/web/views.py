@@ -197,7 +197,6 @@ class ReproduceLocal(BaseReproduce):
         """Show build log and ask for run parameters.
         """
         # Decode info from URL
-        logger.info("Decoding %r", upload_short_id)
         try:
             upload_id = database.Upload.decode_id(upload_short_id)
         except ValueError:
@@ -227,7 +226,6 @@ class StartRun(BaseHandler):
         Triggers the run and redirects to the results page.
         """
         # Decode info from URL
-        logger.info("Decoding %r", upload_short_id)
         try:
             upload_id = database.Upload.decode_id(upload_short_id)
         except ValueError:
@@ -346,7 +344,6 @@ class Results(BaseHandler):
         """Shows the results of a run, whether it's done or in progress.
         """
         # Decode info from URL
-        logger.info("Decoding %r", run_short_id)
         try:
             run_id = database.Run.decode_id(run_short_id)
         except ValueError:

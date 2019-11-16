@@ -56,7 +56,7 @@ class Runner(object):
                 future.result()
                 logger.info("Run %d successful", run_id)
             except Exception:
-                logger.exception("Exception in run task")
+                logger.exception("Exception in run %d", run_id)
 
         return callback
 
@@ -437,7 +437,7 @@ class K8sRunner(DockerRunner):
             namespace=namespace,
             body=pod,
         )
-        logger.info("Pod created")
+        logger.info("Pod created: %s", name)
 
         # Create a service for proxy connections
         svc = k8s.V1Service(
@@ -467,7 +467,7 @@ class K8sRunner(DockerRunner):
             namespace=namespace,
             body=svc,
         )
-        logger.info("Service created")
+        logger.info("Service created: %s", name)
 
         self._watch_pod(client, namespace, run_id)
 
