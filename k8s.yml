@@ -339,7 +339,6 @@ spec:
     - protocol: TCP
       port: 8000
       nodePort: 30080
-
 ---
 apiVersion: v1
 kind: Service
