@@ -46,7 +46,7 @@ def run_cmd_and_log(session, run_id, cmd):
 
 
 class Runner(object):
-    def __init__(self, DBSession, object_store):
+    def __init__(self, *, DBSession, object_store):
         self.DBSession = DBSession
         self.object_store = object_store
 
@@ -331,14 +331,16 @@ class InternalProxyHandler(ProxyHandler):
 
 
 class K8sRunner(DockerRunner):
-    def __init__(self, *args, **kwargs):
-        super(K8sRunner, self).__init__(*args, **kwargs)
+    def __init__(self, **kwargs):
+        super(K8sRunner, self).__init__(**kwargs)
+
+        self.config_dir = os.environ['K8S_CONFIG_DIR']
 
         kubernetes.config.load_incluster_config()
 
         # Find existing run pods
         client = k8s.CoreV1Api()
-        with open('/etc/k8s-config/builder.namespace') as fp:
+        with open(os.path.join(self.config_dir, 'builder.namespace')) as fp:
             namespace = fp.read().strip()
         pods = client.list_namespaced_pod(
             namespace=namespace,
@@ -401,9 +403,9 @@ class K8sRunner(DockerRunner):
         name = self._pod_name(run_id)
 
         # Load configuration from configmap volume
-        with open('/etc/k8s-config/runner.pod_spec') as fp:
+        with open(os.path.join(self.config_dir, 'runner.pod_spec')) as fp:
             pod_spec = yaml.safe_load(fp)
-        with open('/etc/k8s-config/runner.namespace') as fp:
+        with open(os.path.join(self.config_dir, 'runner.namespace')) as fp:
             namespace = fp.read().strip()
 
         # Make required changes

@@ -52,7 +52,7 @@ def run_cmd_and_log(session, experiment_hash, cmd):
 
 
 class Builder(object):
-    def __init__(self, DBSession, object_store):
+    def __init__(self, *, DBSession, object_store):
         self.DBSession = DBSession
         self.object_store = object_store
 
@@ -244,14 +244,16 @@ class DockerBuilder(Builder):
 
 
 class K8sBuilder(DockerBuilder):
-    def __init__(self, *args, **kwargs):
-        super(K8sBuilder, self).__init__(*args, **kwargs)
+    def __init__(self, **kwargs):
+        super(K8sBuilder, self).__init__(**kwargs)
+
+        self.config_dir = os.environ['K8S_CONFIG_DIR']
 
         kubernetes.config.load_incluster_config()
 
         # Find existing build pods
         client = k8s.CoreV1Api()
-        with open('/etc/k8s-config/builder.namespace') as fp:
+        with open(os.path.join(self.config_dir, 'builder.namespace')) as fp:
             namespace = fp.read().strip()
         pods = client.list_namespaced_pod(
             namespace=namespace,
@@ -294,9 +296,9 @@ class K8sBuilder(DockerBuilder):
         name = self._pod_name(experiment_hash)
 
         # Load configuration from configmap volume
-        with open('/etc/k8s-config/builder.pod_spec') as fp:
+        with open(os.path.join(self.config_dir, 'builder.pod_spec')) as fp:
             pod_spec = yaml.safe_load(fp)
-        with open('/etc/k8s-config/builder.namespace') as fp:
+        with open(os.path.join(self.config_dir, 'builder.namespace')) as fp:
             namespace = fp.read().strip()
 
         # Make required changes

@@ -212,6 +212,8 @@ spec:
               value: k8s
             - name: RUNNER_TYPE
               value: k8s
+            - name: K8S_CONFIG_DIR
+              value: /etc/k8s-config
             - name: ZENODO_TOKEN
               valueFrom:
                 secretKeyRef:
