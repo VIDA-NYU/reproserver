@@ -116,73 +116,22 @@ class BaseReproduce(BaseHandler):
         experiment = upload.experiment
         filename = upload.filename
         experiment_url = self.url_for_upload(upload)
-        try:
-            # JSON endpoint, returns data for JavaScript to update the page
-            if self.is_json_requested():
-                log_from = int(self.get_query_argument('log_from', '0'), 10)
-                return self.send_json({
-                    'status': experiment.status.name,
-                    'log': experiment.get_log(log_from),
-                    'params': [
-                        {'name': p.name, 'optional': p.optional,
-                         'default': p.default}
-                        for p in experiment.parameters]
-                })
-            # HTML view, return the page
-            else:
-                # If it's done building, send build log and run form
-                if experiment.status == database.Status.BUILT:
-                    logger.info("Experiment already built")
-                    input_files = (
-                        self.db.query(database.Path)
-                        .filter(database.Path.experiment_hash ==
-                                experiment.hash)
-                        .filter(database.Path.is_input)).all()
-                    return self.render(
-                        'setup.html',
-                        filename=filename,
-                        built=True, error=False,
-                        log=experiment.get_log(0),
-                        params=experiment.parameters,
-                        input_files=input_files,
-                        upload_short_id=upload.short_id,
-                        experiment_url=experiment_url,
-                    )
-                if experiment.status == database.Status.ERROR:
-                    logger.info("Experiment is errored")
-                    return self.render(
-                        'setup.html',
-                        filename=filename,
-                        built=True, error=True,
-                        log=experiment.get_log(0),
-                        upload_short_id=upload.short_id,
-                        experiment_url=experiment_url,
-                    )
-                # If it's currently building, show the log
-                elif experiment.status == database.Status.BUILDING:
-                    logger.info("Experiment is currently building")
-                    return self.render(
-                        'setup.html',
-                        filename=filename,
-                        built=False, log=experiment.get_log(0),
-                        upload_short_id=upload.short_id,
-                        experiment_url=experiment_url,
-                    )
-                # Else, trigger the build
-                else:
-                    if experiment.status == database.Status.NOBUILD:
-                        logger.info("Triggering a build")
-                        experiment.status = database.Status.QUEUED
-                        self.application.builder.build(experiment.hash)
-                    return self.render(
-                        'setup.html',
-                        filename=filename,
-                        built=False,
-                        upload_short_id=upload.short_id,
-                        experiment_url=experiment_url,
-                    )
-        finally:
-            self.db.commit()
+
+        input_files = (
+            self.db.query(database.Path)
+            .filter(database.Path.experiment_hash ==
+                    experiment.hash)
+            .filter(database.Path.is_input)).all()
+        return self.render(
+            'setup.html',
+            filename=filename,
+            built=True, error=False,
+            log=experiment.get_log(0),
+            params=experiment.parameters,
+            input_files=input_files,
+            upload_short_id=upload.short_id,
+            experiment_url=experiment_url,
+        )
 
 
 class ReproduceRepo(BaseReproduce):

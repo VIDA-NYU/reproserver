@@ -4,35 +4,6 @@
 
 <h1>Package {{ filename }}</h1>
 
-{% if built %}
-
-  {% if error %}
-
-    <p>Error extracting package!</p>
-
-    <p>Build log:</p>
-    <pre>{% for line in log %}{{ line }}
-{% endfor %}</pre>
-
-  {% else %}
-
-<div class="panel panel-success" id="panel1">
-  <div class="panel-heading">
-    <h4 class="panel-title">
-      <a data-toggle="collapse" data-target="#buildlog"
-         href="#buildlog" class="collapsed">
-        Build log
-      </a>
-    </h4>
-  </div>
-  <div id="buildlog" class="panel-collapse collapse">
-    <div class="panel-body">
-      <pre>{% for line in log %}{{ line }}
-{% endfor %}</pre>
-    </div>
-  </div>
-</div>
-
 <h2>Run the experiment</h2>
 
 <form method="POST" action="{{ reverse_url('start_run', upload_short_id) }}" enctype="multipart/form-data">
@@ -71,41 +42,5 @@
 
   <button type="submit" class="btn btn-default">Run</button>
 </form>
-
-  {% endif %}
-
-{% else %}
-
-<p>Waiting for package extraction, please wait...</p>
-
-<pre id="log">{% for line in log %}{{ line }}
-{% endfor %}</pre>
-
-<script>
-var log_lines = {{ log | length }};
-function update_page() {
-  var req = new XMLHttpRequest();
-  req.addEventListener("load", function(e) {
-    if(this.status == 200) {
-      if(this.response.status != "QUEUED" && this.response.status != "BUILDING") {
-        window.location.reload();
-      } else if(this.response.log.length > 0) {
-        log_lines += this.response.log.length;
-        var dom_log = document.getElementById("log");
-        dom_log.textContent += this.response.log.join("\n") + "\n";
-      }
-    }
-    setTimeout(update_page, 3000);
-  });
-  req.responseType = "json";
-  req.open("GET", "{{ experiment_url }}?log_from=" + log_lines);
-  req.setRequestHeader("Accept", "application/json");
-  req.send();
-}
-
-setTimeout(update_page, 3000);
-</script>
-
-{% endif %}
 
 {% endblock content %}
