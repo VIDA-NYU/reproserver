@@ -51,11 +51,17 @@ class ObjectStore(object):
         self.bucket(bucket).download_file(objectname, filename)
 
     def upload_fileobj(self, bucket, objectname, fileobj):
-        self.s3.Object(self.bucket_name(bucket), objectname).put(Body=fileobj)
+        # s3.Object(...).put(...) and s3.meta.client.upload_file(...) do
+        # multipart uploads which don't work on GCP
+        self.s3.meta.client.put_object(
+            Bucket=self.bucket_name(bucket),
+            Key=objectname,
+            Body=fileobj,
+        )
 
     def upload_file(self, bucket, objectname, filename):
-        self.s3.meta.client.upload_file(filename,
-                                        self.bucket_name(bucket), objectname)
+        with open(filename, 'rb') as fileobj:
+            self.upload_fileobj(bucket, objectname, fileobj)
 
     def upload_file_async(self, bucket, objectname, filename):
         return asyncio.get_event_loop().run_in_executor(
