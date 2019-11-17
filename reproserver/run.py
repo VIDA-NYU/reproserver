@@ -406,7 +406,13 @@ class K8sRunner(DockerRunner):
         proxy = InternalProxyHandler.make_app(reproserver_run=run)
         proxy.listen(5597, address='0.0.0.0')
 
-        asyncio.get_event_loop().run_until_complete(fut)
+        try:
+            asyncio.get_event_loop().run_until_complete(fut)
+        except Exception:
+            logger.exception("Kubernetes runner pod error")
+            raise
+        else:
+            logger.info("Kubernetes runner pod complete")
 
     def run_sync(self, run_id):
         kubernetes.config.load_incluster_config()
