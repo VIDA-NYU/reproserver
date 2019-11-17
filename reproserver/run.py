@@ -319,7 +319,7 @@ class InternalProxyHandler(ProxyHandler):
     def select_destination(self):
         # Authentication
         token = self.request.headers.pop('X-Reproserver-Authenticate', None)
-        if token != 'secret-token':
+        if token != self.application.settings['connection_token']:
             self.set_status(403)
             logger.info("Unauthenticated pod communication")
             self.finish("Unauthenticated pod communication")
@@ -331,7 +331,7 @@ class InternalProxyHandler(ProxyHandler):
         run_short_id, port = host_name.split('-')
         port = int(port)
 
-        # TODO: Map Host value from `self.application.reproserver_run`?
+        # TODO: Map Host with `self.application.settings['reproserver_run']`?
 
         return 'localhost:{0}{1}'.format(port, self.request.uri)
 
@@ -403,7 +403,10 @@ class K8sRunner(DockerRunner):
         )
 
         # Also set up a proxy
-        proxy = InternalProxyHandler.make_app(reproserver_run=run)
+        proxy = InternalProxyHandler.make_app(
+            reproserver_run=run,
+            connection_token=os.environ['CONNECTION_TOKEN'],
+        )
         proxy.listen(5597, address='0.0.0.0')
 
         try:

@@ -39,7 +39,8 @@ class K8sProxyHandler(ProxyHandler):
 
     def alter_request(self, request):
         # Authentication
-        request.headers['X-Reproserver-Authenticate'] = 'secret-token'
+        request.headers['X-Reproserver-Authenticate'] = \
+            self.application.settings['connection_token']
 
         request.headers['Host'] = self.original_host
 
@@ -58,7 +59,9 @@ def main():
     if os.environ.get('RUNNER_TYPE') == 'docker':
         proxy = DockerProxyHandler.make_app()
     else:
-        proxy = K8sProxyHandler.make_app()
+        proxy = K8sProxyHandler.make_app(
+            connection_token=os.environ['CONNECTION_TOKEN'],
+        )
     proxy.listen(8001, address='0.0.0.0', xheaders=True)
 
     loop = tornado.ioloop.IOLoop.current()
