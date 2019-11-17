@@ -225,6 +225,7 @@ spec:
           ports:
             - containerPort: 8000
             - containerPort: 8001
+            - containerPort: 8090
           livenessProbe:
             httpGet:
               path: /health
