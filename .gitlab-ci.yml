@@ -2,19 +2,13 @@ image: "python:3.6"
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-#  DOCKER_HOST: tcp://docker:2375
-#  DOCKER_DRIVER: overlay2
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_DRIVER: overlay2
 
-#services:
-#  - docker:dind
+services:
+  - docker:dind
 
 before_script:
-#  # Install Docker
-#  - curl -Lo /tmp/docker.tgz https://get.docker.com/builds/Linux/x86_64/docker-17.05.0-ce.tgz && tar -xf /tmp/docker.tgz -C /usr/local && rm /tmp/docker.tgz && export PATH=/usr/local/docker:$PATH && export DOCKER_HOST=tcp://docker:2375
-#  - docker info
-#  # Install docker-compose
-#  - curl -Lo /usr/local/bin/docker-compose "https://github.com/docker/compose/releases/download/1.24.0/docker-compose-$(uname -s)-$(uname -m)"
-#  - chmod +x /usr/local/bin/docker-compose
   # Install Poetry
   - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python && /root/.poetry/bin/poetry config settings.virtualenvs.create false
   # Install dependencies
@@ -26,3 +20,23 @@ checks:
     - flake8 --ignore=E731,W504 reproserver tests
     - python -m readme_renderer README.rst >/dev/null
     - python tests
+
+tests:
+  stage: test
+  before_script:
+    # Install Docker
+    - curl -Lo /tmp/docker.tgz https://get.docker.com/builds/Linux/x86_64/docker-17.05.0-ce.tgz && tar -xf /tmp/docker.tgz -C /usr/local && rm /tmp/docker.tgz && export PATH=/usr/local/docker:$PATH && export DOCKER_HOST=tcp://docker:2375
+    - docker info
+    # Install kind
+    - mkdir -p /usr/local/bin
+    - curl -Lo /usr/local/bin/kind https://github.com/kubernetes-sigs/kind/releases/download/v0.5.1/kind-linux-amd64 && chmod +x /usr/local/bin/kind
+    - curl -Lo /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.16.3/bin/linux/amd64/kubectl && chmod +x /usr/local/bin/kubectl
+  script:
+    # Patch kind config to listen on docker service's IP address
+    # export DOCKER_IP="$(host docker)"
+    - export DOCKER_IP="$(python -c "import socket; print(socket.getaddrinfo('docker', 2375, socket.AF_INET, socket.SOCK_STREAM)[0][4][0])")"
+    - "sed -i 's/apiServerAddress: .*/apiServerAddress: '$DOCKER_IP/ tests/ci.kind.yml"
+    # Start Kubernetes-in-Docker cluster
+    - kind create cluster --config=tests/ci.kind.yml
+    - export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
+    - kubectl describe node

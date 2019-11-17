@@ -1,0 +1,11 @@
+kind: Cluster
+apiVersion: kind.sigs.k8s.io/v1alpha3
+nodes:
+- role: control-plane
+  extraPortMappings:
+  - containerPort: 30080
+    hostPort: 30080
+    listenAddress: 0.0.0.0
+networking:
+  apiServerAddress: 127.0.0.1
+  apiServerPort: 34321
