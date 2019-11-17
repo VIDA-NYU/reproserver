@@ -6,6 +6,7 @@ import kubernetes.config
 import kubernetes.watch
 import logging
 import os
+import prometheus_client
 import shutil
 import subprocess
 import tempfile
@@ -22,6 +23,12 @@ logger = logging.getLogger(__name__)
 
 # IP as understood by Docker daemon, not this container
 DOCKER_REGISTRY = os.environ.get('REGISTRY', 'localhost:5000')
+
+
+PROM_BUILDS = prometheus_client.Gauge(
+    'current_builds',
+    "Builds currently happening",
+)
 
 
 def run_cmd_and_log(session, experiment_hash, cmd):
@@ -70,6 +77,7 @@ class Builder(object):
                     "Exception in build task for %s",
                     experiment_hash,
                 )
+            PROM_BUILDS.dec()
 
         return callback
 
@@ -89,6 +97,7 @@ class Builder(object):
         )
         self._builds[experiment_hash] = future
         future.add_done_callback(self._build_callback(experiment_hash))
+        PROM_BUILDS.inc()
         return future
 
     def build_sync(self, experiment_hash):
@@ -262,6 +271,7 @@ class K8sBuilder(DockerBuilder):
             namespace=namespace,
             label_selector='app=build',
         )
+        PROM_BUILDS.set(0)
         for pod in pods.items:
             experiment_hash = (
                 pod.metadata.labels['experiment1'] +
@@ -275,6 +285,7 @@ class K8sBuilder(DockerBuilder):
             )
             self._builds[experiment_hash] = future
             future.add_done_callback(self._build_callback(experiment_hash))
+            PROM_BUILDS.inc()
 
     def _pod_name(self, experiment_hash):
         return 'build-{0}'.format(experiment_hash[:55])

@@ -5,6 +5,7 @@ import kubernetes.config
 import kubernetes.watch
 import logging
 import os
+import prometheus_client
 import shutil
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import functions
@@ -25,6 +26,12 @@ logger = logging.getLogger(__name__)
 
 # IP as understood by Docker daemon, not this container
 DOCKER_REGISTRY = os.environ.get('REGISTRY', 'localhost:5000')
+
+
+PROM_RUNS = prometheus_client.Gauge(
+    'current_runs',
+    "Runs currently happening",
+)
 
 
 def run_cmd_and_log(session, run_id, cmd):
@@ -57,6 +64,7 @@ class Runner(object):
                 logger.info("Run %d successful", run_id)
             except Exception:
                 logger.exception("Exception in run %d", run_id)
+            PROM_RUNS.dec()
 
         return callback
 
@@ -67,6 +75,7 @@ class Runner(object):
             run_id,
         )
         future.add_done_callback(self._run_callback(run_id))
+        PROM_RUNS.inc()
         return future
 
     def run_sync(self, run_id):
@@ -346,6 +355,7 @@ class K8sRunner(DockerRunner):
             namespace=namespace,
             label_selector='app=run',
         )
+        PROM_RUNS.set(0)
         for pod in pods.items:
             run_id = int(pod.metadata.labels['run'], 10)
             logger.info("Attaching to run pod for %d", run_id)
@@ -355,6 +365,7 @@ class K8sRunner(DockerRunner):
                 client, namespace, run_id,
             )
             future.add_done_callback(self._run_callback(run_id))
+            PROM_RUNS.inc()
 
     def _pod_name(self, run_id):
         return 'run-{0}'.format(run_id)

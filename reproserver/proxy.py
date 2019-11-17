@@ -1,4 +1,6 @@
+import itertools
 import logging
+import prometheus_client
 from tornado import httputil
 from tornado import httpclient
 from tornado.routing import URLSpec
@@ -9,6 +11,15 @@ from . import __version__
 
 
 logger = logging.getLogger(__name__)
+
+
+PROM_PROXY_REQUESTS = prometheus_client.Counter(
+    'proxy_requests_total',
+    "Proxy requests",
+    ['proto', 'status'],
+)
+for args in itertools.product(['http', 'ws'], ['success', 'error']):
+    PROM_PROXY_REQUESTS.labels(*args).inc(0)
 
 
 class ProxyHandler(WebSocketHandler):
@@ -50,8 +61,10 @@ class ProxyHandler(WebSocketHandler):
             except httpclient.HTTPClientError as e:
                 logger.info("Sending HTTP error from websocket client %r %r",
                             e.code, e.message)
+                PROM_PROXY_REQUESTS.labels('ws', 'error').inc()
                 self.set_status(e.code, reason=e.message)
                 return self.finish()
+            PROM_PROXY_REQUESTS.labels('ws', 'success').inc()
             return await WebSocketHandler.get(self)
         else:
             headers = dict(self.request.headers)
@@ -74,9 +87,11 @@ class ProxyHandler(WebSocketHandler):
                 )
             except OSError:
                 logger.info("Got OSError, sending 410 error")
+                PROM_PROXY_REQUESTS.labels('http', 'error').inc()
                 self.set_status(410)
                 self.set_header('Content-Type', 'text/plain')
                 return self.finish("This run is now over")
+            PROM_PROXY_REQUESTS.labels('http', 'success').inc()
             return self.finish()
 
     def post(self):
