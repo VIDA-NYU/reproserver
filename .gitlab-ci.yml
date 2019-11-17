@@ -31,7 +31,6 @@ tests:
     - mkdir -p /usr/local/bin
     - curl -Lo /usr/local/bin/kind https://github.com/kubernetes-sigs/kind/releases/download/v0.5.1/kind-linux-amd64 && chmod +x /usr/local/bin/kind
     - curl -Lo /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.16.3/bin/linux/amd64/kubectl && chmod +x /usr/local/bin/kubectl
-  script:
     # Patch kind config to listen on docker service's IP address
     # export DOCKER_IP="$(host docker)"
     - export DOCKER_IP="$(python -c "import socket; print(socket.getaddrinfo('docker', 2375, socket.AF_INET, socket.SOCK_STREAM)[0][4][0])")"
@@ -40,3 +39,19 @@ tests:
     - kind create cluster --config=tests/ci.kind.yml
     - export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
     - kubectl describe node
+  script:
+    # Build image
+    - docker build -t reproserver_web .
+    - kind load docker-image reproserver_web
+    # Start reproserver on Kubernetes
+    - kubectl apply -f k8s-volumes-minikube.yml
+    - kubectl apply -f k8s-sa.yml
+    - kubectl apply -f k8s-secrets.yml
+    - kubectl apply -f k8s-minio.yml
+    - kubectl apply -f k8s.yml
+    - |
+      if ! kubectl wait --timeout=10m --for=condition=Available deploy --all; then
+        kubectl get pod
+        exit 1
+      fi
+    - curl -i http://docker:30080/
