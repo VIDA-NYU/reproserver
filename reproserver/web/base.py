@@ -51,6 +51,11 @@ class Application(tornado.web.Application):
         else:
             raise RuntimeError("RUNNER_TYPE should be 'docker' or 'k8s'")
 
+    def log_request(self, handler):
+        if handler.request.path == '/health':
+            return
+        super(Application, self).log_request(handler)
+
 
 class BaseHandler(tornado.web.RequestHandler):
     """Base class for all request handlers.
