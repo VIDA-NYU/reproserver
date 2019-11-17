@@ -1,5 +1,6 @@
 import logging
 import os
+import prometheus_client
 import tornado.ioloop
 
 from . import database
@@ -47,6 +48,7 @@ def main():
     logging.root.handlers.clear()
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s: %(message)s")
+    prometheus_client.start_http_server(8090)
 
     app = make_app()
     app.listen(8000, address='0.0.0.0',

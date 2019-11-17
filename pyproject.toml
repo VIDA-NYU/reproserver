@@ -45,6 +45,7 @@ boto3 = "^1"
 psycopg2 = "^2.8"
 kubernetes = "*"
 PyYAML = "*"
+prometheus_client = "*"
 
 reprounzip = { path = "reprozip/reprounzip" }
 reprounzip-docker = { path = "reprozip/reprounzip-docker" }
