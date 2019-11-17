@@ -12,9 +12,9 @@ import tempfile
 import time
 import yaml
 
-from reproserver import database
-from reproserver.objectstore import get_object_store
-from reproserver.utils import shell_escape
+from . import database
+from .objectstore import get_object_store
+from .utils import shell_escape
 
 
 logger = logging.getLogger(__name__)
