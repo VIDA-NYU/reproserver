@@ -1,15 +1,13 @@
 image: "python:3.6"
 
-before_script:
-  # Install Poetry
-  - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python && /root/.poetry/bin/poetry config settings.virtualenvs.create false
-  # Install dependencies
-  - $HOME/.poetry/bin/poetry install --no-interaction
-
 checks:
   stage: test
   before_script:
     - git submodule init && git submodule update reprozip
+    # Install Poetry
+    - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python && /root/.poetry/bin/poetry config settings.virtualenvs.create false
+    # Install dependencies
+    - $HOME/.poetry/bin/poetry install --no-interaction
   script:
     - flake8 --ignore=E731,W504 reproserver tests
     - python -m readme_renderer README.rst >/dev/null
@@ -24,6 +22,10 @@ tests:
   services:
     - docker:dind
   before_script:
+    # Install Poetry
+    - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python && /root/.poetry/bin/poetry config settings.virtualenvs.create false
+    # Install dependencies
+    - $HOME/.poetry/bin/poetry install --no-interaction
     # Install Docker
     - curl -Lo /tmp/docker.tgz https://get.docker.com/builds/Linux/x86_64/docker-17.05.0-ce.tgz && tar -xf /tmp/docker.tgz -C /usr/local && rm /tmp/docker.tgz && export PATH=/usr/local/docker:$PATH && export DOCKER_HOST=tcp://docker:2375
     - docker info
