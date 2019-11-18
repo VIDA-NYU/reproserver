@@ -34,7 +34,7 @@ PROM_RUNS = prometheus_client.Gauge(
 )
 
 
-def run_cmd_and_log(session, run_id, cmd):
+def run_cmd_and_log(session, run_id, cmd, to_db):
     proc = subprocess.Popen(cmd,
                             stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE,
@@ -44,11 +44,9 @@ def run_cmd_and_log(session, run_id, cmd):
         line = line.decode('utf-8', 'replace')
         line = line.rstrip()
         logger.info("> %s", line)
-        session.add(database.RunLogLine(
-            run_id=run_id,
-            line=line,
-        ))
-        session.commit()
+        if to_db is not None:
+            session.add(to_db(line))
+            session.commit()
     return proc.wait()
 
 
@@ -89,8 +87,9 @@ class DockerRunner(Runner):
     def _docker_run(self, run_id, bind_host):
         """Run a built experiment.
 
-        Lookup a run in the database, get the input files from S3, then do the
-        run from the Docker image, upload the log and the output files.
+        Lookup a run in the database, build the image, get the input files from
+        S3, then do the run from the Docker image, upload the log and the
+        output files.
         """
         logger.info("Run request received: %r", run_id)
 
@@ -108,6 +107,54 @@ class DockerRunner(Runner):
         if run is None:
             raise KeyError("Unknown run %r", run_id)
 
+        # Get or build the Docker image
+        fq_image_name = '%s/%s' % (
+            DOCKER_REGISTRY,
+            'rpuz_exp_%s' % run.experiment.hash,
+        )
+        logger.info("Image name: %s", fq_image_name)
+        ret = subprocess.call(['docker', 'pull', fq_image_name])
+        if ret == 0:
+            logger.info("Pulled image from cache")
+        else:
+            logger.info("Couldn't get image from cache, building")
+            with tempfile.TemporaryDirectory() as directory:
+                # Get experiment file
+                logger.info("Downloading file...")
+                local_path = os.path.join(directory, 'experiment.rpz')
+                build_dir = os.path.join(directory, 'build_dir')
+                self.object_store.download_file(
+                    'experiments', run.experiment.hash,
+                    local_path,
+                )
+                logger.info("Got file, %d bytes", os.stat(local_path).st_size)
+
+                # Build image
+                ret = run_cmd_and_log(
+                    db,
+                    run.experiment.hash,
+                    [
+                        'reprounzip', '-v', 'docker', 'setup',
+                        '--image-name', fq_image_name,
+                        local_path, build_dir,
+                    ],
+                    to_db=lambda l, h=run.experiment.hash: (
+                        database.BuildLogLine(experiment_hash=h, line=l)
+                    ),
+                )
+                if ret != 0:
+                    raise ValueError("Error: Docker returned %d" % ret)
+                db.add(database.BuildLogLine(
+                    experiment_hash=run.experiment.hash,
+                    line="Build successful",
+                ))
+                db.commit()
+            logger.info("Build over, pushing image")
+
+            # Push image to Docker repository
+            subprocess.check_call(['docker', 'push', fq_image_name])
+            logger.info("Pushed, build phase complete")
+
         # Update status in database
         if run.started:
             logger.warning("Starting run which has already been started")
@@ -123,10 +170,6 @@ class DockerRunner(Runner):
         directory = tempfile.mkdtemp('build_%s' % run.experiment_hash)
 
         container = None
-        fq_image_name = '%s/%s' % (
-            DOCKER_REGISTRY,
-            run.experiment.docker_image,
-        )
 
         try:
             # Get list of parameters
@@ -176,7 +219,7 @@ class DockerRunner(Runner):
             container = 'run_%s' % run_id
             logger.info(
                 "Creating container %s with image %s",
-                container, run.experiment.docker_image,
+                container, fq_image_name,
             )
             # Turn parameters into a command-line
             cmdline = [
@@ -232,6 +275,9 @@ class DockerRunner(Runner):
                     db,
                     run.id,
                     ['docker', 'start', '-ai', '--', container],
+                    to_db=lambda l, run_id=run.id: (
+                        database.RunLogLine(run_id=run_id, line=l)
+                    ),
                 )
             except IOError:
                 raise ValueError("Got IOError running experiment")
