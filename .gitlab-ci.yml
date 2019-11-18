@@ -11,7 +11,7 @@ checks:
   script:
     - flake8 --ignore=E731,W504 reproserver tests
     - python -m readme_renderer README.rst >/dev/null
-    - python tests
+    - TESTS_DIR=tests/unit python tests
 
 tests:
   stage: test
