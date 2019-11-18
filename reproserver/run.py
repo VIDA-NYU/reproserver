@@ -349,7 +349,7 @@ class K8sRunner(DockerRunner):
 
         # Find existing run pods
         client = k8s.CoreV1Api()
-        with open(os.path.join(self.config_dir, 'builder.namespace')) as fp:
+        with open(os.path.join(self.config_dir, 'runner.namespace')) as fp:
             namespace = fp.read().strip()
         pods = client.list_namespaced_pod(
             namespace=namespace,
