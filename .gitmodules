@@ -1,3 +1,6 @@
 [submodule "reprozip"]
 	path = reprozip
 	url = https://github.com/VIDA-NYU/reprozip.git
+[submodule "testdata"]
+	path = testdata
+	url = https://gitlab.com/ViDA-NYU/reproserver-testdata.git

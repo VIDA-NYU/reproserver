@@ -17,7 +17,7 @@ class Program(unittest.TestProgram):
     def createTests(self):
         if self.testNames is None:
             self.test = self.testLoader.discover(
-                start_dir=start_dir,
+                start_dir=os.environ.get('TESTS_DIR', start_dir),
                 top_level_dir=top_level,
                 pattern='test_*.py')
         else:

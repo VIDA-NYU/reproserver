@@ -1,28 +1,70 @@
 image: "python:3.6"
 
-variables:
-  GIT_SUBMODULE_STRATEGY: recursive
-#  DOCKER_HOST: tcp://docker:2375
-#  DOCKER_DRIVER: overlay2
-
-#services:
-#  - docker:dind
-
-before_script:
-#  # Install Docker
-#  - curl -Lo /tmp/docker.tgz https://get.docker.com/builds/Linux/x86_64/docker-17.05.0-ce.tgz && tar -xf /tmp/docker.tgz -C /usr/local && rm /tmp/docker.tgz && export PATH=/usr/local/docker:$PATH && export DOCKER_HOST=tcp://docker:2375
-#  - docker info
-#  # Install docker-compose
-#  - curl -Lo /usr/local/bin/docker-compose "https://github.com/docker/compose/releases/download/1.24.0/docker-compose-$(uname -s)-$(uname -m)"
-#  - chmod +x /usr/local/bin/docker-compose
-  # Install Poetry
-  - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python && /root/.poetry/bin/poetry config settings.virtualenvs.create false
-  # Install dependencies
-  - $HOME/.poetry/bin/poetry install --no-interaction
-
 checks:
   stage: test
+  before_script:
+    - git submodule init && git submodule update reprozip
+    # Install Poetry
+    - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python && /root/.poetry/bin/poetry config settings.virtualenvs.create false
+    # Install dependencies
+    - $HOME/.poetry/bin/poetry install --no-interaction
   script:
     - flake8 --ignore=E731,W504 reproserver tests
     - python -m readme_renderer README.rst >/dev/null
-    - python tests
+    - TESTS_DIR=tests/unit python tests
+
+tests:
+  stage: test
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_DRIVER: overlay2
+  services:
+    - docker:dind
+  before_script:
+    # Install Poetry
+    - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python && /root/.poetry/bin/poetry config settings.virtualenvs.create false
+    # Install dependencies
+    - $HOME/.poetry/bin/poetry install --no-interaction
+    # Install Docker
+    - curl -Lo /tmp/docker.tgz https://get.docker.com/builds/Linux/x86_64/docker-17.05.0-ce.tgz && tar -xf /tmp/docker.tgz -C /usr/local && rm /tmp/docker.tgz && export PATH=/usr/local/docker:$PATH && export DOCKER_HOST=tcp://docker:2375
+    - docker info
+    # Install kind
+    - mkdir -p /usr/local/bin
+    - curl -Lo /usr/local/bin/kind https://github.com/kubernetes-sigs/kind/releases/download/v0.5.1/kind-linux-amd64 && chmod +x /usr/local/bin/kind
+    - curl -Lo /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.16.3/bin/linux/amd64/kubectl && chmod +x /usr/local/bin/kubectl
+    # Patch kind config to listen on docker service's IP address
+    # export DOCKER_IP="$(host docker)"
+    - export DOCKER_IP="$(python -c "import socket; print(socket.getaddrinfo('docker', 2375, socket.AF_INET, socket.SOCK_STREAM)[0][4][0])")"
+    - "sed -i 's/apiServerAddress: .*/apiServerAddress: '$DOCKER_IP/ tests/ci.kind.yml"
+    # Start Kubernetes-in-Docker cluster
+    - kind create cluster --config=tests/ci.kind.yml
+    - export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
+    - kubectl describe node
+  script:
+    # Build image
+    - docker build -t reproserver_web .
+    - kind load docker-image reproserver_web
+    # Start reproserver on Kubernetes
+    - kubectl apply -f k8s-volumes-minikube.yml
+    - kubectl apply -f k8s-sa.yml
+    - kubectl apply -f k8s-secrets.yml
+    - kubectl apply -f k8s-minio.yml
+    - kubectl apply -f k8s.yml
+    - |
+      if ! kubectl wait --timeout=10m --for=condition=Available deploy --all; then
+        kubectl get pod
+        exit 1
+      fi
+    - export WEB_URL=http://docker:30080
+    - |
+      # Wait a little bit more
+      slept=0; while [ $slept -le 300 -a $(curl -s -o /dev/null -w "%{http_code}" $WEB_URL/) != 200 ]; do sleep 5; slept=$((slept + 5)); done
+      if ! [ $slept -le 300 ]; then
+        curl -i $WEB_URL/
+        echo "didn't come up after ${slept}s"
+        exit 1
+      fi
+      curl -I -X GET $WEB_URL/
+    # Run integration tests
+    - TESTS_DIR=tests/integ python tests
