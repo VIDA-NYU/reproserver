@@ -129,9 +129,6 @@ class DockerRunner(Runner):
         )
 
         try:
-            if run.experiment.status != database.Status.BUILT:
-                raise ValueError("Experiment to run is not BUILT")
-
             # Get list of parameters
             params = {}
             params_unset = set()
