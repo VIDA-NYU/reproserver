@@ -57,6 +57,14 @@ tests:
         exit 1
       fi
     - export WEB_URL=http://docker:30080
-    - curl -i $WEB_URL/
+    - |
+      # Wait a little bit more
+      slept=0; while [ $slept -le 300 -a $(curl -s -o /dev/null -w "%{http_code}" $WEB_URL/) != 200 ]; do sleep 5; slept=$((slept + 5)); done
+      if ! [ $slept -le 300 ]; then
+        curl -i $WEB_URL/
+        echo "didn't come up after ${slept}s"
+        exit 1
+      fi
+      curl -I -X GET $WEB_URL/
     # Run integration tests
     - TESTS_DIR=tests/integ python tests
