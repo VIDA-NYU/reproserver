@@ -192,7 +192,7 @@ class DockerRunner(Runner):
             cmdline.extend([
                 '--', fq_image_name,
             ])
-            for k, v in params.items():
+            for k, v in sorted(params.items()):
                 if k.startswith('cmdline_'):
                     i = k[8:]
                     cmdline.extend(['cmd', v, 'run', i])

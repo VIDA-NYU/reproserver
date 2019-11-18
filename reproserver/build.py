@@ -211,7 +211,7 @@ class DockerBuilder(Builder):
                 cmdline = ' '.join(shell_escape(a) for a in run['argv'])
                 db.add(database.Parameter(
                     experiment_hash=experiment.hash,
-                    name="cmdline_%d" % i, optional=False, default=cmdline,
+                    name="cmdline_%05d" % i, optional=False, default=cmdline,
                     description="Command-line for step %s" % run['id']),
                 )
             # Input/output files
