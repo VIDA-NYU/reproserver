@@ -155,13 +155,6 @@ class DockerRunner(Runner):
             subprocess.check_call(['docker', 'push', fq_image_name])
             logger.info("Pushed, build phase complete")
 
-        # Update status in database
-        if run.started:
-            logger.warning("Starting run which has already been started")
-        else:
-            run.started = functions.now()
-            db.commit()
-
         # Remove previous info
         run.log[:] = []
         run.output_files[:] = []
@@ -268,8 +261,15 @@ class DockerRunner(Runner):
                 # Remove local file
                 os.remove(local_path)
 
-            # Start container using parameters
+            # Update status in database
             logger.info("Starting container")
+            if run.started:
+                logger.warning("Starting run which has already been started")
+            else:
+                run.started = functions.now()
+                db.commit()
+
+            # Start container using parameters
             try:
                 ret = run_cmd_and_log(
                     db,
@@ -283,6 +283,7 @@ class DockerRunner(Runner):
                 raise ValueError("Got IOError running experiment")
             if ret != 0:
                 raise ValueError("Error: Docker returned %d" % ret)
+            logger.info("Container done")
             run.done = functions.now()
 
             # Get output files
