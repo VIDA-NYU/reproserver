@@ -54,6 +54,7 @@ reprounzip-docker = { path = "reprozip/reprounzip-docker" }
 coverage = "*"
 flake8 = "*"
 readme_renderer = "*"
+requests = "*"
 
 [tool.poetry.scripts]
 reproserver = "reproserver.main:main"

@@ -56,4 +56,7 @@ tests:
         kubectl get pod
         exit 1
       fi
-    - curl -i http://docker:30080/
+    - export WEB_URL=http://docker:30080
+    - curl -i $WEB_URL/
+    # Run integration tests
+    - TESTS_DIR=tests/integ python tests
