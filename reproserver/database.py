@@ -30,7 +30,6 @@ class Experiment(Base):
     __tablename__ = 'experiments'
 
     hash = Column(String, primary_key=True)
-    docker_image = Column(String, nullable=True)
     last_access = Column(DateTime, nullable=False,
                          server_default=functions.now())
 
