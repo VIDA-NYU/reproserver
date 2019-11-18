@@ -1,13 +1,5 @@
 image: "python:3.6"
 
-variables:
-  GIT_SUBMODULE_STRATEGY: recursive
-  DOCKER_HOST: tcp://docker:2375
-  DOCKER_DRIVER: overlay2
-
-services:
-  - docker:dind
-
 before_script:
   # Install Poetry
   - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python && /root/.poetry/bin/poetry config settings.virtualenvs.create false
@@ -16,6 +8,8 @@ before_script:
 
 checks:
   stage: test
+  before_script:
+    - git submodule init && git submodule update reprozip
   script:
     - flake8 --ignore=E731,W504 reproserver tests
     - python -m readme_renderer README.rst >/dev/null
@@ -23,6 +17,12 @@ checks:
 
 tests:
   stage: test
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_DRIVER: overlay2
+  services:
+    - docker:dind
   before_script:
     # Install Docker
     - curl -Lo /tmp/docker.tgz https://get.docker.com/builds/Linux/x86_64/docker-17.05.0-ce.tgz && tar -xf /tmp/docker.tgz -C /usr/local && rm /tmp/docker.tgz && export PATH=/usr/local/docker:$PATH && export DOCKER_HOST=tcp://docker:2375
