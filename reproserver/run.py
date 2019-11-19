@@ -194,7 +194,7 @@ class DockerRunner(Runner):
             ])
             for k, v in sorted(params.items()):
                 if k.startswith('cmdline_'):
-                    i = k[8:]
+                    i = str(int(k[8:], 10))
                     cmdline.extend(['cmd', v, 'run', i])
             logger.info('$ %s', ' '.join(shell_escape(a) for a in cmdline))
             subprocess.check_call(cmdline)
