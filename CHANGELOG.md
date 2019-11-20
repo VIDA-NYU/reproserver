@@ -1,8 +1,8 @@
 CHANGELOG
 =========
 
-0.8 (???)
----------
+0.8 (2019-11-20)
+----------------
 
 Enhancements:
 * Integration with Kubernetes, to run builds/runs in pods (which use Docker-in-Docker)
