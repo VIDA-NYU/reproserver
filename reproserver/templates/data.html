@@ -6,10 +6,6 @@
 
   <h1>Experiment: {{ experiment.hash }}</h1>
 
-  <p>Status: {{ experiment.status }}</p>
-
-  <p>Image: {{ experiment.docker_image }}</p>
-
   {% for upload in experiment.uploads %}
 
   <p>Uploaded by {{ upload.submitted_ip }} at {{ upload.timestamp }}
