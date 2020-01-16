@@ -5,7 +5,7 @@ checks:
   before_script:
     - git submodule init && git submodule update reprozip
     # Install Poetry
-    - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python && /root/.poetry/bin/poetry config settings.virtualenvs.create false
+    - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python && /root/.poetry/bin/poetry config virtualenvs.create false
     # Install dependencies
     - $HOME/.poetry/bin/poetry install --no-interaction
   script:
@@ -23,7 +23,7 @@ tests:
     - docker:dind
   before_script:
     # Install Poetry
-    - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python && /root/.poetry/bin/poetry config settings.virtualenvs.create false
+    - curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python && /root/.poetry/bin/poetry config virtualenvs.create false
     # Install dependencies
     - $HOME/.poetry/bin/poetry install --no-interaction
     # Install Docker

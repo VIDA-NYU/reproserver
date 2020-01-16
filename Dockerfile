@@ -1,7 +1,7 @@
 FROM python:3.6
 
 RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python && \
-    /root/.poetry/bin/poetry config settings.virtualenvs.create false
+    /root/.poetry/bin/poetry config virtualenvs.create false
 
 ENV TINI_VERSION v0.18.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
