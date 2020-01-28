@@ -1,6 +1,12 @@
 CHANGELOG
 =========
 
+0.9 (???)
+---------
+
+Enhancements:
+* Changed workflow, "building" happens during the run phase transparently if required
+
 0.8 (2019-11-20)
 ----------------
 
