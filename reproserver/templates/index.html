@@ -2,9 +2,9 @@
 
 {% block content %}
 
-<h1>Select a package to unpack</h1>
+<h1>Select a package to upload</h1>
 
-<form method="POST" action="{{ reverse_url('unpack') }}" enctype="multipart/form-data">
+<form method="POST" action="{{ reverse_url('upload') }}" enctype="multipart/form-data">
   {{ xsrf_form_html() }}
   <div class="form-group">
     <label for="rpz_file">Upload a file</label>
@@ -14,13 +14,13 @@
     <label for="rpz_url">or provide a package's URL</label>
     <input type="text" class="form-control" id="rpz_url" name="rpz_url" placeholder="http://experiment.rpz">
   </div>
-  <button type="submit" class="btn btn-default">Unpack</button>
+  <button type="submit" class="btn btn-default">Upload</button>
 </form>
 
 <hr/>
 
 <h2>How to Use This Site</h2>
-<p>This site allows you to run reproducible research packaged with <a href="https://www.reprozip.org/">ReproZip</a> directly from your browser. Upload your own <code>.rpz</code> file and click the "Unpack" button!</p>
+<p>This site allows you to run reproducible research packaged with <a href="https://www.reprozip.org/">ReproZip</a> directly from your browser. Upload your own <code>.rpz</code> file and click the "Upload" button!</p>
 
 <p>From there, you can set parameters and (optionally) upload your own inputs, and then reproduce the work by clicking the "Run" button. You can then see the log and output files from the research, which you can view or download to your machine. You can also share the link for other people to reproduce your research.</p>
 

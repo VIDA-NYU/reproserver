@@ -4,10 +4,12 @@ import os
 import prometheus_client
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import functions
+import tempfile
 
 from .. import database
 from ..repositories import RepositoryError, get_experiment_from_repository, \
     parse_repository_url
+from .. import rpz_metadata
 from ..utils import secure_filename
 from .base import BaseHandler
 
@@ -23,7 +25,7 @@ PROM_PAGE = prometheus_client.Counter(
 
 
 class Index(BaseHandler):
-    """Landing page from which a user can select an experiment to unpack.
+    """Landing page from which a user can select an experiment to upload.
     """
     PROM_PAGE.labels('index').inc(0)
 
@@ -32,10 +34,10 @@ class Index(BaseHandler):
         return self.render('index.html')
 
 
-class Unpack(BaseHandler):
+class Upload(BaseHandler):
     """Target of the landing page.
 
-    An experiment has been provided, store it and start the build process.
+    An experiment has been provided, store it and extract metadata.
     """
     PROM_PAGE.labels('upload').inc(0)
 
@@ -59,6 +61,7 @@ class Unpack(BaseHandler):
                 ))
 
         # Get uploaded file
+        # FIXME: Don't hold the file in memory!
         uploaded_file = self.request.files['rpz_file'][0]
         assert uploaded_file.filename
         logger.info("Incoming file: %r", uploaded_file.filename)
@@ -75,17 +78,21 @@ class Unpack(BaseHandler):
             experiment.last_access = functions.now()
             logger.info("File exists in storage")
         else:
-            # Insert it on S3
-            await self.application.object_store.upload_bytes_async(
-                'experiments',
-                filehash,
-                uploaded_file.body,
-            )
-            logger.info("Inserted file in storage")
+            # Write it to disk
+            with tempfile.NamedTemporaryFile('w+b', suffix='.rpz') as tfile:
+                tfile.write(uploaded_file.body)
 
-            # Insert it in database
-            experiment = database.Experiment(hash=filehash)
-            self.db.add(experiment)
+                # Insert it in database
+                experiment = rpz_metadata.make_experiment(filehash, tfile.name)
+                self.db.add(experiment)
+
+                # Insert it on S3
+                await self.application.object_store.upload_file_async(
+                    'experiments',
+                    filehash,
+                    tfile.name,
+                )
+                logger.info("Inserted file in storage")
 
         # Insert Upload in database
         upload = database.Upload(experiment=experiment,
@@ -109,73 +116,22 @@ class BaseReproduce(BaseHandler):
         experiment = upload.experiment
         filename = upload.filename
         experiment_url = self.url_for_upload(upload)
-        try:
-            # JSON endpoint, returns data for JavaScript to update the page
-            if self.is_json_requested():
-                log_from = int(self.get_query_argument('log_from', '0'), 10)
-                return self.send_json({
-                    'status': experiment.status.name,
-                    'log': experiment.get_log(log_from),
-                    'params': [
-                        {'name': p.name, 'optional': p.optional,
-                         'default': p.default}
-                        for p in experiment.parameters]
-                })
-            # HTML view, return the page
-            else:
-                # If it's done building, send build log and run form
-                if experiment.status == database.Status.BUILT:
-                    logger.info("Experiment already built")
-                    input_files = (
-                        self.db.query(database.Path)
-                        .filter(database.Path.experiment_hash ==
-                                experiment.hash)
-                        .filter(database.Path.is_input)).all()
-                    return self.render(
-                        'setup.html',
-                        filename=filename,
-                        built=True, error=False,
-                        log=experiment.get_log(0),
-                        params=experiment.parameters,
-                        input_files=input_files,
-                        upload_short_id=upload.short_id,
-                        experiment_url=experiment_url,
-                    )
-                if experiment.status == database.Status.ERROR:
-                    logger.info("Experiment is errored")
-                    return self.render(
-                        'setup.html',
-                        filename=filename,
-                        built=True, error=True,
-                        log=experiment.get_log(0),
-                        upload_short_id=upload.short_id,
-                        experiment_url=experiment_url,
-                    )
-                # If it's currently building, show the log
-                elif experiment.status == database.Status.BUILDING:
-                    logger.info("Experiment is currently building")
-                    return self.render(
-                        'setup.html',
-                        filename=filename,
-                        built=False, log=experiment.get_log(0),
-                        upload_short_id=upload.short_id,
-                        experiment_url=experiment_url,
-                    )
-                # Else, trigger the build
-                else:
-                    if experiment.status == database.Status.NOBUILD:
-                        logger.info("Triggering a build")
-                        experiment.status = database.Status.QUEUED
-                        self.application.builder.build(experiment.hash)
-                    return self.render(
-                        'setup.html',
-                        filename=filename,
-                        built=False,
-                        upload_short_id=upload.short_id,
-                        experiment_url=experiment_url,
-                    )
-        finally:
-            self.db.commit()
+
+        input_files = (
+            self.db.query(database.Path)
+            .filter(database.Path.experiment_hash ==
+                    experiment.hash)
+            .filter(database.Path.is_input)).all()
+        return self.render(
+            'setup.html',
+            filename=filename,
+            built=True, error=False,
+            log=experiment.get_log(0),
+            params=experiment.parameters,
+            input_files=input_files,
+            upload_short_id=upload.short_id,
+            experiment_url=experiment_url,
+        )
 
 
 class ReproduceRepo(BaseReproduce):

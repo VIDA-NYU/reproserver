@@ -1,5 +1,4 @@
 from base64 import b64decode, b64encode
-import enum
 import logging
 import os
 from sqlalchemy import Column, ForeignKey, create_engine
@@ -7,7 +6,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.sql import functions
-from sqlalchemy.types import Boolean, DateTime, Enum, Integer, String
+from sqlalchemy.types import Boolean, DateTime, Integer, String
 import time
 
 from .shortid import ShortIDs
@@ -17,14 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 Base = declarative_base()
-
-
-class Status(enum.Enum):
-    NOBUILD = 1
-    QUEUED = 2
-    BUILDING = 3
-    BUILT = 4
-    ERROR = 0
 
 
 class Experiment(Base):
@@ -39,8 +30,6 @@ class Experiment(Base):
     __tablename__ = 'experiments'
 
     hash = Column(String, primary_key=True)
-    status = Column(Enum(Status), nullable=False, default=Status.NOBUILD)
-    docker_image = Column(String, nullable=True)
     last_access = Column(DateTime, nullable=False,
                          server_default=functions.now())
 
@@ -54,9 +43,8 @@ class Experiment(Base):
         return [log.line for log in self.log[from_line:]]
 
     def __repr__(self):
-        return "<Experiment hash=%r, status=%r, docker_image=%r>" % (
+        return "<Experiment hash=%r, docker_image=%r>" % (
             self.hash,
-            self.status,
             self.docker_image)
 
 
@@ -100,9 +88,8 @@ class Upload(Base):
 class Parameter(Base):
     """An experiment parameter.
 
-    Once the experiment has been built, the builder adds the list of its
-    parameters to the database, that it extracted from the package metadata.
-    Those are displayed to the user when running the experiment.
+    Those are extracted from the package metadata on upload, and displayed to
+    the user when running the experiment.
     """
     __tablename__ = 'parameters'
 

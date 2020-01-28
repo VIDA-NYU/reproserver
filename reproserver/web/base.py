@@ -8,7 +8,6 @@ import tornado.web
 
 from .. import __version__
 from .. import database
-from ..build import K8sBuilder, DockerBuilder
 from ..objectstore import get_object_store
 from ..run import K8sRunner, DockerRunner
 
@@ -24,19 +23,6 @@ class Application(tornado.web.Application):
 
         self.object_store = get_object_store()
         self.object_store.create_buckets()
-
-        if os.environ.get('BUILDER_TYPE') == 'k8s':
-            self.builder = K8sBuilder(
-                DBSession=self.DBSession,
-                object_store=self.object_store,
-            )
-        elif os.environ.get('BUILDER_TYPE') == 'docker':
-            self.builder = DockerBuilder(
-                DBSession=self.DBSession,
-                object_store=self.object_store,
-            )
-        else:
-            raise RuntimeError("$BUILDER_TYPE should be 'docker' or 'k8s'")
 
         if os.environ.get('RUNNER_TYPE') == 'k8s':
             self.runner = K8sRunner(

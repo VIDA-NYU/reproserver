@@ -4,6 +4,7 @@ import tempfile
 from tornado.httpclient import AsyncHTTPClient
 
 from .. import database
+from .. import rpz_metadata
 
 
 logger = logging.getLogger(__name__)
@@ -56,22 +57,26 @@ class BaseRepository(object):
                 tfile.flush()
 
                 filehash = hasher.hexdigest()
+                logger.info("Downloaded, hash: %s", filehash)
 
                 # Check for existence of experiment
                 experiment = db.query(database.Experiment).get(filehash)
                 if experiment:
                     logger.info("File exists")
                 else:
+                    # Insert it in database
+                    experiment = rpz_metadata.make_experiment(
+                        filehash,
+                        tfile.name,
+                    )
+                    db.add(experiment)
+
                     # Insert it on S3
                     await object_store.upload_file_async(
                         'experiments', filehash,
                         tfile.name,
                     )
                     logger.info("Inserted file in storage")
-
-                    # Insert it in database
-                    experiment = database.Experiment(hash=filehash)
-                    db.add(experiment)
 
         # Insert Upload in database
         upload = database.Upload(

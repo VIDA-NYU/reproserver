@@ -13,70 +13,6 @@ kind: ConfigMap
 metadata:
   name: k8s-config
 data:
-  builder.namespace: default
-  builder.pod_spec: |
-    restartPolicy: Never
-    containers:
-      - name: docker
-        image: docker:18.09-dind
-        securityContext:
-          privileged: true
-        args:
-          - "dockerd"
-          - "--host=tcp://127.0.0.1:2375"
-          - "--storage-driver=overlay2"
-          - "--userns-remap=default"
-          - "--insecure-registry=registry:5000"
-      - name: builder
-        image: reproserver_web
-        imagePullPolicy: IfNotPresent
-        args: rpz-placeholder
-        env:
-          - name: S3_KEY
-            valueFrom:
-              secretKeyRef:
-                name: reproserver-secret
-                key: s3_key
-          - name: S3_SECRET
-            valueFrom:
-              secretKeyRef:
-                name: reproserver-secret
-                key: s3_secret
-          - name: S3_URL
-            valueFrom:
-              configMapKeyRef:
-                name: config
-                key: s3.url
-          - name: S3_BUCKET_PREFIX
-            valueFrom:
-              configMapKeyRef:
-                name: config
-                key: s3.bucket-prefix
-          - name: S3_CLIENT_URL
-            valueFrom:
-              configMapKeyRef:
-                name: config
-                key: s3.client-url
-          - name: POSTGRES_USER
-            valueFrom:
-              secretKeyRef:
-                name: reproserver-secret
-                key: user
-          - name: POSTGRES_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: reproserver-secret
-                key: password
-          - name: POSTGRES_HOST
-            value: postgres
-          - name: POSTGRES_DB
-            value: reproserver
-          - name: DOCKER_HOST
-            value: tcp://127.0.0.1:2375
-          - name: REGISTRY
-            value: registry:5000
-          - name: REPROZIP_USAGE_STATS
-            value: "off"
   runner.namespace: default
   runner.pod_spec: |
     restartPolicy: Never
@@ -144,6 +80,8 @@ data:
             value: tcp://127.0.0.1:2375
           - name: REGISTRY
             value: registry:5000
+          - name: REPROZIP_USAGE_STATS
+            value: "off"
         ports:
           - containerPort: 5597
 ---
@@ -218,8 +156,8 @@ spec:
                 secretKeyRef:
                   name: reproserver-secret
                   key: connection_token
-            - name: BUILDER_TYPE
-              value: k8s
+            - name: REPROZIP_USAGE_STATS
+              value: "off"
             - name: RUNNER_TYPE
               value: k8s
             - name: K8S_CONFIG_DIR

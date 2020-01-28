@@ -43,7 +43,7 @@ class TestRepro(ReproserverTest):
         # Get index
         res = self.reproserver_get('/')
         self.assertIsNotNone(self.xsrf)
-        self.assertIn(b'Select a package to unpack', res.content)
+        self.assertIn(b'Select a package to upload', res.content)
 
         # Post the file
         with open('testdata/bash-count.rpz', 'rb') as fp:
