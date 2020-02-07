@@ -65,6 +65,7 @@ class BaseRepository(object):
                     logger.info("File exists")
                 else:
                     # Insert it in database
+                    # Might raise rpz_metadata.InvalidPackage
                     experiment = rpz_metadata.make_experiment(
                         filehash,
                         tfile.name,

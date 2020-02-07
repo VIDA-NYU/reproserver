@@ -9,6 +9,11 @@ from .utils import shell_escape
 logger = logging.getLogger(__name__)
 
 
+class InvalidPackage(ValueError):
+    """The RPZ package is invalid, can't get metadata from it.
+    """
+
+
 def make_experiment(filehash, filename):
     # Insert it in database
     experiment = database.Experiment(hash=filehash)
@@ -20,7 +25,10 @@ def make_experiment(filehash, filename):
     )
     info_stdout, _ = info_proc.communicate()
     if info_proc.wait() != 0:
-        raise ValueError("Error getting info from package")
+        logger.exception("reprounzip info returned %d", info_proc.returncode)
+        raise InvalidPackage(
+            "Error getting info from package (is it an RPZ file?)"
+        )
     info = json.loads(info_stdout.decode('utf-8'))
     logger.info("Got metadata, %d runs", len(info['runs']))
 

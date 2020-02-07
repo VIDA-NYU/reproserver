@@ -83,7 +83,13 @@ class Upload(BaseHandler):
                 tfile.write(uploaded_file.body)
 
                 # Insert it in database
-                experiment = rpz_metadata.make_experiment(filehash, tfile.name)
+                try:
+                    experiment = rpz_metadata.make_experiment(
+                        filehash,
+                        tfile.name,
+                    )
+                except rpz_metadata.InvalidPackage as e:
+                    return self.render('setup_notfound.html', message=str(e))
                 self.db.add(experiment)
 
                 # Insert it on S3
@@ -158,6 +164,9 @@ class ReproduceRepo(BaseReproduce):
                     repo, repo_path,
                 )
             except RepositoryError as e:
+                self.set_status(404)
+                return self.render('setup_notfound.html', message=str(e))
+            except rpz_metadata.InvalidPackage as e:
                 self.set_status(404)
                 return self.render('setup_notfound.html', message=str(e))
 
