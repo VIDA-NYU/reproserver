@@ -33,6 +33,10 @@ class Index(BaseHandler):
         PROM_PAGE.labels('index').inc()
         return self.render('index.html')
 
+    def head(self):
+        PROM_PAGE.labels('index').inc()
+        return self.finish()
+
 
 class Upload(BaseHandler):
     """Target of the landing page.
