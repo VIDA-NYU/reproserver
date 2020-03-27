@@ -1,4 +1,4 @@
-FROM python:3.6
+FROM python:3.7
 
 RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python && \
     /root/.poetry/bin/poetry config virtualenvs.create false
