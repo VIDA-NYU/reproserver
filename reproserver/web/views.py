@@ -93,7 +93,7 @@ class Upload(BaseHandler):
                         tfile.name,
                     )
                 except rpz_metadata.InvalidPackage as e:
-                    return self.render('setup_notfound.html', message=str(e))
+                    return self.render('setup_badfile.html', message=str(e))
                 self.db.add(experiment)
 
                 # Insert it on S3
@@ -172,7 +172,7 @@ class ReproduceRepo(BaseReproduce):
                 return self.render('setup_notfound.html', message=str(e))
             except rpz_metadata.InvalidPackage as e:
                 self.set_status(404)
-                return self.render('setup_notfound.html', message=str(e))
+                return self.render('setup_badfile.html', message=str(e))
 
         # Also updates last access
         upload.experiment.last_access = functions.now()
@@ -348,7 +348,7 @@ class Results(BaseHandler):
             run_id = database.Run.decode_id(run_short_id)
         except ValueError:
             self.set_status(404)
-            return self.render('setup_notfound.html')
+            return self.render('results_notfound.html')
 
         # Look up the run in the database
         run = (
