@@ -30,7 +30,7 @@ data:
       - name: runner
         image: reproserver_web
         imagePullPolicy: IfNotPresent
-        args: rpz-placeholder
+        args: ["python3", "-c", "import sys; from reproserver.run import K8sRunner; K8sRunner._run_in_pod(sys.argv[1])"]
         env:
           - name: S3_KEY
             valueFrom:

@@ -475,13 +475,7 @@ class K8sRunner(DockerRunner):
         # Make required changes
         for container in pod_spec['containers']:
             if container['name'] == 'runner':
-                container['args'] = [
-                    'python3', '-c',
-                    'from reproserver.run import K8sRunner; ' +
-                    'K8sRunner._run_in_pod{0!r}'.format((
-                        run_id,
-                    )),
-                ]
+                container['args'] += [str(run_id)]
 
         # Create a Kubernetes pod to run
         client = k8s.CoreV1Api()
