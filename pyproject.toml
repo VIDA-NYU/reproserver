@@ -55,6 +55,7 @@ coverage = "*"
 flake8 = "*"
 readme_renderer = "*"
 requests = "*"
+ERAlchemy = "^1.2.10"
 
 [tool.poetry.scripts]
 reproserver = "reproserver.main:main"
