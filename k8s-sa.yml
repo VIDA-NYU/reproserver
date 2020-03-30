@@ -7,7 +7,7 @@ automountServiceAccountToken: true
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: reproserver-builder
+  name: reproserver-runner
 rules:
   - apiGroups: [""]
     resources: ["pods", "pods/log", "services"]
@@ -19,11 +19,11 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: reproserver-sa-build
+  name: reproserver-sa-runner
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: reproserver-builder
+  name: reproserver-runner
 subjects:
   - kind: ServiceAccount
     name: reproserver-sa
