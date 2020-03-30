@@ -372,6 +372,7 @@ class Results(BaseHandler):
             return self.send_json({
                 'started': bool(run.started),
                 'done': bool(run.done),
+                'status': run.status,
                 'log': run.get_log(log_from),
             })
         # HTML view, return the page

@@ -4,7 +4,7 @@
 
 <h1>Package <a href="{{ experiment_url }}">{{ run.upload.filename }}</a>, run {{ run.short_id }}</h1>
 
-{% if run.done %}
+{% if run.status == "finished" %}
 
 <div class="panel panel-success" id="panel1">
   <div class="panel-heading">
@@ -45,33 +45,69 @@
 
 {% else %}
 
-<p>Run in progress,<span id="time_elapsed"></span> please wait...</p>
+<div id="preparing" style="display: none;">
+  queued
+  building
+  setting inputs
+</div>
 
-{% if run.ports %}
-<p>
-  Exposed ports:
-  {% for port in run.ports %}
-  <a href="{{ get_port_url(port.port_number) }}">{{ port.port_number }}</a>
-  {% endfor %}
-</p>
-{% endif %}
+<div id="running">
+  <p>Run in progress, please wait...</p>
 
-<p>Run log:</p>
-<pre id="log">{% for line in log %}{{ line }}
-{% endfor %}</pre>
+  {% if run.ports %}
+  <p>
+    Exposed ports:
+    {% for port in run.ports %}
+    <a href="{{ get_port_url(port.port_number) }}">{{ port.port_number }}</a>
+    {% endfor %}
+  </p>
+  {% endif %}
+
+  <p>Run log:</p>
+  <pre id="log">{% for line in log %}{{ line }}
+  {% endfor %}</pre>
+
+  <div id="finishing" style="display: none;">
+    <strong>storing outputs</strong>
+  </div>
+</div>
 
 <script>
 var log_lines = {{ log | length }};
+var preparing = document.getElementById("preparing");
+var running = document.getElementById("running");
+var finishing = document.getElementById("finishing");
+var preparing = document.getElementById("preparing");
+var dom_log = document.getElementById("log");
 function update_page() {
   var req = new XMLHttpRequest();
   req.addEventListener("load", function(e) {
     if(this.status == 200) {
       if(this.response.done) {
         window.location.reload();
-      } else if(this.response.log.length > 0) {
-        log_lines += this.response.log.length;
-        var dom_log = document.getElementById("log");
-        dom_log.textContent += this.response.log.join("\n") + "\n";
+      } else if(this.response.status == "queued") {
+        preparing.style.display = "";
+        running.style.display = "none";
+        preparing.innerHTML = "<ul><li><strong>queued</strong></li><li>building</li><li>setting inputs</li></ul>";
+      } else if(this.response.status == "building") {
+        preparing.style.display = "";
+        running.style.display = "none";
+        preparing.innerHTML = "<ul><li>queued</li><li><strong>building</strong></li><li>setting inputs</li></ul>";
+      } else if(this.response.status == "set_inputs") {
+        preparing.style.display = "";
+        running.style.display = "none";
+        preparing.innerHTML = "<ul><li>queued</li><li>building</li><li><strong>setting inputs</strong></li></ul>";
+      } else if(this.response.status == "running") {
+        preparing.style.display = "none";
+        running.style.display = "";
+        if(this.response.log.length > 0) {
+          log_lines += this.response.log.length;
+          dom_log.textContent += this.response.log.join("\n") + "\n";
+        }
+      } else if(this.response.status == "store_outputs") {
+        preparing.style.display = "none";
+        running.style.display = "";
+        finishing.style.display = "";
       }
     }
     setTimeout(update_page, 3000);
@@ -82,7 +118,7 @@ function update_page() {
   req.send();
 }
 
-setTimeout(update_page, 3000);
+update_page();
 </script>
 
 {% endif %}
