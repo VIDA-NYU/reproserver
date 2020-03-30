@@ -16,6 +16,7 @@ data:
   runner.namespace: default
   runner.pod_spec: |
     restartPolicy: Never
+    serviceAccountName: reproserver-sa
     containers:
       - name: docker
         image: docker:19.03.5-dind
