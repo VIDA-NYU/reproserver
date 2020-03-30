@@ -136,7 +136,6 @@ class BaseReproduce(BaseHandler):
             'setup.html',
             filename=filename,
             built=True, error=False,
-            log=experiment.get_log(0),
             params=experiment.parameters,
             input_files=input_files,
             upload_short_id=upload.short_id,
@@ -184,7 +183,7 @@ class ReproduceLocal(BaseReproduce):
     PROM_PAGE.labels('reproduce_local').inc(0)
 
     def get(self, upload_short_id):
-        """Show build log and ask for run parameters.
+        """Ask for run parameters.
         """
         PROM_PAGE.labels('reproduce_local').inc()
 

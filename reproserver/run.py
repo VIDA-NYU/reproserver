@@ -130,24 +130,13 @@ class DockerRunner(Runner):
                 logger.info("Got file, %d bytes", os.stat(local_path).st_size)
 
                 # Build image
-                ret = run_cmd_and_log(
-                    db,
-                    run.experiment.hash,
-                    [
-                        'reprounzip', '-v', 'docker', 'setup',
-                        '--image-name', fq_image_name,
-                        local_path, build_dir,
-                    ],
-                    to_db=lambda l, h=run.experiment.hash: (
-                        database.BuildLogLine(experiment_hash=h, line=l)
-                    ),
-                )
+                ret = subprocess.call([
+                    'reprounzip', '-v', 'docker', 'setup',
+                    '--image-name', fq_image_name,
+                    local_path, build_dir,
+                ])
                 if ret != 0:
                     raise ValueError("Error: Docker returned %d" % ret)
-                db.add(database.BuildLogLine(
-                    experiment_hash=run.experiment.hash,
-                    line="Build successful",
-                ))
                 db.commit()
             logger.info("Build over, pushing image")
 

@@ -37,10 +37,6 @@ class Experiment(Base):
     runs = relationship('Run', back_populates='experiment')
     parameters = relationship('Parameter', back_populates='experiment')
     paths = relationship('Path', back_populates='experiment')
-    log = relationship('BuildLogLine', back_populates='experiment')
-
-    def get_log(self, from_line=0):
-        return [log.line for log in self.log[from_line:]]
 
     def __repr__(self):
         return "<Experiment hash=%r, docker_image=%r>" % (
@@ -188,27 +184,6 @@ class Run(Base):
                 "%d inputs, %d outputs>") % (
             self.id, self.experiment_hash, status, len(self.parameter_values),
             len(self.input_files), len(self.output_files))
-
-
-class BuildLogLine(Base):
-    """A line of build log.
-
-    FIXME: Storing this in the database is not a great idea.
-    """
-    __tablename__ = 'build_logs'
-
-    id = Column(Integer, primary_key=True)
-    experiment_hash = Column(String, ForeignKey('experiments.hash',
-                                                ondelete='CASCADE'))
-    experiment = relationship('Experiment', uselist=False,
-                              back_populates='log')
-    timestamp = Column(DateTime, nullable=False,
-                       server_default=functions.now())
-    line = Column(String, nullable=False)
-
-    def __repr__(self):
-        return "<BuildLogLine id=%d, experiment_hash=%r>" % (
-            self.id, self.experiment_hash)
 
 
 class RunLogLine(Base):
