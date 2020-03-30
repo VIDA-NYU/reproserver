@@ -1,31 +1,23 @@
 digraph G {
     internet [color=grey, fontcolor=grey, shape=octagon];
     nginx [shape=rect, fontcolor=grey];
-    web [shape=box, color=blue];
-    builder [color=blue, label="{ <f0> builder|<f1> docker:dind }", shape="record"];
+    "reproserver-web" [shape=box, color=blue];
     runner [color=blue, label="{ <f0> runner|<f1> docker:dind }", shape="record"];
     postgres [shape=cylinder];
     s3 [shape=cylinder];
     registry [shape=cylinder];
-    rabbitmq [shape=box];
 
 
     internet -> nginx;
-    nginx -> web;
+    nginx -> "reproserver-web";
 
-    web -> postgres;
-    web -> rabbitmq;
-    web -> s3;
-    s3 -> web;
+    "reproserver-web" -> postgres [dir="none"];
+    "reproserver-web" -> s3;
+    s3 -> internet;
 
-    builder -> postgres;
-    rabbitmq -> builder;
-    s3 -> builder;
-    builder -> registry;
-
-    runner -> postgres;
-    rabbitmq -> runner;
+    runner -> postgres [dir="none"];
     s3 -> runner;
     runner -> s3;
     registry -> runner;
+    runner -> registry;
 }
