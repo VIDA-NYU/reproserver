@@ -156,6 +156,10 @@ class Run(Base):
     upload = relationship('Upload', uselist=False)
     submitted = Column(DateTime, nullable=False,
                        server_default=functions.now())
+    status = Column(String, nullable=False,
+                    server_default='queued')
+    status_time = Column(DateTime, nullable=False,
+                         server_default=functions.now())
     started = Column(DateTime, nullable=True)
     done = Column(DateTime, nullable=True)
 

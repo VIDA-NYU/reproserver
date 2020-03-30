@@ -107,6 +107,15 @@ class DockerRunner(Runner):
         if run is None:
             raise KeyError("Unknown run %r", run_id)
 
+        # Remove previous info
+        run.log[:] = []
+        run.output_files[:] = []
+
+        # Mark status
+        run.status = 'building'
+        run.status_time = functions.now()
+        db.commit()
+
         # Get or build the Docker image
         fq_image_name = '%s/%s' % (
             DOCKER_REGISTRY,
@@ -155,9 +164,10 @@ class DockerRunner(Runner):
             subprocess.check_call(['docker', 'push', fq_image_name])
             logger.info("Pushed, build phase complete")
 
-        # Remove previous info
-        run.log[:] = []
-        run.output_files[:] = []
+        # Mark status
+        run.status = 'set_inputs'
+        run.status_time = functions.now()
+        db.commit()
 
         # Make build directory
         directory = tempfile.mkdtemp('build_%s' % run.experiment_hash)
@@ -265,9 +275,10 @@ class DockerRunner(Runner):
             logger.info("Starting container")
             if run.started:
                 logger.warning("Starting run which has already been started")
-            else:
-                run.started = functions.now()
-                db.commit()
+            run.started = functions.now()
+            run.status = 'running'
+            run.status_time = functions.now()
+            db.commit()
 
             # Start container using parameters
             try:
@@ -284,7 +295,12 @@ class DockerRunner(Runner):
             if ret != 0:
                 raise ValueError("Error: Docker returned %d" % ret)
             logger.info("Container done")
+
+            # Mark status
             run.done = functions.now()
+            run.status = 'store_outputs'
+            run.status_time = functions.now()
+            db.commit()
 
             # Get output files
             for path in run.experiment.paths:
@@ -341,6 +357,8 @@ class DockerRunner(Runner):
                     # Remove local file
                     os.remove(local_path)
 
+            run.status = 'finished'
+            run.status_time = functions.now()
             db.commit()
             logger.info("Done!")
         except Exception as e:
