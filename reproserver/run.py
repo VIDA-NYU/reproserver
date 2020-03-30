@@ -411,14 +411,19 @@ class K8sRunner(DockerRunner):
             future.add_done_callback(self._run_callback(run_id))
             PROM_RUNS.inc()
 
-    def _pod_name(self, run_id):
+    @staticmethod
+    def _pod_name(run_id):
         return 'run-{0}'.format(run_id)
 
-    @staticmethod
-    def _run_in_pod(run_id):
+    @classmethod
+    def _run_in_pod(cls, run_id, namespace):
         logging.root.handlers.clear()
         logging.basicConfig(level=logging.INFO,
                             format="%(asctime)s %(levelname)s: %(message)s")
+
+        # Connect to Kubernetes API
+        kubernetes.config.load_incluster_config()
+        client = k8s.CoreV1Api()
 
         # Get a runner from environment
         DBSession = database.connect()
@@ -458,8 +463,23 @@ class K8sRunner(DockerRunner):
         except Exception:
             logger.exception("Kubernetes runner pod error")
             raise
-        else:
-            logger.info("Kubernetes runner pod complete")
+
+        logger.info("Kubernetes runner pod complete")
+        run.done = functions.now()
+        db.commit()
+
+        # Delete the service and this pod
+        time.sleep(60)
+        logger.info("Deleting ourselves")
+        name = cls._pod_name(run_id)
+        client.delete_namespaced_service(
+            name=name,
+            namespace=namespace,
+        )
+        client.delete_namespaced_pod(
+            name=name,
+            namespace=namespace,
+        )
 
     def run_sync(self, run_id):
         kubernetes.config.load_incluster_config()
@@ -475,7 +495,7 @@ class K8sRunner(DockerRunner):
         # Make required changes
         for container in pod_spec['containers']:
             if container['name'] == 'runner':
-                container['args'] += [str(run_id)]
+                container['args'] += [str(run_id), namespace]
 
         # Create a Kubernetes pod to run
         client = k8s.CoreV1Api()
@@ -526,78 +546,3 @@ class K8sRunner(DockerRunner):
             body=svc,
         )
         logger.info("Service created: %s", name)
-
-        self._watch_pod(client, namespace, run_id)
-
-    def _watch_pod(self, client, namespace, run_id):
-        name = self._pod_name(run_id)
-
-        w = kubernetes.watch.Watch()
-        f, kwargs = client.list_namespaced_pod, dict(
-            namespace=namespace,
-            label_selector='app=run,run={0}'.format(run_id),
-        )
-        started = None
-        success = False
-        for event in w.stream(f, **kwargs):
-            if event['type'] == 'DELETED':
-                w.stop()
-                logger.warning("Run pod was deleted")
-                continue
-            status = event['object'].status
-            if not started and status.start_time:
-                started = status.start_time
-                logger.info("Run pod started: %s", started.isoformat())
-            if (status.container_statuses and
-                    any(c.state.terminated
-                        for c in status.container_statuses)):
-                w.stop()
-
-                # Check the status of all containers
-                for container in status.container_statuses:
-                    terminated = container.state.terminated
-                    if terminated:
-                        exit_code = terminated.exit_code
-                        if container.name == 'runner' and exit_code == 0:
-                            logger.info("Run pod succeeded")
-                            success = True
-                        elif exit_code is not None:
-                            # Log any container that exited, including runner
-                            # if status is not zero
-                            log = client.read_namespaced_pod_log(
-                                name,
-                                namespace,
-                                container=container.name,
-                                tail_lines=300,
-                            )
-                            log = '\n'.join(
-                                '    %s' % l
-                                for l in log.splitlines()
-                            )
-                            logger.info(
-                                "Container %s exited with %d\n%s",
-                                container.name,
-                                exit_code,
-                                log,
-                            )
-
-        if not success:
-            logger.warning("Run %d failed", run_id)
-            db = self.DBSession()
-            run = db.query(database.Run).get(run_id)
-            if run is None:
-                logger.warning("Run not in database, can't set status")
-            else:
-                run.done = functions.now()
-                db.commit()
-
-        # Delete the pod and service
-        time.sleep(60)
-        client.delete_namespaced_pod(
-            name=name,
-            namespace=namespace,
-        )
-        client.delete_namespaced_service(
-            name=name,
-            namespace=namespace,
-        )
