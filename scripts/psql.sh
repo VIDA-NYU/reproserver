@@ -10,7 +10,7 @@ fi
 
 case "$1" in
     k8s)
-        if [ "$#" != 2 ]; then exit 1; fi
+        if [ "$#" != 1 ]; then exit 1; fi
         kubectl run --rm -ti --restart=Never psql --image=postgres:9.6 \
             psql --overrides '{
               "apiVersion": "v1",
