@@ -406,8 +406,10 @@ class K8sRunner(DockerRunner):
     @staticmethod
     def _run_in_pod(run_id):
         logging.root.handlers.clear()
-        logging.basicConfig(level=logging.INFO,
-                            format="%(asctime)s %(levelname)s: %(message)s")
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        )
 
         # Get a runner from environment
         DBSession = database.connect()
