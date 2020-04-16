@@ -2,6 +2,7 @@ from .base import RepositoryError
 from .osf import OSF
 from .zenodo import Zenodo
 from .figshare import Figshare
+from .mendeley import Mendeley
 
 
 __all__ = [
@@ -10,7 +11,7 @@ __all__ = [
 ]
 
 
-_repositories = [OSF, Zenodo, Figshare]
+_repositories = [OSF, Zenodo, Figshare, Mendeley]
 
 
 _map = {}
