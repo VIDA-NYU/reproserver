@@ -1,6 +1,6 @@
 FROM python:3.7
 
-RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python && \
+RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python - --version 1.0.10 && \
     /root/.poetry/bin/poetry config virtualenvs.create false
 
 ENV TINI_VERSION v0.18.0
