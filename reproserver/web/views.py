@@ -66,7 +66,10 @@ class Upload(BaseHandler):
 
         # Get uploaded file
         # FIXME: Don't hold the file in memory!
-        uploaded_file = self.request.files['rpz_file'][0]
+        try:
+            uploaded_file = self.request.files['rpz_file'][0]
+        except (KeyError, IndexError):
+            return self.render('setup_badfile.html', message="Missing file")
         assert uploaded_file.filename
         logger.info("Incoming file: %r", uploaded_file.filename)
         filename = secure_filename(uploaded_file.filename)
