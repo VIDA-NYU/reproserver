@@ -101,18 +101,6 @@ version = "0.3"
 
 [[package]]
 category = "dev"
-description = "Simple entity relation (ER) diagrams generation"
-name = "eralchemy"
-optional = false
-python-versions = "*"
-version = "1.2.10"
-
-[package.dependencies]
-SQLAlchemy = "*"
-pygraphviz = "*"
-
-[[package]]
-category = "dev"
 description = "the modular source code checker: pep8, pyflakes and co"
 name = "flake8"
 optional = false
@@ -282,14 +270,6 @@ name = "pygments"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 version = "2.4.2"
-
-[[package]]
-category = "dev"
-description = "Python interface to Graphviz"
-name = "pygraphviz"
-optional = false
-python-versions = "*"
-version = "1.5"
 
 [[package]]
 category = "main"
@@ -509,7 +489,8 @@ version = "0.56.0"
 six = "*"
 
 [metadata]
-content-hash = "7d7c925163227f6e6695844af61283b71c6a1a2ae29e33173061eceda17569f1"
+content-hash = "08a4ec5e800732a38418b8f0ed69da92ff80ebc48966adf4a147b3fe580190cd"
+lock-version = "1.0"
 python-versions = "^3.6"
 
 [metadata.files]
@@ -583,10 +564,6 @@ docutils = [
 entrypoints = [
     {file = "entrypoints-0.3-py2.py3-none-any.whl", hash = "sha256:589f874b313739ad35be6e0cd7efde2a4e9b6fea91edcc34e58ecbb8dbe56d19"},
     {file = "entrypoints-0.3.tar.gz", hash = "sha256:c70dd71abe5a8c85e55e12c19bd91ccfeec11a6e99044204511f9ed547d48451"},
-]
-eralchemy = [
-    {file = "ERAlchemy-1.2.10-py2.py3-none-any.whl", hash = "sha256:4daa1faba6c1f01c421f6fcc288681d973b8e4fdc781ac6557659878bcb957f3"},
-    {file = "ERAlchemy-1.2.10.tar.gz", hash = "sha256:be992624878278195c3240b90523acb35d97453f1a350c44b4311d4333940f0d"},
 ]
 flake8 = [
     {file = "flake8-3.7.8-py2.py3-none-any.whl", hash = "sha256:8e9dfa3cecb2400b3738a42c54c3043e821682b9c840b0448c0503f781130696"},
@@ -707,9 +684,6 @@ pyflakes = [
 pygments = [
     {file = "Pygments-2.4.2-py2.py3-none-any.whl", hash = "sha256:71e430bc85c88a430f000ac1d9b331d2407f681d6f6aec95e8bcfbc3df5b0127"},
     {file = "Pygments-2.4.2.tar.gz", hash = "sha256:881c4c157e45f30af185c1ffe8d549d48ac9127433f2c380c24b84572ad66297"},
-]
-pygraphviz = [
-    {file = "pygraphviz-1.5.zip", hash = "sha256:50a829a305dc5a0fd1f9590748b19fece756093b581ac91e00c2c27c651d319d"},
 ]
 python-dateutil = [
     {file = "python-dateutil-2.8.0.tar.gz", hash = "sha256:c89805f6f4d64db21ed966fda138f8a5ed7a4fdbc1a8ee329ce1b74e3c74da9e"},
