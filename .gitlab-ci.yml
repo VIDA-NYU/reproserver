@@ -31,7 +31,7 @@ tests:
     - docker info
     # Install kind
     - mkdir -p /usr/local/bin
-    - curl -Lo /usr/local/bin/kind https://github.com/kubernetes-sigs/kind/releases/download/v0.5.1/kind-linux-amd64 && chmod +x /usr/local/bin/kind
+    - curl -Lo /usr/local/bin/kind https://github.com/kubernetes-sigs/kind/releases/download/v0.9.0/kind-linux-amd64 && chmod +x /usr/local/bin/kind
     - curl -Lo /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.16.3/bin/linux/amd64/kubectl && chmod +x /usr/local/bin/kubectl
     # Patch kind config to listen on docker service's IP address
     # export DOCKER_IP="$(host docker)"
@@ -59,12 +59,14 @@ tests:
     - export WEB_URL=http://docker:30080
     - |
       # Wait a little bit more
-      slept=0; while [ $slept -le 300 -a $(curl -s -o /dev/null -w "%{http_code}" $WEB_URL/) != 200 ]; do sleep 5; slept=$((slept + 5)); done
-      if ! [ $slept -le 300 ]; then
-        curl -i $WEB_URL/
-        echo "didn't come up after ${slept}s"
-        exit 1
-      fi
+      slept=0; while [ $(curl -s -o /dev/null -w "%{http_code}" $WEB_URL/) != 200 ]; do
+        if [ $slept -gt 300 ]; then
+          echo "didn't come up after ${slept}s"
+          exit 1
+        fi
+        sleep 5; slept=$((slept + 5))
+      done
+      echo "web came up after ${slept}s"
       curl -I -X GET $WEB_URL/
     # Run integration tests
     - TESTS_DIR=tests/integ python tests

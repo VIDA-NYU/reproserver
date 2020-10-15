@@ -85,7 +85,7 @@ data:
         ports:
           - containerPort: 5597
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: web
@@ -96,6 +96,9 @@ spec:
     rollingUpdate:
       maxSurge: 1
       maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: web
   template:
     metadata:
       labels:
@@ -185,7 +188,7 @@ spec:
           configMap:
             name: k8s-config
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: registry
@@ -193,6 +196,9 @@ spec:
   replicas: 1
   strategy:
     type: Recreate
+  selector:
+    matchLabels:
+      app: registry
   template:
     metadata:
       labels:
@@ -211,7 +217,7 @@ spec:
           persistentVolumeClaim:
             claimName: registry-pvc
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: postgres
@@ -219,6 +225,9 @@ spec:
   replicas: 1
   strategy:
     type: Recreate
+  selector:
+    matchLabels:
+      app: postgres
   template:
     metadata:
       labels:
