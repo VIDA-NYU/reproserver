@@ -562,8 +562,8 @@ class K8sRunner(DockerRunner):
                                 tail_lines=300,
                             )
                             log = '\n'.join(
-                                '    %s' % l
-                                for l in log.splitlines()
+                                '    %s' % line
+                                for line in log.splitlines()
                             )
                             logger.info(
                                 "Container %s exited with %d\n%s",
