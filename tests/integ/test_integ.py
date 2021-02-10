@@ -1,6 +1,7 @@
 import os
 import re
 import requests
+import tempfile
 import unittest
 
 
@@ -45,6 +46,18 @@ class TestRepro(ReproserverTest):
         self.assertIsNotNone(self.xsrf)
         self.assertIn(b'Select a package to upload', res.content)
 
-        # Post the file
-        with open('testdata/bash-count.rpz', 'rb') as fp:
-            res = self.reproserver_post('/upload', files={'rpz_file': fp})
+        with tempfile.TemporaryFile() as tmp:
+            # Download the example file
+            res = requests.get(
+                'https://osf.io/5ke97/download',
+                allow_redirects=True,
+                stream=True,
+            )
+            res.raise_for_status()
+            for chunk in res.iter_content(chunk_size=4096):
+                tmp.write(chunk)
+            tmp.flush()
+            tmp.seek(0, 0)
+
+            # Post the file
+            res = self.reproserver_post('/upload', files={'rpz_file': tmp})
