@@ -11,7 +11,7 @@ authors = [
 
 readme = "README.rst"
 
-repository = "https://gitlab.com/VIDA-NYU/reproserver"
+repository = "https://github.com/VIDA-NYU/reproserver"
 homepage = "https://server.reprozip.org/"
 
 keywords = ["reprozip", "reprounzip", "docker", "kubernetes", "reproducibility", "reproducible-research", "linux", "science", "nyu"]
