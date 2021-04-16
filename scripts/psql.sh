@@ -11,14 +11,14 @@ fi
 case "$1" in
     k8s)
         if [ "$#" != 1 ]; then exit 1; fi
-        kubectl run --rm -ti --restart=Never psql --image=postgres:9.6 \
+        kubectl run --rm -ti --restart=Never psql --image=postgres:12.6 \
             psql --overrides '{
               "apiVersion": "v1",
               "kind": "Pod",
               "spec": {
                 "containers": [
                   { "name": "psql",
-                    "image": "postgres:9.6",
+                    "image": "postgres:12.6",
                     "stdin": true, "stdinOnce": true, "tty": true,
                     "args": ["psql", "-h", "postgres", "-U", "$(POSTGRES_USER)"],
                      "env": [
