@@ -56,6 +56,7 @@ jobs:
           kind create cluster --config=tests/ci.kind.yml
           export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
           kubectl describe node
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/provider/kind/deploy.yaml
       - name: Build image
         run: |
           docker build -t reproserver_web .
@@ -66,6 +67,7 @@ jobs:
           kubectl apply -f k8s-sa.yml
           kubectl apply -f k8s-secrets.yml
           kubectl apply -f k8s-minio.yml
+          kubectl apply -f k8s-ingress.yml
           kubectl apply -f k8s.yml
           # Wait for the pods to be available
           if ! kubectl wait --timeout=10m --for=condition=Available deploy --all; then
