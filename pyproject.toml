@@ -39,7 +39,7 @@ include = [
 [tool.poetry.dependencies]
 python = "^3.6"
 tornado = ">=5.0"
-sqlalchemy = "~1"
+sqlalchemy = "^1.4"
 jinja2 = "*"
 boto3 = "^1"
 psycopg2 = "^2.8"

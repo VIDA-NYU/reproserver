@@ -16,7 +16,7 @@ services:
       - 8000:8000
       - 8001:8001
   minio:
-    image: minio/minio:RELEASE.2019-08-29T00-25-01Z
+    image: minio/minio:RELEASE.2021-04-06T23-11-00Z
     command: ["server", "/export"]
     environment:
       MINIO_ACCESS_KEY: ${S3_KEY}
@@ -26,7 +26,7 @@ services:
     ports:
       - 9000:9000
   registry:
-    image: registry:2.6
+    image: registry:2.7
     ports:
       - 5000:5000
   postgres:
@@ -38,6 +38,6 @@ services:
     ports:
       - 5432:5432
   docker:
-    image: docker:18.09-dind
+    image: docker:20.10.5-dind
     privileged: true
     command: ["--insecure-registry=registry:5000"]
