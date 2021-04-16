@@ -1,6 +1,8 @@
 **/.env
 
+reprozip/.travis
 reprozip/docs
+reprozip/reprozip-jupyter
 reprozip/reprounzip-qt
 reprozip/reprounzip-vagrant
 reprozip/reprounzip-vistrails
@@ -9,8 +11,8 @@ reprozip/scripts
 reprozip/tests
 
 # Git
-.git
-.gitignore
+**/.git
+**/.gitignore
 
 # Python
 **/__pycache__
