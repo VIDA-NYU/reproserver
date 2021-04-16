@@ -9,19 +9,19 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-body-size: 4096M
 spec:
   rules:
-    - host: server.reprozip.org
+    - host: localhost
       http:
         paths:
           - backend:
               serviceName: web
               servicePort: 8000
-    - host: files.server.reprozip.org
+    - host: files.localhost
       http:
         paths:
           - backend:
               serviceName: minio-host
               servicePort: 9000
-    - host: "*.web.server.reprozip.org"
+    - host: "*.web.localhost"
       http:
         paths:
           - backend:

@@ -74,7 +74,7 @@ jobs:
             kubectl get pod
             exit 1
           fi
-          export WEB_URL=http://127.0.0.1:30080
+          export WEB_URL=http://localhost:8000
           # Wait a little bit more until the web server replies
           slept=0; while [ $(curl -s -o /dev/null -w "%{http_code}" $WEB_URL/) != 200 ]; do
             if [ $slept -gt 300 ]; then
@@ -87,7 +87,7 @@ jobs:
           curl -I -X GET $WEB_URL/
       - name: Run integration tests
         run: |
-          if ! TESTS_DIR=tests/integ WEB_URL=http://127.0.0.1:30080 python tests; then
+          if ! TESTS_DIR=tests/integ WEB_URL=http://localhost:8000 python tests; then
             kubectl logs deploy/web
             exit 1
           fi
