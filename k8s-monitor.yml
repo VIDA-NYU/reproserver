@@ -143,8 +143,19 @@ metadata:
 spec:
   selector:
     app: grafana
-  type: NodePort
   ports:
     - protocol: TCP
       port: 3000
-      nodePort: 30030
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-grafana
+spec:
+  rules:
+    - host: grafana.server.reprozip.org
+      http:
+        paths:
+          - backend:
+              serviceName: grafana
+              servicePort: 3000

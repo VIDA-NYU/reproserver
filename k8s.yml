@@ -294,11 +294,9 @@ metadata:
 spec:
   selector:
     app: web
-  type: NodePort
   ports:
     - protocol: TCP
       port: 8000
-      nodePort: 30080
 ---
 apiVersion: v1
 kind: Service
@@ -309,8 +307,6 @@ metadata:
 spec:
   selector:
     app: web
-  type: NodePort
   ports:
     - protocol: TCP
       port: 8001
-      nodePort: 30081
