@@ -26,8 +26,11 @@ jobs:
         run: python -m readme_renderer README.rst >/dev/null
       - name: Unit tests
         run: TESTS_DIR=tests/unit python tests
+
   test:
     runs-on: ubuntu-latest
+    env:
+      DOCKER_BUILDKIT: "1"
     steps:
       - uses: actions/checkout@v2
         with:
