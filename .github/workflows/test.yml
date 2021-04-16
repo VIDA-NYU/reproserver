@@ -84,4 +84,8 @@ jobs:
           echo "web came up after ${slept}s"
           curl -I -X GET $WEB_URL/
       - name: Run integration tests
-        run: TESTS_DIR=tests/integ WEB_URL=http://127.0.0.1:30080 python tests
+        run: |
+          if ! TESTS_DIR=tests/integ WEB_URL=http://127.0.0.1:30080 python tests; then
+            kubectl logs deploy/web
+            exit 1
+          fi
