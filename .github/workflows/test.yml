@@ -56,7 +56,7 @@ jobs:
           kind create cluster --config=tests/ci.kind.yml
           export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
           kubectl describe node
-          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/provider/kind/deploy.yaml
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.45.0/deploy/static/provider/kind/deploy.yaml
       - name: Build image
         run: |
           docker build -t reproserver_web .
