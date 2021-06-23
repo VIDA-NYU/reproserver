@@ -175,9 +175,12 @@ class ReproduceRepo(BaseReproduce):
             except rpz_metadata.InvalidPackage as e:
                 self.set_status(404)
                 return self.render('setup_badfile.html', message=str(e))
+        else:
+            upload.last_access = functions.now()
 
         # Also updates last access
         upload.experiment.last_access = functions.now()
+        self.db.commit()
 
         return self.reproduce(upload)
 
@@ -208,7 +211,9 @@ class ReproduceLocal(BaseReproduce):
             return self.render('setup_notfound.html')
 
         # Also updates last access
+        upload.last_access = functions.now()
         upload.experiment.last_access = functions.now()
+        self.db.commit()
 
         return self.reproduce(upload)
 
@@ -240,6 +245,10 @@ class StartRun(BaseHandler):
             self.set_status(404)
             return self.render('setup_notfound.html')
         experiment = upload.experiment
+
+        # Update last access
+        upload.last_access = functions.now()
+        upload.experiment.last_access = functions.now()
 
         # New run entry
         run = database.Run(experiment_hash=experiment.hash,
