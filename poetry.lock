@@ -290,6 +290,14 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
+name = "pyelftools"
+version = "0.27"
+description = "Library for analyzing ELF files and DWARF debugging information"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "pyflakes"
 version = "2.3.1"
 description = "passive checker of Python programs"
@@ -351,8 +359,8 @@ md = ["cmarkgfm (>=0.5.0,<0.6.0)"]
 
 [[package]]
 name = "reprounzip"
-version = "1.1.0"
-description = "Linux tool enabling reproducible experiments (unpacker)"
+version = "2.0.0"
+description = ""
 category = "main"
 optional = false
 python-versions = "*"
@@ -360,13 +368,14 @@ develop = true
 
 [package.dependencies]
 distro = "*"
+pyelftools = "*"
 PyYAML = "*"
 requests = "*"
 rpaths = ">=0.8"
 usagestats = ">=0.3"
 
 [package.extras]
-all = ["reprounzip-docker (>=1.0)", "reprounzip-vagrant (>=1.0)", "reprounzip-vistrails (>=1.0)"]
+all = ["reprounzip-vagrant (>=1.0)", "reprounzip-docker (>=1.0)", "reprounzip-vistrails (>=1.0)"]
 
 [package.source]
 type = "directory"
@@ -374,8 +383,8 @@ url = "reprozip/reprounzip"
 
 [[package]]
 name = "reprounzip-docker"
-version = "1.0.13"
-description = "Allows the ReproZip unpacker to create Docker containers"
+version = "2.0.0"
+description = ""
 category = "main"
 optional = false
 python-versions = "*"
@@ -825,6 +834,10 @@ pyasn1-modules = [
 pycodestyle = [
     {file = "pycodestyle-2.7.0-py2.py3-none-any.whl", hash = "sha256:514f76d918fcc0b55c6680472f0a37970994e07bbb80725808c17089be302068"},
     {file = "pycodestyle-2.7.0.tar.gz", hash = "sha256:c389c1d06bf7904078ca03399a4816f974a1d590090fecea0c63ec26ebaf1cef"},
+]
+pyelftools = [
+    {file = "pyelftools-0.27-py2.py3-none-any.whl", hash = "sha256:5609aa6da1123fccfae2e8431a67b4146aa7fad5b3889f808df12b110f230937"},
+    {file = "pyelftools-0.27.tar.gz", hash = "sha256:cde854e662774c5457d688ca41615f6594187ba7067af101232df889a6b7a66b"},
 ]
 pyflakes = [
     {file = "pyflakes-2.3.1-py2.py3-none-any.whl", hash = "sha256:7893783d01b8a89811dd72d7dfd4d84ff098e5eed95cfa8905b22bbffe52efc3"},
