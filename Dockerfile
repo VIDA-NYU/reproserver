@@ -18,7 +18,7 @@ COPY pyproject.toml poetry.lock /usr/src/app/
 RUN /root/.poetry/bin/poetry install --no-interaction --no-dev
 
 # Install Docker
-RUN curl -Lo /tmp/docker.tgz https://get.docker.com/builds/Linux/x86_64/docker-17.05.0-ce.tgz && \
+RUN curl -Lo /tmp/docker.tgz https://download.docker.com/linux/static/stable/x86_64/docker-20.10.7.tgz && \
     tar -xf /tmp/docker.tgz -C /usr/local && \
     mv /usr/local/docker/* /usr/local/bin/ && \
     rmdir /usr/local/docker && \
