@@ -99,7 +99,10 @@ class DockerRunner(Runner):
     def run_sync(self, run_id):
         # Straight-up Docker, e.g. we're using docker-compose
         # Run and build right here
-        self._docker_run(run_id, '0.0.0.0')
+        self._docker_run(
+            run_id,
+            '0.0.0.0',  # Accept connections to proxy from everywhere
+        )
 
     def _docker_run(self, run_id, bind_host):
         """Pull or build an image, then run it.
@@ -365,8 +368,6 @@ class DockerRunner(Runner):
             # Remove container if created
             if container is not None:
                 subprocess.call(['docker', 'rm', '-f', '--', container])
-            # Remove image
-            subprocess.call(['docker', 'rmi', '--', fq_image_name])
             # Remove build directory
             shutil.rmtree(directory)
 
@@ -476,7 +477,7 @@ class K8sRunner(DockerRunner):
             None,
             runner._docker_run,
             run_id,
-            '127.0.0.1',
+            '127.0.0.1',  # Only accept local connections, from the runner pod
         )
 
         # Also set up a proxy
