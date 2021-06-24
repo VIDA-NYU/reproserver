@@ -132,6 +132,8 @@ class DockerRunner(Runner):
                 # Build image
                 ret = subprocess.call([
                     'reprounzip', '-v', 'docker', 'setup',
+                    # `RUN --mount` doesn't work with userns-remap
+                    '--dont-use-buildkit',
                     '--image-name', fq_image_name,
                     local_path, build_dir,
                 ])
