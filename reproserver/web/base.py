@@ -148,3 +148,7 @@ class BaseHandler(tornado.web.RequestHandler):
             raise ValueError("Can't encode %r to JSON" % type(obj))
         self.set_header('Content-Type', 'application/json; charset=utf-8')
         return self.finish(json.dumps(obj))
+
+    def send_error_json(self, status, message, reason=None):
+        self.set_status(status, reason)
+        return self.send_json({'error': message})

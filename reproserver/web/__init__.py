@@ -16,6 +16,8 @@ def make_app(debug=False, xsrf_cookies=True):
                     name='reproduce_local'),
             URLSpec('/run/([^/]+)', views.StartRun, name='start_run'),
             URLSpec('/results/([^/]+)', views.Results, name='results'),
+            URLSpec('/results/([^/]+)/json', views.ResultsJson,
+                    name='results_json'),
             URLSpec('/about', views.About, name='about'),
             URLSpec('/data', views.Data, name='data'),
             URLSpec('/health', views.Health, name='health'),

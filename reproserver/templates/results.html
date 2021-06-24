@@ -77,7 +77,7 @@ function update_page() {
     setTimeout(update_page, 3000);
   });
   req.responseType = "json";
-  req.open("GET", "{{ reverse_url('results', run.short_id) }}?log_from=" + log_lines);
+  req.open("GET", "{{ reverse_url('results_json', run.short_id) }}?log_from=" + log_lines);
   req.setRequestHeader("Accept", "application/json");
   req.send();
 }

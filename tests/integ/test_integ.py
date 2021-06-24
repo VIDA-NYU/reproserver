@@ -80,8 +80,7 @@ class TestRepro(ReproserverTest):
             for i in range(20):
                 time.sleep(2)
                 res = self.reproserver_get(
-                    '/results/{0}?log_from=0'.format(run_short_id),
-                    headers={'Accept': 'application/json'},
+                    '/results/{0}/json?log_from=0'.format(run_short_id),
                 )
                 obj = res.json()
                 if obj['done']:

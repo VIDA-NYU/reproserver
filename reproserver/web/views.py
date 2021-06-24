@@ -377,35 +377,53 @@ class Results(BaseHandler):
         run.experiment.last_access = datetime.utcnow()
         self.db.commit()
 
-        # JSON endpoint, returns data for JavaScript to update the page
-        if self.is_json_requested():
-            log_from = int(self.get_query_argument('log_from', '0'), 10)
-            return self.send_json({
-                'started': bool(run.started),
-                'done': bool(run.done),
-                'log': run.get_log(log_from),
-            })
-        # HTML view, return the page
-        else:
-            def get_port_url(port_number):
-                tpl = os.environ.get(
-                    'WEB_PROXY_URL',
-                    'http://{short_id}-{port}.127.0.0.1.xip.io:8001',
-                )
-                return tpl.format(
-                    short_id=run_short_id,
-                    port=port_number,
-                )
-
-            return self.render(
-                'results.html',
-                run=run,
-                log=run.get_log(0),
-                started=bool(run.started),
-                done=bool(run.done),
-                experiment_url=self.url_for_upload(run.upload),
-                get_port_url=get_port_url,
+        def get_port_url(port_number):
+            tpl = os.environ.get(
+                'WEB_PROXY_URL',
+                'http://{short_id}-{port}.127.0.0.1.xip.io:8001',
             )
+            return tpl.format(
+                short_id=run_short_id,
+                port=port_number,
+            )
+
+        return self.render(
+            'results.html',
+            run=run,
+            log=run.get_log(0),
+            started=bool(run.started),
+            done=bool(run.done),
+            experiment_url=self.url_for_upload(run.upload),
+            get_port_url=get_port_url,
+        )
+
+
+class ResultsJson(BaseHandler):
+    def get(self, run_short_id):
+        # Decode info from URL
+        try:
+            run_id = database.Run.decode_id(run_short_id)
+        except ValueError:
+            return self.send_error_json(404, "Not found")
+
+        # Look up the run in the database
+        run = (
+            self.db.query(database.Run)
+            .options(joinedload(database.Run.experiment),
+                     joinedload(database.Run.upload),
+                     joinedload(database.Run.parameter_values),
+                     joinedload(database.Run.input_files),
+                     joinedload(database.Run.output_files))
+        ).get(run_id)
+        if run is None:
+            return self.send_error_json(404, "Not found")
+
+        log_from = int(self.get_query_argument('log_from', '0'), 10)
+        return self.send_json({
+            'started': bool(run.started),
+            'done': bool(run.done),
+            'log': run.get_log(log_from),
+        })
 
 
 class About(BaseHandler):
