@@ -129,6 +129,7 @@ class DockerRunner(Runner):
             raise KeyError("Unknown run %r", run_id)
 
         # Get or build the Docker image
+        push_process = None
         fq_image_name = '%s/%s' % (
             DOCKER_REGISTRY,
             'rpuz_exp_%s' % run.experiment.hash,
@@ -163,9 +164,8 @@ class DockerRunner(Runner):
                 db.commit()
             logger.info("Build over, pushing image")
 
-            # Push image to Docker repository
-            subprocess.check_call(['docker', 'push', fq_image_name])
-            logger.info("Pushed, build phase complete")
+            # Push image to Docker repository in the background
+            push_process = subprocess.Popen(['docker', 'push', fq_image_name])
 
         # Remove previous info
         run.log[:] = []
@@ -369,6 +369,13 @@ class DockerRunner(Runner):
             subprocess.call(['docker', 'rmi', '--', fq_image_name])
             # Remove build directory
             shutil.rmtree(directory)
+
+        # Wait for push process to end
+        if push_process:
+            if push_process.poll() is None:
+                logger.info("Waiting for docker push to finish...")
+                push_process.wait()
+            logger.info("docker push returned %d", push_process.returncode)
 
 
 class InternalProxyHandler(ProxyHandler):
