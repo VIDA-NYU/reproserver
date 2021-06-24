@@ -51,6 +51,11 @@ def run_cmd_and_log(session, run_id, cmd, to_db):
 
 
 class Runner(object):
+    """Base class for runners.
+
+    This is in charge of taking an experiment and running it, building it first
+    if necessary.
+    """
     def __init__(self, *, DBSession, object_store):
         self.DBSession = DBSession
         self.object_store = object_store
@@ -67,6 +72,10 @@ class Runner(object):
         return callback
 
     def run(self, run_id):
+        """Called to trigger a run. Should not block.
+        """
+        # Default implementation calls run_sync() in a thread; either method
+        # can be overloaded
         future = asyncio.get_event_loop().run_in_executor(
             None,
             self.run_sync,
@@ -81,15 +90,27 @@ class Runner(object):
 
 
 class DockerRunner(Runner):
+    """Docker runner implementation.
+
+    This talks to Docker directly to pull, build, and run an image. It is used
+    when running with docker-compose; on Kubernetes, the subclass K8sRunner
+    will be used to schedule a pod that will run _docker_run().
+    """
     def run_sync(self, run_id):
+        # Straight-up Docker, e.g. we're using docker-compose
+        # Run and build right here
         self._docker_run(run_id, '0.0.0.0')
 
     def _docker_run(self, run_id, bind_host):
-        """Run a built experiment.
+        """Pull or build an image, then run it.
 
         Lookup a run in the database, build the image, get the input files from
         S3, then do the run from the Docker image, upload the log and the
         output files.
+
+        This is run either in the main process, when using DockerRunner (e.g.
+        when using docker-compose) or it is run in another pod (when using
+        K8sRunner).
         """
         logger.info("Run request received: %r", run_id)
 
@@ -375,6 +396,13 @@ class InternalProxyHandler(ProxyHandler):
 
 
 class K8sRunner(DockerRunner):
+    """Kubernetes runner implementation.
+
+    This talks to the Kubernetes API to create a pod and run the runner there.
+    It works similarly to DockerRunner, which it extends, except the bulk of
+    the code is executed in that separate "runner" pod instead of the main
+    process.
+    """
     def __init__(self, **kwargs):
         super(K8sRunner, self).__init__(**kwargs)
 
@@ -407,6 +435,11 @@ class K8sRunner(DockerRunner):
 
     @staticmethod
     def _run_in_pod(run_id):
+        """Entry point in the runner pod.
+
+        This function is called on the runner pod that is scheduled by
+        K8sRunner, and will run the rest of the logic.
+        """
         logging.root.handlers.clear()
         logging.basicConfig(
             level=logging.INFO,
@@ -455,6 +488,10 @@ class K8sRunner(DockerRunner):
             logger.info("Kubernetes runner pod complete")
 
     def run_sync(self, run_id):
+        # This does not run the experiment, it schedules a runner pod by
+        # talking to the Kubernetes API. That pod will run the experiment and
+        # update the database directly
+
         kubernetes.config.load_incluster_config()
 
         name = self._pod_name(run_id)
