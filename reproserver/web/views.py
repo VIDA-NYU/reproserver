@@ -1,9 +1,9 @@
+from datetime import datetime
 from hashlib import sha256
 import logging
 import os
 import prometheus_client
 from sqlalchemy.orm import joinedload
-from sqlalchemy.sql import functions
 import tempfile
 
 from .. import database
@@ -82,7 +82,7 @@ class Upload(BaseHandler):
         # Check for existence of experiment
         experiment = self.db.query(database.Experiment).get(filehash)
         if experiment:
-            experiment.last_access = functions.now()
+            experiment.last_access = datetime.utcnow()
             logger.info("File exists in storage")
         else:
             # Write it to disk
@@ -176,10 +176,10 @@ class ReproduceRepo(BaseReproduce):
                 self.set_status(404)
                 return self.render('setup_badfile.html', message=str(e))
         else:
-            upload.last_access = functions.now()
+            upload.last_access = datetime.utcnow()
 
         # Also updates last access
-        upload.experiment.last_access = functions.now()
+        upload.experiment.last_access = datetime.utcnow()
         self.db.commit()
 
         return self.reproduce(upload)
@@ -211,8 +211,8 @@ class ReproduceLocal(BaseReproduce):
             return self.render('setup_notfound.html')
 
         # Also updates last access
-        upload.last_access = functions.now()
-        upload.experiment.last_access = functions.now()
+        upload.last_access = datetime.utcnow()
+        upload.experiment.last_access = datetime.utcnow()
         self.db.commit()
 
         return self.reproduce(upload)
@@ -247,8 +247,8 @@ class StartRun(BaseHandler):
         experiment = upload.experiment
 
         # Update last access
-        upload.last_access = functions.now()
-        upload.experiment.last_access = functions.now()
+        upload.last_access = datetime.utcnow()
+        upload.experiment.last_access = datetime.utcnow()
 
         # New run entry
         run = database.Run(experiment_hash=experiment.hash,
@@ -374,7 +374,7 @@ class Results(BaseHandler):
             self.set_status(404)
             return self.render('results_notfound.html')
         # Update last access
-        run.experiment.last_access = functions.now()
+        run.experiment.last_access = datetime.utcnow()
         self.db.commit()
 
         # JSON endpoint, returns data for JavaScript to update the page

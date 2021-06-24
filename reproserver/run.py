@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 from hashlib import sha256
 import kubernetes.client as k8s
 import kubernetes.config
@@ -8,7 +9,6 @@ import os
 import prometheus_client
 import shutil
 from sqlalchemy.orm import joinedload
-from sqlalchemy.sql import functions
 import subprocess
 import sys
 import tempfile
@@ -278,7 +278,7 @@ class DockerRunner(Runner):
             if run.started:
                 logger.warning("Starting run which has already been started")
             else:
-                run.started = functions.now()
+                run.started = datetime.utcnow()
                 db.commit()
 
             # Start container using parameters
@@ -296,7 +296,7 @@ class DockerRunner(Runner):
             if ret != 0:
                 raise ValueError("Error: Docker returned %d" % ret)
             logger.info("Container done")
-            run.done = functions.now()
+            run.done = datetime.utcnow()
 
             # Get output files
             for path in run.experiment.paths:
@@ -358,7 +358,7 @@ class DockerRunner(Runner):
         except Exception as e:
             logger.exception("Error processing run!")
             logger.warning("Got error: %s", str(e))
-            run.done = functions.now()
+            run.done = datetime.utcnow()
             db.add(database.RunLogLine(run_id=run.id, line=str(e)))
             db.commit()
         finally:
@@ -618,7 +618,7 @@ class K8sRunner(DockerRunner):
             if run is None:
                 logger.warning("Run not in database, can't set status")
             else:
-                run.done = functions.now()
+                run.done = datetime.utcnow()
                 db.commit()
 
         # Delete the pod and service

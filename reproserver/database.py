@@ -1,11 +1,11 @@
 from base64 import b64decode, b64encode
+from datetime import datetime
 import logging
 import os
 from sqlalchemy import Column, ForeignKey, create_engine
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
-from sqlalchemy.sql import functions
 from sqlalchemy.types import Boolean, DateTime, Integer, String
 import time
 
@@ -31,7 +31,7 @@ class Experiment(Base):
 
     hash = Column(String, primary_key=True)
     last_access = Column(DateTime, nullable=False,
-                         server_default=functions.now())
+                         default=lambda: datetime.utcnow())
 
     uploads = relationship('Upload', back_populates='experiment')
     runs = relationship('Run', back_populates='experiment')
@@ -64,7 +64,7 @@ class Upload(Base):
     submitted_ip = Column(String, nullable=True)
     repository_key = Column(String, nullable=True, index=True)
     timestamp = Column(DateTime, nullable=False,
-                       server_default=functions.now())
+                       default=lambda: datetime.utcnow())
 
     @property
     def short_id(self):
@@ -151,7 +151,7 @@ class Run(Base):
                                            ondelete='RESTRICT'))
     upload = relationship('Upload', uselist=False)
     submitted = Column(DateTime, nullable=False,
-                       server_default=functions.now())
+                       default=lambda: datetime.utcnow())
     started = Column(DateTime, nullable=True)
     done = Column(DateTime, nullable=True)
 
@@ -197,7 +197,7 @@ class RunLogLine(Base):
     run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'))
     run = relationship('Run', uselist=False, back_populates='log')
     timestamp = Column(DateTime, nullable=False,
-                       server_default=functions.now())
+                       default=lambda: datetime.utcnow())
     line = Column(String, nullable=False)
 
     def __repr__(self):
