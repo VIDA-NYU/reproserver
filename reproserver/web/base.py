@@ -9,7 +9,6 @@ import tornado.web
 from .. import __version__
 from .. import database
 from ..objectstore import get_object_store
-from ..run import K8sRunner, DockerRunner
 
 
 logger = logging.getLogger(__name__)
@@ -25,11 +24,15 @@ class Application(tornado.web.Application):
         self.object_store.create_buckets()
 
         if os.environ.get('RUNNER_TYPE') == 'k8s':
+            from ..run.k8s import K8sRunner
+
             self.runner = K8sRunner(
                 DBSession=self.DBSession,
                 object_store=self.object_store,
             )
         elif os.environ.get('RUNNER_TYPE') == 'docker':
+            from ..run.docker import DockerRunner
+
             self.runner = DockerRunner(
                 DBSession=self.DBSession,
                 object_store=self.object_store,
