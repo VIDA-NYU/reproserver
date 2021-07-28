@@ -9,7 +9,7 @@ import tempfile
 
 from .. import database
 from ..utils import shell_escape
-from .base import Runner, run_cmd_and_log
+from .base import BaseRunner, run_cmd_and_log
 
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 DOCKER_REGISTRY = os.environ.get('REGISTRY', 'localhost:5000')
 
 
-class DockerRunner(Runner):
+class DockerRunner(BaseRunner):
     """Docker runner implementation.
 
     This talks to Docker directly to pull, build, and run an image. It is used
@@ -306,3 +306,6 @@ class DockerRunner(Runner):
                 logger.info("Waiting for docker push to finish...")
                 push_process.wait()
             logger.info("docker push returned %d", push_process.returncode)
+
+
+Runner = DockerRunner

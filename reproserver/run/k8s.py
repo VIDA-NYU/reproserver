@@ -295,3 +295,6 @@ class K8sRunner(DockerRunner):
             name=name,
             namespace=namespace,
         )
+
+
+Runner = K8sRunner

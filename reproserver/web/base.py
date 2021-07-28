@@ -1,3 +1,4 @@
+import importlib
 import jinja2
 import json
 import logging
@@ -23,22 +24,18 @@ class Application(tornado.web.Application):
         self.object_store = get_object_store()
         self.object_store.create_buckets()
 
-        if os.environ.get('RUNNER_TYPE') == 'k8s':
-            from ..run.k8s import K8sRunner
-
-            self.runner = K8sRunner(
-                DBSession=self.DBSession,
-                object_store=self.object_store,
-            )
-        elif os.environ.get('RUNNER_TYPE') == 'docker':
-            from ..run.docker import DockerRunner
-
-            self.runner = DockerRunner(
-                DBSession=self.DBSession,
-                object_store=self.object_store,
-            )
-        else:
-            raise RuntimeError("RUNNER_TYPE should be 'docker' or 'k8s'")
+        if 'RUNNER_TYPE' not in os.environ:
+            raise RuntimeError("RUNNER_TYPE is not set")
+        runner_type = os.environ['RUNNER_TYPE']
+        try:
+            mod = importlib.import_module('reproserver.run.%s' % runner_type)
+            Runner = mod.Runner
+        except (ImportError, AttributeError):
+            raise ValueError("Couldn't set up RUNNER_TYPE %r" % runner_type)
+        self.runner = Runner(
+            DBSession=self.DBSession,
+            object_store=self.object_store,
+        )
 
     def log_request(self, handler):
         if handler.request.path == '/health':

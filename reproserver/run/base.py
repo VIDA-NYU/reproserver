@@ -29,7 +29,7 @@ def run_cmd_and_log(session, run_id, cmd, to_db):
     return proc.wait()
 
 
-class Runner(object):
+class BaseRunner(object):
     """Base class for runners.
 
     This is in charge of taking an experiment and running it, building it first
