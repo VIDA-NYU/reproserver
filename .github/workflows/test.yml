@@ -67,13 +67,13 @@ jobs:
           kubectl apply -f k8s-sa.yml
           kubectl apply -f k8s-secrets.yml
           kubectl apply -f k8s-minio.yml
-          kubectl apply -f k8s-ingress.yml
           kubectl apply -f k8s.yml
           # Wait for the pods to be available
           if ! kubectl wait --timeout=10m --for=condition=Available deploy --all; then
             kubectl get pod
             exit 1
           fi
+          kubectl apply -f k8s-ingress.yml
           export WEB_URL=http://localhost:8000
           # Wait a little bit more until the web server replies
           slept=0; while [ $(curl -s -o /dev/null -w "%{http_code}" $WEB_URL/) != 200 ]; do
