@@ -32,6 +32,7 @@ class Experiment(Base):
     hash = Column(String(64), primary_key=True)
     last_access = Column(DateTime, nullable=False,
                          default=lambda: datetime.utcnow())
+    info = Column(Text, nullable=False)
 
     uploads = relationship('Upload', back_populates='experiment')
     runs = relationship('Run', back_populates='experiment')

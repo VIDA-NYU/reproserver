@@ -32,6 +32,12 @@ def make_experiment(filehash, filename):
     info = json.loads(info_stdout.decode('utf-8'))
     logger.info("Got metadata, %d runs", len(info['runs']))
 
+    # Store whole output
+    experiment.info = json.dumps(
+        info,
+        sort_keys=True, separators=(',', ':'),
+    )
+
     # Add parameters
     # Command-line of each run
     for i, run in enumerate(info['runs']):
