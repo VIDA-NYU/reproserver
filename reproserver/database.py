@@ -6,7 +6,7 @@ from sqlalchemy import Column, ForeignKey, create_engine
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
-from sqlalchemy.types import Boolean, DateTime, Integer, String
+from sqlalchemy.types import Boolean, DateTime, Integer, String, Text
 import time
 
 from .shortid import ShortIDs
@@ -29,7 +29,7 @@ class Experiment(Base):
     """
     __tablename__ = 'experiments'
 
-    hash = Column(String, primary_key=True)
+    hash = Column(String(64), primary_key=True)
     last_access = Column(DateTime, nullable=False,
                          default=lambda: datetime.utcnow())
 
@@ -56,13 +56,13 @@ class Upload(Base):
     __tablename__ = 'uploads'
 
     id = Column(Integer, primary_key=True)
-    filename = Column(String, nullable=False)
-    experiment_hash = Column(String, ForeignKey('experiments.hash',
-                                                ondelete='CASCADE'))
+    filename = Column(Text, nullable=False)
+    experiment_hash = Column(String(64), ForeignKey('experiments.hash',
+                                                    ondelete='CASCADE'))
     experiment = relationship('Experiment', uselist=False,
                               back_populates='uploads')
-    submitted_ip = Column(String, nullable=True)
-    repository_key = Column(String, nullable=True, index=True)
+    submitted_ip = Column(Text, nullable=True)
+    repository_key = Column(Text, nullable=True, index=True)
     timestamp = Column(DateTime, nullable=False,
                        default=lambda: datetime.utcnow())
 
@@ -90,14 +90,14 @@ class Parameter(Base):
     __tablename__ = 'parameters'
 
     id = Column(Integer, primary_key=True)
-    experiment_hash = Column(String, ForeignKey('experiments.hash',
-                                                ondelete='CASCADE'))
+    experiment_hash = Column(String(64), ForeignKey('experiments.hash',
+                                                    ondelete='CASCADE'))
     experiment = relationship('Experiment', uselist=False,
                               back_populates='parameters')
-    name = Column(String, nullable=False)
-    description = Column(String, nullable=False)
+    name = Column(Text, nullable=False)
+    description = Column(Text, nullable=False)
     optional = Column(Boolean, nullable=False)
-    default = Column(String, nullable=True)
+    default = Column(Text, nullable=True)
 
     def __repr__(self):
         return ("<Parameter id=%d, experiment_hash=%r, name=%r, optional=%r, "
@@ -112,14 +112,14 @@ class Path(Base):
     __tablename__ = 'paths'
 
     id = Column(Integer, primary_key=True)
-    experiment_hash = Column(String, ForeignKey('experiments.hash',
-                                                ondelete='CASCADE'))
+    experiment_hash = Column(String(64), ForeignKey('experiments.hash',
+                                                    ondelete='CASCADE'))
     experiment = relationship('Experiment', uselist=False,
                               back_populates='paths')
     is_input = Column(Boolean, nullable=False)
     is_output = Column(Boolean, nullable=False)
-    name = Column(String, nullable=False)
-    path = Column(String, nullable=False)
+    name = Column(Text, nullable=False)
+    path = Column(Text, nullable=False)
 
     def __repr__(self):
         if self.is_input and self.is_output:
@@ -143,8 +143,8 @@ class Run(Base):
     __tablename__ = 'runs'
 
     id = Column(Integer, primary_key=True)
-    experiment_hash = Column(String, ForeignKey('experiments.hash',
-                                                ondelete='CASCADE'))
+    experiment_hash = Column(String(64), ForeignKey('experiments.hash',
+                                                    ondelete='CASCADE'))
     experiment = relationship('Experiment', uselist=False,
                               back_populates='runs')
     upload_id = Column(Integer, ForeignKey('uploads.id',
@@ -198,7 +198,7 @@ class RunLogLine(Base):
     run = relationship('Run', uselist=False, back_populates='log')
     timestamp = Column(DateTime, nullable=False,
                        default=lambda: datetime.utcnow())
-    line = Column(String, nullable=False)
+    line = Column(Text, nullable=False)
 
     def __repr__(self):
         return "<RunLogLine id=%d, run_id=%d>" % (self.id, self.run_id)
@@ -212,8 +212,8 @@ class ParameterValue(Base):
     id = Column(Integer, primary_key=True)
     run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'))
     run = relationship('Run', uselist=False, back_populates='parameter_values')
-    name = Column(String, nullable=False)
-    value = Column(String, nullable=False)
+    name = Column(Text, nullable=False)
+    value = Column(Text, nullable=False)
 
     def __repr__(self):
         return "<ParameterValue id=%d, run_id=%d, name=%r>" % (
@@ -229,8 +229,8 @@ class RunPort(Base):
     run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'),
                     primary_key=True)
     run = relationship('Run', uselist=False, back_populates='ports')
-    type = Column(String, nullable=False, default='http')
-    map_host = Column(String, nullable=True)
+    type = Column(Text, nullable=False, default='http')
+    map_host = Column(Text, nullable=True)
 
 
 class InputFile(Base):
@@ -239,11 +239,11 @@ class InputFile(Base):
     __tablename__ = 'input_files'
 
     id = Column(Integer, primary_key=True)
-    hash = Column(String, nullable=False)
+    hash = Column(String(64), nullable=False)
     run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'))
     run = relationship('Run', uselist=False,
                        back_populates='input_files')
-    name = Column(String, nullable=False)
+    name = Column(Text, nullable=False)
     size = Column(Integer, nullable=False)
 
     def __repr__(self):
@@ -257,11 +257,11 @@ class OutputFile(Base):
     __tablename__ = 'output_files'
 
     id = Column(Integer, primary_key=True)
-    hash = Column(String, nullable=False)
+    hash = Column(String(64), nullable=False)
     run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'))
     run = relationship('Run', uselist=False,
                        back_populates='output_files')
-    name = Column(String, nullable=False)
+    name = Column(Text, nullable=False)
     size = Column(Integer, nullable=False)
 
     def __repr__(self):
@@ -274,8 +274,8 @@ class Setting(Base):
     """
     __tablename__ = 'settings'
 
-    name = Column(String, nullable=False, primary_key=True)
-    value = Column(String, nullable=False)
+    name = Column(Text, nullable=False, primary_key=True)
+    value = Column(Text, nullable=False)
 
 
 def purge(url=None):
