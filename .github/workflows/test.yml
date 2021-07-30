@@ -51,7 +51,7 @@ jobs:
           sudo mkdir -p /usr/local/bin
           sudo curl -Lo /usr/local/bin/kind https://github.com/kubernetes-sigs/kind/releases/download/v0.11.1/kind-linux-amd64
           sudo chmod +x /usr/local/bin/kind
-          sudo curl -Lo /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.16.3/bin/linux/amd64/kubectl
+          sudo curl -Lo /usr/local/bin/kubectl https://dl.k8s.io/release/v1.21.3/bin/linux/amd64/kubectl
           sudo chmod +x /usr/local/bin/kubectl
       - name: Start Kubernetes-in-Docker cluster
         run: |
