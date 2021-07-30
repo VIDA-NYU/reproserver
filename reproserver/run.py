@@ -164,7 +164,6 @@ class DockerRunner(Runner):
                 ])
                 if ret != 0:
                     raise ValueError("Error: Docker returned %d" % ret)
-                db.commit()
             logger.info("Build over, pushing image")
 
             # Push image to Docker repository in the background
