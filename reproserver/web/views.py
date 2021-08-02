@@ -10,7 +10,7 @@ from .. import database
 from ..repositories import RepositoryError, get_experiment_from_repository, \
     get_repository_name, get_repository_page_url, parse_repository_url
 from .. import rpz_metadata
-from ..utils import secure_filename
+from ..utils import background_future, secure_filename
 from .base import BaseHandler
 
 
@@ -340,7 +340,7 @@ class StartRun(BaseHandler):
 
         # Trigger run
         self.db.commit()
-        self.application.runner.run(run.id)
+        background_future(self.application.runner.run(run.id))
 
         # Redirect to results page
         return self.redirect(

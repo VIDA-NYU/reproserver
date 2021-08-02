@@ -10,6 +10,7 @@ import tornado.web
 from .. import __version__
 from .. import database
 from ..objectstore import get_object_store
+from ..run.connector import DirectConnector
 
 
 logger = logging.getLogger(__name__)
@@ -33,8 +34,10 @@ class Application(tornado.web.Application):
         except (ImportError, AttributeError):
             raise ValueError("Couldn't set up RUNNER_TYPE %r" % runner_type)
         self.runner = Runner(
-            DBSession=self.DBSession,
-            object_store=self.object_store,
+            DirectConnector(
+                DBSession=self.DBSession,
+                object_store=self.object_store,
+            ),
         )
 
     def log_request(self, handler):

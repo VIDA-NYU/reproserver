@@ -1,19 +1,19 @@
 import asyncio
-from datetime import datetime
 import kubernetes.client as k8s
 import kubernetes.config
 import kubernetes.watch
 import logging
 import os
-from sqlalchemy.orm import joinedload
 import subprocess
 import sys
 import time
 import yaml
 
+from .connector import DirectConnector
 from .. import database
 from ..objectstore import get_object_store
 from ..proxy import ProxyHandler
+from ..utils import background_future
 from .base import PROM_RUNS
 from .docker import DockerRunner
 
@@ -53,8 +53,8 @@ class K8sRunner(DockerRunner):
     the code is executed in that separate "runner" pod instead of the main
     process.
     """
-    def __init__(self, **kwargs):
-        super(K8sRunner, self).__init__(**kwargs)
+    def __init__(self, connector):
+        super(K8sRunner, self).__init__(connector)
 
         self.config_dir = os.environ['K8S_CONFIG_DIR']
 
@@ -79,6 +79,7 @@ class K8sRunner(DockerRunner):
                 ),
             )
             future.add_done_callback(self._run_callback(run_id))
+            background_future(future)
             PROM_RUNS.inc()
 
     def _pod_name(self, run_id):
@@ -112,36 +113,27 @@ class K8sRunner(DockerRunner):
             sys.exit(1)
 
         # Get a runner from environment
-        DBSession = database.connect()
-        object_store = get_object_store()
         runner = DockerRunner(
-            DBSession=DBSession,
-            object_store=object_store,
+            DirectConnector(
+                DBSession=database.connect(),
+                object_store=get_object_store(),
+            ),
         )
 
         # Load run information
-        db = DBSession()
-        run = (
-            db.query(database.Run)
-            .options(joinedload(database.Run.ports))
-        ).get(run_id)
-        if run is None:
-            logger.critical("Cannot find run %d in database", run_id)
-            sys.exit(1)
+        run_info = asyncio.get_event_loop().run_until_complete(
+            runner.connector.init_run_get_info(run_id),
+        )
 
         # Run
-        fut = asyncio.get_event_loop().run_in_executor(
-            None,
-            lambda: runner._docker_run(
-                run_id,
-                # Only accept local connections, from the runner pod
-                '127.0.0.1',
-            ),
+        fut = runner._docker_run(
+            run_info,
+            '127.0.0.1',  # Only accept local connections, from the runner pod
         )
 
         # Also set up a proxy
         proxy = InternalProxyHandler.make_app(
-            reproserver_run=run,
+            reproserver_run=run_info,
             connection_token=os.environ['CONNECTION_TOKEN'],
         )
         proxy.listen(5597, address='0.0.0.0')
@@ -154,7 +146,18 @@ class K8sRunner(DockerRunner):
         else:
             logger.info("Kubernetes runner pod complete")
 
-    def run_sync(self, run_id):
+    async def run_async(self, run_info):
+        # FIXME: async implementation of Kubernetes API
+        await asyncio.get_event_loop().run_in_executor(
+            None,
+            self.run_sync,
+            run_info,
+        )
+
+    def run_sync(self, run_info):
+        run_id = run_info['id']
+        del run_info
+
         # This does not run the experiment, it schedules a runner pod by
         # talking to the Kubernetes API. That pod will run the experiment and
         # update the database directly
@@ -285,13 +288,11 @@ class K8sRunner(DockerRunner):
 
         if not success:
             logger.warning("Run %d failed", run_id)
-            db = self.DBSession()
-            run = db.query(database.Run).get(run_id)
-            if run is None:
-                logger.warning("Run not in database, can't set status")
-            else:
-                run.done = datetime.utcnow()
-                db.commit()
+            self.loop.call_soon_threadsafe(
+                lambda: background_future(self.loop.create_task(
+                    self.connector.run_failed(run_id, "Internal error"),
+                )),
+            )
 
         # Delete the pod and service
         time.sleep(60)

@@ -1,5 +1,10 @@
+import asyncio
+import logging
 import os
 import re
+
+
+logger = logging.getLogger(__name__)
 
 
 safe_shell_chars = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -56,3 +61,26 @@ def secure_filename(name):
 
 
 secure_filename.windows = os.name == 'nt'
+
+
+_futures = dict()
+
+
+def background_future(future):
+    """Workaround for https://bugs.python.org/issue21163
+
+    Adding a callback to a future and throwing it out cancels the task. Call
+    this function to avoid this.
+    """
+    future = asyncio.ensure_future(future)
+    future_id = id(future)
+    _futures[future_id] = future_id
+
+    @future.add_done_callback
+    def callback(f):
+        # Call result to avoid warnings
+        try:
+            f.result()
+        except Exception:
+            logger.exception("Error in background task")
+        _futures.pop(future_id, None)
