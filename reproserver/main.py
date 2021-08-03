@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import prometheus_client
@@ -53,7 +54,13 @@ def main():
     )
     prometheus_client.start_http_server(8090)
 
-    app = make_app()
+    debug = os.environ.get('REPROSERVER_DEBUG', '').lower() in (
+        'y', 'yes', 'true', 'on', '1',
+    )
+    if debug:
+        logger.warning("Debug mode is ON")
+        asyncio.get_event_loop().set_debug(True)
+    app = make_app(debug)
     app.listen(8000, address='0.0.0.0',
                xheaders=True,
                max_buffer_size=1_073_741_824)
