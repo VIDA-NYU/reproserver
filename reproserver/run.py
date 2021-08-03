@@ -453,6 +453,20 @@ class K8sRunner(DockerRunner):
             format="%(asctime)s %(levelname)s %(name)s: %(message)s",
         )
 
+        # Wait for Docker to be available
+        for _ in range(30):
+            ret = subprocess.call(
+                ['docker', 'info'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            if ret == 0:
+                break
+            time.sleep(2)
+        else:
+            logger.critical("Docker did not come online")
+            sys.exit(1)
+
         # Get a runner from environment
         DBSession = database.connect()
         object_store = get_object_store()
