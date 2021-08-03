@@ -37,6 +37,11 @@ services:
     ports:
       - 5432:5432
   docker:
-    image: docker:20.10.6-dind
+    image: docker:20.10.7-dind
     privileged: true
-    command: ["--insecure-registry=registry:5000"]
+    command:
+      - "dockerd"
+      - "--host=tcp://0.0.0.0:2375"
+      - "--storage-driver=overlay2"
+      - "--userns-remap=default"
+      - "--insecure-registry=registry:5000"
