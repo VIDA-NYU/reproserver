@@ -83,7 +83,8 @@ data:
           - name: REPROZIP_USAGE_STATS
             value: "off"
         ports:
-          - containerPort: 5597
+          - name: proxy
+            containerPort: 5597
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -174,8 +175,10 @@ spec:
             - name: k8s-config
               mountPath: /etc/k8s-config
           ports:
-            - containerPort: 8000
-            - containerPort: 8090
+            - name: web
+              containerPort: 8000
+            - name: prometheus
+              containerPort: 8090
           livenessProbe:
             httpGet:
               path: /health
@@ -233,8 +236,10 @@ spec:
           command:
             - "reproserver-k8s-proxy"
           ports:
-            - containerPort: 8001
-            - containerPort: 8090
+            - name: proxy
+              containerPort: 8001
+            - name: prometheus
+              containerPort: 8090
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -256,7 +261,8 @@ spec:
         - name: registry
           image: registry:2.7
           ports:
-            - containerPort: 5000
+            - name: registry
+              containerPort: 5000
           volumeMounts:
             - mountPath: /var/lib/registry
               name: data
@@ -298,7 +304,8 @@ spec:
                   name: reproserver-secret
                   key: password
           ports:
-            - containerPort: 5432
+            - name: proxy
+              containerPort: 5432
           volumeMounts:
             - mountPath: /var/lib/postgresql/data
               name: data
@@ -343,7 +350,8 @@ spec:
   selector:
     app: web
   ports:
-    - protocol: TCP
+    - name: web
+      protocol: TCP
       port: 8000
 ---
 apiVersion: v1
@@ -356,5 +364,6 @@ spec:
   selector:
     app: proxy
   ports:
-    - protocol: TCP
+    - name: proxy
+      protocol: TCP
       port: 8001

@@ -63,7 +63,8 @@ spec:
             - name: data
               mountPath: /prometheus
           ports:
-            - containerPort: 9090
+            - name: web
+              containerPort: 9090
       volumes:
         - name: k8s-prom
           configMap:
@@ -108,7 +109,8 @@ spec:
             - name: data
               mountPath: /var/lib/grafana
           ports:
-            - containerPort: 3000
+            - name: web
+              containerPort: 3000
       volumes:
         - name: data
           persistentVolumeClaim:
@@ -165,7 +167,8 @@ spec:
   selector:
     app: grafana
   ports:
-    - protocol: TCP
+    - name: web
+      protocol: TCP
       port: 3000
 ---
 apiVersion: networking.k8s.io/v1
@@ -184,4 +187,4 @@ spec:
               service:
                 name: grafana
                 port:
-                  number: 3000
+                  name: web

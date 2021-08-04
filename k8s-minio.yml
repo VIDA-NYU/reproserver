@@ -30,7 +30,8 @@ spec:
                   name: reproserver-secret
                   key: s3_secret
           ports:
-            - containerPort: 9000
+            - name: web
+              containerPort: 9000
           readinessProbe:
             httpGet:
               path: /minio/health/ready
