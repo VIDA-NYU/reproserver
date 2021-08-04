@@ -29,7 +29,7 @@ classifiers = [
 
 include = [
     # LICENSE.txt README.rst
-    "reproserver/static/favicon.png",
+    "reproserver/static/favicon.ico",
     "reproserver/static/css/*.css",
     "reproserver/static/js/*.js",
     "reproserver/static/fonts/*",
