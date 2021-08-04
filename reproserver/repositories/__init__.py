@@ -48,6 +48,16 @@ def get_experiment_from_repository(db, object_store, remote_addr,
     )
 
 
+def get_repository_page_url(repo, repo_path):
+    """Get the URL of the repository's page for the file.
+    """
+    try:
+        repo_obj = _map[repo]
+    except KeyError:
+        raise RepositoryError("No such repository %s" % repo)
+    return repo_obj.get_page_url(repo, repo_path)
+
+
 def parse_repository_url(url):
     """Parse a URL into a reference to a file in a repository.
     """

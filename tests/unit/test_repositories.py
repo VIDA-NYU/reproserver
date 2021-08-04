@@ -6,7 +6,7 @@ from tornado.util import ObjectDict
 from unittest.mock import patch
 
 from reproserver.repositories import get_experiment_from_repository, \
-    get_repository_name, parse_repository_url
+    get_repository_name, get_repository_page_url, parse_repository_url
 
 
 def mock_fetch(self, expected_url, content):
@@ -197,6 +197,11 @@ rent_user_can_comment":false,"guid":"ab12c","checkout":null,"tags":[],"size":8\
                 (self.result, 'https://osf.io/download/ab12c/'),
             )
 
+        self.assertEqual(
+            await get_repository_page_url('osf.io', 'ab12c'),
+            'https://osf.io/ab12c',
+        )
+
     @gen_test
     async def test_get_zenodo(self):
         with contextlib.ExitStack() as stack:
@@ -217,6 +222,14 @@ rent_user_can_comment":false,"guid":"ab12c","checkout":null,"tags":[],"size":8\
                     '?download=1',
                 ),
             )
+
+        self.assertEqual(
+            await get_repository_page_url(
+                'zenodo.org',
+                '1234567/files/bash-count.rpz',
+            ),
+            'https://zenodo.org/record/1234567',
+        )
 
     @gen_test
     async def test_get_figshare(self):
@@ -246,3 +259,11 @@ rent_user_can_comment":false,"guid":"ab12c","checkout":null,"tags":[],"size":8\
                     'https://ndownloader.figshare.com/files/3456789',
                 ),
             )
+
+        self.assertEqual(
+            await get_repository_page_url(
+                'figshare.com',
+                '1234567/files/3456789',
+            ),
+            'https://figshare.com/articles/_/1234567',
+        )

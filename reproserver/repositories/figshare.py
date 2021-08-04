@@ -103,3 +103,10 @@ class Figshare(BaseRepository):
                 repo, repo_path,
                 link, filename,
             )
+
+    async def get_page_url(self, repo, repo_path):
+        m = _figshare_path.match(repo_path)
+        if m is None:
+            raise RepositoryError("ID is not in Figshare format")
+        article_id = m.group(1)
+        return 'https://figshare.com/articles/_/{0}'.format(article_id)

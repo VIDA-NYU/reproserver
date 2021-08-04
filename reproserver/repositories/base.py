@@ -29,6 +29,9 @@ class BaseRepository(object):
                        repo, repo_path):
         raise NotImplementedError
 
+    async def get_page_url(self, repo, repo_path):
+        return None
+
     async def _get_from_link(self, db, object_store, remote_addr,
                              repo, repo_path,
                              link, filename, filehash=None):

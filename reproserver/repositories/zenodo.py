@@ -86,3 +86,10 @@ class Zenodo(BaseRepository):
             'https://zenodo.org/record/{0}?download=1'.format(repo_path),
             m.group(2),
         )
+
+    async def get_page_url(self, repo, repo_path):
+        m = _zenodo_path.match(repo_path)
+        if m is None:
+            raise RepositoryError("Path is not in the Zenodo format")
+        record = m.group(1)
+        return 'https://zenodo.org/record/{0}'.format(record)

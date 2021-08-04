@@ -75,3 +75,6 @@ class OSF(BaseRepository):
             repo, repo_path,
             link, filename, filehash,
         )
+
+    async def get_page_url(self, repo, repo_path):
+        return 'https://osf.io/' + repo_path
