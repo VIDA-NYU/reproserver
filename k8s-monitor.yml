@@ -17,6 +17,13 @@ data:
             type: "A"
             port: 8090
             refresh_interval: 60s
+      - job_name: proxy
+        dns_sd_configs:
+          - names:
+              - proxy-scrape
+            type: "A"
+            port: 8090
+            refresh_interval: 60s
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -116,6 +123,20 @@ metadata:
 spec:
   selector:
     app: web
+  clusterIP: "None"
+  ports:
+    - protocol: TCP
+      port: 8090
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: proxy-scrape
+  labels:
+    app: proxy
+spec:
+  selector:
+    app: proxy
   clusterIP: "None"
   ports:
     - protocol: TCP

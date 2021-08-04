@@ -13,7 +13,16 @@ services:
       RUNNER_TYPE: docker
     ports:
       - 8000:8000
+  proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - ".env"
+    ports:
       - 8001:8001
+    command:
+      - "reproserver-docker-proxy"
   minio:
     image: minio/minio:RELEASE.2021-04-06T23-11-00Z
     command: ["server", "/export"]

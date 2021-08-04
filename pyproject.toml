@@ -58,6 +58,8 @@ requests = "*"
 
 [tool.poetry.scripts]
 reproserver = "reproserver.main:main"
+reproserver-docker-proxy = "reproserver.proxy:docker_proxy"
+reproserver-k8s-proxy = "reproserver.proxy:k8s_proxy"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

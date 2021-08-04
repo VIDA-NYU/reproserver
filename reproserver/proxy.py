@@ -1,13 +1,16 @@
 import itertools
 import logging
+import os
 import prometheus_client
 from tornado import httputil
 from tornado import httpclient
+import tornado.ioloop
 from tornado.routing import URLSpec
 import tornado.web
 from tornado.websocket import WebSocketHandler, websocket_connect
 
 from . import __version__
+from . import database
 
 
 logger = logging.getLogger(__name__)
@@ -129,3 +132,72 @@ class ProxyHandler(WebSocketHandler):
             ],
             **settings,
         )
+
+
+class DockerProxyHandler(ProxyHandler):
+    def select_destination(self):
+        # Read destination from hostname
+        self.original_host = self.request.host
+        host_name = self.request.host_name.split('.', 1)[0]
+        run_short_id, port = host_name.split('-')
+        database.Run.decode_id(run_short_id)
+
+        url = 'docker:{0}{1}'.format(port, self.request.uri)
+        return url
+
+    def alter_request(self, request):
+        request.headers['Host'] = self.original_host
+
+
+class K8sProxyHandler(ProxyHandler):
+    def select_destination(self):
+        # Read destination from hostname
+        self.original_host = self.request.host
+        host_name = self.request.host_name.split('.', 1)[0]
+        run_short_id, port = host_name.split('-')
+        run_id = database.Run.decode_id(run_short_id)
+
+        url = 'run-{0}:5597{1}'.format(run_id, self.request.uri)
+        return url
+
+    def alter_request(self, request):
+        # Authentication
+        request.headers['X-Reproserver-Authenticate'] = \
+            self.application.settings['connection_token']
+
+        request.headers['Host'] = self.original_host
+
+
+def _setup():
+    logging.root.handlers.clear()
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+    prometheus_client.start_http_server(8090)
+
+
+def docker_proxy():
+    _setup()
+
+    # Database connection is not used, but we still need to prime short ids
+    database.connect()
+
+    proxy = DockerProxyHandler.make_app()
+    proxy.listen(8001, address='0.0.0.0', xheaders=True)
+    loop = tornado.ioloop.IOLoop.current()
+    loop.start()
+
+
+def k8s_proxy():
+    _setup()
+
+    # Database connection is not used, but we still need to prime short ids
+    database.connect()
+
+    proxy = K8sProxyHandler.make_app(
+        connection_token=os.environ['CONNECTION_TOKEN'],
+    )
+    proxy.listen(8001, address='0.0.0.0', xheaders=True)
+    loop = tornado.ioloop.IOLoop.current()
+    loop.start()

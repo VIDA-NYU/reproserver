@@ -175,7 +175,6 @@ spec:
               mountPath: /etc/k8s-config
           ports:
             - containerPort: 8000
-            - containerPort: 8001
             - containerPort: 8090
           livenessProbe:
             httpGet:
@@ -187,6 +186,55 @@ spec:
         - name: k8s-config
           configMap:
             name: k8s-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: proxy
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: proxy
+  template:
+    metadata:
+      labels:
+        app: proxy
+    spec:
+      containers:
+        - name: proxy
+          image: reproserver_web
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: reproserver-secret
+                  key: user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: reproserver-secret
+                  key: password
+            - name: POSTGRES_HOST
+              value: postgres
+            - name: POSTGRES_DB
+              value: reproserver
+            - name: CONNECTION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: reproserver-secret
+                  key: connection_token
+          command:
+            - "reproserver-k8s-proxy"
+          ports:
+            - containerPort: 8001
+            - containerPort: 8090
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -301,12 +349,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: web-proxy
+  name: proxy
   labels:
-    app: web
+    app: proxy
 spec:
   selector:
-    app: web
+    app: proxy
   ports:
     - protocol: TCP
       port: 8001
