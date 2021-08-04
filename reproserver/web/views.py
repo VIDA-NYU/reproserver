@@ -8,7 +8,7 @@ import tempfile
 
 from .. import database
 from ..repositories import RepositoryError, get_experiment_from_repository, \
-    parse_repository_url
+    get_repository_name, get_repository_page_url, parse_repository_url
 from .. import rpz_metadata
 from ..utils import secure_filename
 from .base import BaseHandler
@@ -125,7 +125,7 @@ class Upload(BaseHandler):
 
 
 class BaseReproduce(BaseHandler):
-    def reproduce(self, upload):
+    def reproduce(self, upload, repo_name=None, repo_url=None):
         experiment = upload.experiment
         filename = upload.filename
         experiment_url = self.url_for_upload(upload)
@@ -143,6 +143,7 @@ class BaseReproduce(BaseHandler):
             input_files=input_files,
             upload_short_id=upload.short_id,
             experiment_url=experiment_url,
+            repo_name=repo_name, repo_url=repo_url,
         )
 
 
@@ -182,7 +183,9 @@ class ReproduceRepo(BaseReproduce):
         upload.experiment.last_access = datetime.utcnow()
         self.db.commit()
 
-        return self.reproduce(upload)
+        repo_name = get_repository_name(repo)
+        repo_url = await get_repository_page_url(repo, repo_path)
+        return self.reproduce(upload, repo_name, repo_url)
 
 
 class ReproduceLocal(BaseReproduce):

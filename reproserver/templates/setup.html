@@ -4,6 +4,10 @@
 
 <h1>Package {{ filename }}</h1>
 
+{% if repo_url -%}
+<p>From <a href="{{ repo_url }}">{{ repo_name }}</a></p>
+{%- endif %}
+
 <h2>Run the experiment</h2>
 
 <form method="POST" action="{{ reverse_url('start_run', upload_short_id) }}" enctype="multipart/form-data">
