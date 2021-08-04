@@ -139,7 +139,13 @@ class DockerProxyHandler(ProxyHandler):
         # Read destination from hostname
         self.original_host = self.request.host
         host_name = self.request.host_name.split('.', 1)[0]
-        run_short_id, port = host_name.split('-')
+        parts = host_name.rsplit('-', 1)
+        if len(parts) != 2:
+            self.set_status(403)
+            logger.info("Invalid hostname")
+            self.finish("Invalid hostname")
+            return
+        run_short_id, port = parts
         database.Run.decode_id(run_short_id)
 
         url = 'docker:{0}{1}'.format(port, self.request.uri)
@@ -154,7 +160,13 @@ class K8sProxyHandler(ProxyHandler):
         # Read destination from hostname
         self.original_host = self.request.host
         host_name = self.request.host_name.split('.', 1)[0]
-        run_short_id, port = host_name.split('-')
+        parts = host_name.split('-')
+        if len(parts) != 2:
+            self.set_status(403)
+            logger.info("Invalid hostname")
+            self.finish("Invalid hostname")
+            return
+        run_short_id, port = parts
         run_id = database.Run.decode_id(run_short_id)
 
         url = 'run-{0}:5597{1}'.format(run_id, self.request.uri)
