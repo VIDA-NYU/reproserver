@@ -34,6 +34,7 @@ _mendeley_path = re.compile(
 
 class Mendeley(BaseRepository):
     IDENTIFIER = 'data.mendeley.com'
+    NAME = 'Mendeley'
     URL_DOMAINS = ['data.mendeley.com']
 
     _mendeley_access_token = None
@@ -135,3 +136,10 @@ class Mendeley(BaseRepository):
             raise RepositoryError("HTTP error from Mendeley")
         obj = json.loads(resp.body.decode('utf-8'))
         self._mendeley_access_token = obj['access_token']
+
+    async def get_page_url(self, repo, repo_path):
+        m = _mendeley_path.match(repo_path)
+        if m is None:
+            raise RepositoryError("Path is not in the Mendeley format")
+        dataset_id = m.group(1)
+        return 'https://data.mendeley.com/datasets/{0}'.format(dataset_id)

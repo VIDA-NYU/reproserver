@@ -22,6 +22,7 @@ _osf_path = re.compile('^[a-zA-Z0-9]{3,10}$')
 
 class OSF(BaseRepository):
     IDENTIFIER = 'osf.io'
+    NAME = 'OSF'
     URL_DOMAINS = ['osf.io']
 
     async def parse_url(self, url):
@@ -74,3 +75,6 @@ class OSF(BaseRepository):
             repo, repo_path,
             link, filename, filehash,
         )
+
+    async def get_page_url(self, repo, repo_path):
+        return 'https://osf.io/' + repo_path

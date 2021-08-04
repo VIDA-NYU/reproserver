@@ -16,6 +16,7 @@ class RepositoryError(Exception):
 
 class BaseRepository(object):
     IDENTIFIER = ''
+    NAME = '(unknown repository)'
     URL_DOMAINS = []
 
     def __init__(self):
@@ -27,6 +28,9 @@ class BaseRepository(object):
     def get_experiment(self, db, object_store, remote_addr,
                        repo, repo_path):
         raise NotImplementedError
+
+    async def get_page_url(self, repo, repo_path):
+        return None
 
     async def _get_from_link(self, db, object_store, remote_addr,
                              repo, repo_path,
