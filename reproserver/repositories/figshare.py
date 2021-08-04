@@ -23,6 +23,7 @@ _figshare_path = re.compile(r'^([0-9]+)/files/([0-9]+)$')
 
 class Figshare(BaseRepository):
     IDENTIFIER = 'figshare.com'
+    NAME = 'Figshare'
     URL_DOMAINS = ['figshare.com']
 
     async def parse_url(self, url):

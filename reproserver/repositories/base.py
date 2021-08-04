@@ -16,6 +16,7 @@ class RepositoryError(Exception):
 
 class BaseRepository(object):
     IDENTIFIER = ''
+    NAME = '(unknown repository)'
     URL_DOMAINS = []
 
     def __init__(self):

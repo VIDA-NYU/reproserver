@@ -24,6 +24,16 @@ for repo_class in _repositories:
         _parse_domains[domain] = repo
 
 
+def get_repository_name(repo):
+    """Get the human-readable name of a repository.
+    """
+    try:
+        repo_obj = _map[repo]
+    except KeyError:
+        raise RepositoryError("No such repository %s" % repo)
+    return repo_obj.NAME
+
+
 def get_experiment_from_repository(db, object_store, remote_addr,
                                    repo, repo_path):
     """Get a file from a reference in a repository.

@@ -34,6 +34,7 @@ _mendeley_path = re.compile(
 
 class Mendeley(BaseRepository):
     IDENTIFIER = 'data.mendeley.com'
+    NAME = 'Mendeley'
     URL_DOMAINS = ['data.mendeley.com']
 
     _mendeley_access_token = None

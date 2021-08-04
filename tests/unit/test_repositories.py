@@ -6,7 +6,7 @@ from tornado.util import ObjectDict
 from unittest.mock import patch
 
 from reproserver.repositories import get_experiment_from_repository, \
-    parse_repository_url
+    get_repository_name, parse_repository_url
 
 
 def mock_fetch(self, expected_url, content):
@@ -37,6 +37,8 @@ class TestParse(AsyncTestCase):
             await parse_repository_url('https://osf.io/ab12c'),
             ('osf.io', 'ab12c'),
         )
+
+        self.assertEqual(get_repository_name('osf.io'), 'OSF')
 
     @gen_test
     async def test_parse_zenodo(self):
@@ -106,6 +108,8 @@ ash-count example"}\
                 ('zenodo.org', '1234567/files/bash-count.rpz'),
             )
 
+        self.assertEqual(get_repository_name('zenodo.org'), 'Zenodo')
+
     @gen_test
     async def test_parse_figshare(self):
         mock_api = mock_fetch(
@@ -127,6 +131,8 @@ ash-count example"}\
                 ),
                 ('figshare.com', '1234567/files/3456789')
             )
+
+        self.assertEqual(get_repository_name('figshare.com'), 'Figshare')
 
 
 class TestGet(AsyncTestCase):

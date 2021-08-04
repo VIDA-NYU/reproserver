@@ -28,6 +28,7 @@ _zenodo_path = re.compile(r'^([0-9]+)/files/([^/?]+)$')
 
 class Zenodo(BaseRepository):
     IDENTIFIER = 'zenodo.org'
+    NAME = 'Zenodo'
     URL_DOMAINS = ['zenodo.org']
 
     async def parse_url(self, url):
