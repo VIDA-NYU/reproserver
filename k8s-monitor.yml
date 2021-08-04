@@ -152,6 +152,7 @@ kind: Ingress
 metadata:
   name: ingress-grafana
 spec:
+  ingressClassName: "nginx"
   rules:
     - host: grafana.server.reprozip.org
       http:
