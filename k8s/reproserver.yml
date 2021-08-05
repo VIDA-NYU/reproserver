@@ -8,6 +8,11 @@ data:
   s3.bucket-prefix: prod-
   s3.client-url: http://files.localhost:8000
   proxy.url: http://{short_id}-{port}.web.localhost:8000/
+  gcp_project: reproserver
+  gcp_zone: us-east1-b
+  gcp_env: staging
+  gcp_api_endpoint: https://staging.server.reprozip.org
+  gcp_repo_revision: 0.8-119-gfc34a4c
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -164,9 +169,39 @@ spec:
             - name: REPROZIP_USAGE_STATS
               value: "off"
             - name: RUNNER_TYPE
-              value: k8s
+              value: gcp
             - name: K8S_CONFIG_DIR
               value: /etc/k8s-config
+            - name: GCP_CREDS
+              valueFrom:
+                secretKeyRef:
+                  name: reproserver-secret
+                  key: gcp_creds
+            - name: GCP_PROJECT
+              valueFrom:
+                configMapKeyRef:
+                  name: config
+                  key: gcp_project
+            - name: GCP_ZONE
+              valueFrom:
+                configMapKeyRef:
+                  name: config
+                  key: gcp_zone
+            - name: GCP_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: config
+                  key: gcp_env
+            - name: GCP_API_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: config
+                  key: gcp_api_endpoint
+            - name: GCP_REPO_REVISION
+              valueFrom:
+                configMapKeyRef:
+                  name: config
+                  key: gcp_repo_revision
             - name: ZENODO_TOKEN
               valueFrom:
                 secretKeyRef:
