@@ -242,9 +242,10 @@ class K8sRunner(DockerRunner):
             if not started and status.start_time:
                 started = status.start_time
                 logger.info("Run pod started: %s", started.isoformat())
-            if (status.container_statuses and
-                    any(c.state.terminated
-                        for c in status.container_statuses)):
+            if (
+                status.container_statuses and
+                any(c.state.terminated for c in status.container_statuses)
+            ):
                 w.stop()
 
                 # Check the status of all containers

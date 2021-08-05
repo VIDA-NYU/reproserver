@@ -40,6 +40,8 @@ class BaseRunner(object):
         self.object_store = object_store
 
     def _run_callback(self, run_id):
+        """Provides a callback that marks the Run as completed/failed.
+        """
         def callback(future):
             try:
                 future.result()
@@ -65,4 +67,8 @@ class BaseRunner(object):
         return future
 
     def run_sync(self, run_id):
+        """Executes the experiment. Overridable in subclasses.
+
+        You don't need to implement it if you implement `run_async()`.
+        """
         raise NotImplementedError
