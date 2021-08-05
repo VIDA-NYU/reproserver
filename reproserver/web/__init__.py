@@ -2,6 +2,7 @@ import pkg_resources
 from tornado.routing import URLSpec
 
 from .base import Application
+from . import api
 from . import views
 
 
@@ -21,6 +22,12 @@ def make_app(debug=False, xsrf_cookies=True):
             URLSpec('/about', views.About, name='about'),
             URLSpec('/data', views.Data, name='data'),
             URLSpec('/health', views.Health, name='health'),
+            URLSpec('/runners/run/([^/]+)/init', api.InitRunGetInfo),
+            URLSpec('/runners/run/([^/]+)/start', api.RunStarted),
+            URLSpec('/runners/run/([^/]+)/done', api.RunDone),
+            URLSpec('/runners/run/([^/]+)/failed', api.RunFailed),
+            URLSpec('/runners/run/([^/]+)/output/(.+)', api.UploadOutput),
+            URLSpec('/runners/run/([^/]+)/log', api.Log),
         ],
         static_path=pkg_resources.resource_filename('reproserver', 'static'),
         xsrf_cookies=xsrf_cookies,

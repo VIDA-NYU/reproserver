@@ -31,7 +31,9 @@ class DockerRunner(BaseRunner):
             '0.0.0.0',  # Accept connections to proxy from everywhere
         )
 
-    async def get_image(self, experiment_hash):
+    async def get_image(self, run_info):
+        experiment_hash = run_info['experiment_hash']
+
         push_process = None
         fq_image_name = '%s/%s' % (
             DOCKER_REGISTRY,
@@ -51,7 +53,7 @@ class DockerRunner(BaseRunner):
                 local_path = os.path.join(directory, 'experiment.rpz')
                 build_dir = os.path.join(directory, 'build_dir')
                 await self.connector.download_bundle(
-                    experiment_hash,
+                    run_info,
                     local_path,
                 )
                 logger.info("Got file, %d bytes", os.stat(local_path).st_size)
@@ -100,7 +102,7 @@ class DockerRunner(BaseRunner):
 
             # Get or build the Docker image
             get_image_future = asyncio.ensure_future(
-                self.get_image(run_info['experiment_hash']),
+                self.get_image(run_info),
             )
 
             # Wait for both tasks to finish

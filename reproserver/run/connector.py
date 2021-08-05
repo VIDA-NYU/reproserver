@@ -1,12 +1,18 @@
 import asyncio
+import contextlib
 import hashlib
+import json
 import subprocess
 from datetime import datetime
 import logging
 import os
 from sqlalchemy.orm import joinedload
+from tornado import gen
+from tornado.httpclient import AsyncHTTPClient, HTTPClient
+import urllib.parse
 
 from .. import database
+from ..utils import background_future
 
 
 logger = logging.getLogger(__name__)
@@ -35,18 +41,34 @@ class BaseConnector(object):
         """
         raise NotImplementedError
 
+    def get_input_links(self, run_info):
+        """Add (internal) download URLs for each input.
+        """
+        raise NotImplementedError
+
     def download_inputs(self, run_info, directory):  # async
         """Download inputs, returns new run_info with ``local_path`` set.
         """
         raise NotImplementedError
 
-    def download_bundle(self, experiment_hash, local_path):  # async
+    def get_bundle_link(self, run_info):
+        """Get the (internal) URL of the bundle.
+        """
         raise NotImplementedError
 
-    def upload_output_file_blocking(self, run_id, name, file):
+    def download_bundle(self, run_info, local_path):  # async
+        """Download the bundle to a local file.
+        """
+        raise NotImplementedError
+
+    def upload_output_file_blocking(self, run_id, name, file, *, digest=None):
+        """Upload a file object to the run's output files.
+        """
         raise NotImplementedError
 
     def log(self, run_id, msg, *args):  # async
+        """Record a message to the run's log.
+        """
         raise NotImplementedError
 
     async def log_multiple(self, run_id, lines):  # async
@@ -178,6 +200,20 @@ class DirectConnector(BaseConnector):
         db.add(database.RunLogLine(run_id=run.id, line=error))
         db.commit()
 
+    def _add_input_link(self, input_file):
+        link = self.object_store.presigned_internal_url(
+            'inputs',
+            input_file['hash'],
+        )
+        return dict(input_file, link=link)
+
+    def get_input_links(self, run_info):
+        inputs = [
+            self._add_input_link(input_file)
+            for input_file in run_info['inputs']
+        ]
+        return dict(run_info, inputs=inputs)
+
     def download_inputs(self, run_info, directory):
         return asyncio.get_event_loop().run_in_executor(
             None,
@@ -206,43 +242,54 @@ class DirectConnector(BaseConnector):
             inputs.append(input_file)
         return dict(run_info, inputs=inputs)
 
-    def download_bundle(self, experiment_hash, local_path):
+    def get_bundle_link(self, run_info):
+        return self.object_store.presigned_internal_url(
+            'experiments',
+            run_info['experiment_hash'],
+        )
+
+    def download_bundle(self, run_info, local_path):
         return asyncio.get_event_loop().run_in_executor(
             None,
             lambda: self.object_store.download_file(
-                'experiments', experiment_hash,
+                'experiments', run_info['experiment_hash'],
                 local_path,
             ),
         )
 
-    def upload_output_file_blocking(self, run_id, name, file):
+    def upload_output_file_blocking(self, run_id, name, file, *, digest=None):
         db = self.DBSession()
 
-        # Hash it
-        hasher = hashlib.sha256()
-        chunk = file.read(4096)
-        while chunk:
-            hasher.update(chunk)
-            if len(chunk) != 4096:
-                break
+        if digest is None:
+            # Hash it
+            hasher = hashlib.sha256()
             chunk = file.read(4096)
-        filehash = hasher.hexdigest()
+            while chunk:
+                hasher.update(chunk)
+                if len(chunk) != 4096:
+                    break
+                chunk = file.read(4096)
+            digest = hasher.hexdigest()
 
-        # Rewind it
-        filesize = file.tell()
-        file.seek(0, 0)
+            # Rewind it
+            filesize = file.tell()
+            file.seek(0, 0)
+        else:
+            file.seek(0, 2)
+            filesize = file.tell()
+            file.seek(0, 0)
 
         # Upload file to S3
         logger.info("Uploading file, size: %d bytes", filesize)
         self.object_store.upload_fileobj(
-            'outputs', filehash,
+            'outputs', digest,
             file,
         )
 
         # Add it to database
         output_file = database.OutputFile(
             run_id=run_id,
-            hash=filehash,
+            hash=digest,
             name=name,
             size=filesize,
         )
@@ -274,6 +321,207 @@ class DirectConnector(BaseConnector):
             logger.info("> %s", line)
             db.add(database.RunLogLine(run_id=run_id, line=line))
             db.commit()
+        return proc.wait()
+
+    def run_cmd_and_log(self, run_id, cmd):
+        return asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: self._run_cmd_and_log(
+                run_id, cmd,
+            ),
+        )
+
+
+MAX_FILE_SIZE = 5_000_000_000  # 5 GB
+
+
+def download_file(url, local_path, http_client=None):
+    with contextlib.ExitStack() as http_context:
+        if http_client is None:
+            http_client = http_context.enter_context(
+                contextlib.closing(HTTPClient(max_body_size=MAX_FILE_SIZE)),
+            )
+        try:
+            with open(local_path, 'wb') as f_out:
+                http_client.fetch(url, streaming_callback=f_out.write)
+        except Exception:
+            os.remove(local_path)
+            raise
+
+
+def file_body_producer(file):
+    @gen.coroutine
+    def producer(write):
+        chunk = file.read(4096)
+        while chunk:
+            yield write(chunk)
+            if len(chunk) != 4096:
+                break
+            chunk = file.read(4096)
+
+    return producer
+
+
+class HttpConnector(BaseConnector):
+    """Connects to the API endpoint.
+    """
+    def __init__(self, api_endpoint):
+        self.api_endpoint = api_endpoint
+        self.loop = asyncio.get_event_loop()
+        self.http_client = AsyncHTTPClient()
+
+    async def init_run_get_info(self, run_id):
+        response = await self.http_client.fetch(
+            '{0}/runners/run/{1}/init'.format(
+                self.api_endpoint,
+                run_id
+            ),
+            method='POST',
+            body=b'{}',
+            headers={'Content-Type': 'application/json; charset=utf-8'},
+        )
+        return json.loads(response.body.decode('utf-8'))
+
+    async def run_started(self, run_id):
+        await self.http_client.fetch(
+            '{0}/runners/run/{1}/start'.format(
+                self.api_endpoint,
+                run_id
+            ),
+            method='POST',
+            body=b'{}',
+            headers={'Content-Type': 'application/json; charset=utf-8'},
+        )
+
+    async def run_done(self, run_id):
+        await self.http_client.fetch(
+            '{0}/runners/run/{1}/done'.format(
+                self.api_endpoint,
+                run_id
+            ),
+            method='POST',
+            body=b'{}',
+            headers={'Content-Type': 'application/json; charset=utf-8'},
+        )
+
+    async def run_failed(self, run_id, error):
+        await self.http_client.fetch(
+            '{0}/runners/run/{1}/failed'.format(
+                self.api_endpoint,
+                run_id
+            ),
+            method='POST',
+            body=json.dumps({'error': error}).encode('utf-8'),
+            headers={'Content-Type': 'application/json; charset=utf-8'}
+        )
+
+    def get_input_links(self, run_info):
+        # The input links are already set by init_run_get_info()
+        return run_info
+
+    def download_inputs(self, run_info, directory):
+        return asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: self._download_inputs(
+                run_info,
+                directory,
+            ),
+        )
+
+    def _download_inputs(self, run_info, directory):
+        inputs = []
+        with contextlib.closing(
+            HTTPClient(max_body_size=MAX_FILE_SIZE),
+        ) as http_client:
+            for input_file in run_info['inputs']:
+                local_path = os.path.join(
+                    directory,
+                    'input_%s' % input_file['hash'],
+                )
+                logger.info(
+                    "Downloading input file: %s, %s, %d bytes",
+                    input_file['name'], input_file['hash'], input_file['size'],
+                )
+
+                download_file(
+                    input_file['link'],
+                    local_path,
+                    http_client,
+                )
+                input_file = dict(input_file, local_path=local_path)
+                inputs.append(input_file)
+            return dict(run_info, inputs=inputs)
+
+    def get_bundle_link(self, run_info):
+        return run_info['experiment_url']
+
+    def download_bundle(self, run_info, local_path):
+        return asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: download_file(
+                run_info['experiment_url'],
+                local_path,
+            ),
+        )
+
+    def upload_output_file_blocking(
+        self, run_id, name, file,
+        *, digest=None, http_client=None,
+    ):
+        with contextlib.ExitStack() as http_context:
+            if http_client is None:
+                http_client = http_context.enter_context(
+                    contextlib.closing(HTTPClient()),
+                )
+            http_client.fetch(
+                '{0}/runners/run/{1}/output/{2}'.format(
+                    self.api_endpoint,
+                    run_id,
+                    urllib.parse.quote_plus(name),
+                ),
+                method='PUT',
+                body_producer=file_body_producer(file)
+            )
+
+    def log(self, run_id, msg, *args):
+        line = msg % args
+        return self.log_multiple(run_id, [line])
+
+    async def log_multiple(self, run_id, lines):
+        now = datetime.utcnow().isoformat()
+        await self.http_client.fetch(
+            '{0}/runners/run/{1}/log'.format(
+                self.api_endpoint,
+                run_id
+            ),
+            method='POST',
+            body=json.dumps({
+                'lines': [
+                    {
+                        'msg': line,
+                        'time': now,
+                    }
+                    for line in lines
+                ],
+            }),
+            headers={'Content-Type': 'application/json; charset=utf-8'},
+        )
+
+    def _run_cmd_and_log(self, run_id, cmd):
+        proc = subprocess.Popen(cmd,
+                                stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+        proc.stdin.close()
+        for line in iter(proc.stdout.readline, b''):
+            line = line.decode('utf-8', 'replace')
+            line = line.rstrip()
+            logger.info("> %s", line)
+            self.loop.call_soon_threadsafe(
+                lambda l=line: background_future(self.loop.create_task(
+                    self.log(run_id, "%s", l),
+                )),
+            )
         return proc.wait()
 
     def run_cmd_and_log(self, run_id, cmd):
