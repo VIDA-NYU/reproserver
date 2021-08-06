@@ -26,17 +26,19 @@ You will need `Docker <https://hub.docker.com/search/?type=edition&offering=comm
 
 How to stop it: ``docker-compose down -v``
 
-How to run this with minikube
------------------------------
+How to run this with kind
+-------------------------
 
-You will need `minikube <https://minikube.sigs.k8s.io/docs/start/>`__ and `kubectl <https://minikube.sigs.k8s.io/docs/start/>`__.
+You will need `kind <https://kind.sigs.k8s.io/docs/user/quick-start/>`__ and `kubectl <https://kubernetes.io/docs/tasks/tools/install-kubectl/>`__.
 
 - Make sure you have checked out the submodule with ``git submodule init && git submodule update``
-- Start a minikube cluster using ``minikube start``
-- Create the volumes using ``kubectl apply -f k8s-volumes-minikube.yml``
+- Start a kind cluster using ``kind create cluster --config kind.yml``
+- Set up ingress-nginx using ``kind apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.45.0/deploy/static/provider/kind/deploy.yaml``
+- Create the volumes using ``kubectl apply -f k8s-volumes.yml``
 - Create the secrets using ``kubectl apply -f k8s-secrets.yml``
 - Create the minio deployment using ``kubectl apply -f k8s-minio.yml``
 - Create the service account ReproServer will use to start pods using ``kubectl apply -f k8s-sa.yml``
-- Build the image using ``docker-compose build web`` and load it into the minikube VM using ``scripts/minikube-load-images.sh`` (might take a minute)
+- Create the ingress using ``kubectl apply -f k8s-ingress.yml``
+- Build the image using ``docker-compose build web`` and load it into the kind node using ``kind load docker-images reproserver_web`` (might take a minute)
 - Finally, create the services using ``kubectl apply -f k8s.yml``
-- Open `http://192.168.99.100:30080/ <http://192.168.99.100:30080/>`__ in your browser
+- Open `http://localhost:8000/ <http://localhost:8000/>`__ in your browser

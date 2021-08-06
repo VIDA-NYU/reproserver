@@ -67,7 +67,7 @@ jobs:
           sudo chmod +x /usr/local/bin/kubectl
       - name: Start Kubernetes-in-Docker cluster
         run: |
-          kind create cluster --config=tests/ci.kind.yml
+          kind create cluster --config=kind.yml
           kubectl describe node
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.45.0/deploy/static/provider/kind/deploy.yaml
       - name: Build image
@@ -76,7 +76,7 @@ jobs:
           kind load docker-image reproserver_web
       - name: Start reproserver on Kubernetes
         run: |
-          kubectl apply -f k8s-volumes-minikube.yml
+          kubectl apply -f k8s-volumes.yml
           kubectl apply -f k8s-sa.yml
           kubectl apply -f k8s-secrets.yml
           kubectl apply -f k8s-minio.yml
