@@ -18,7 +18,7 @@ jobs:
           python-version: "3.8"
       - name: Install Poetry
         run: |
-          curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python - --version 1.1.4
+          curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python - --version 1.1.12
           $HOME/.poetry/bin/poetry config virtualenvs.create false
       - name: Install dependencies
         run: $HOME/.poetry/bin/poetry install --no-interaction
@@ -54,7 +54,7 @@ jobs:
           python-version: "3.8"
       - name: Install Poetry
         run: |
-          curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python - --version 1.1.4
+          curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python - --version 1.1.12
           $HOME/.poetry/bin/poetry config virtualenvs.create false
       - name: Install dependencies
         run: $HOME/.poetry/bin/poetry install --no-interaction
