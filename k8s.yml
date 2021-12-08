@@ -61,12 +61,12 @@ data:
             valueFrom:
               secretKeyRef:
                 name: reproserver-secret
-                key: user
+                key: postgres_user
           - name: POSTGRES_PASSWORD
             valueFrom:
               secretKeyRef:
                 name: reproserver-secret
-                key: password
+                key: postgres_password
           - name: POSTGRES_HOST
             value: postgres
           - name: POSTGRES_DB
@@ -145,12 +145,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: reproserver-secret
-                  key: user
+                  key: postgres_user
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: reproserver-secret
-                  key: password
+                  key: postgres_password
             - name: POSTGRES_HOST
               value: postgres
             - name: POSTGRES_DB
@@ -218,12 +218,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: reproserver-secret
-                  key: user
+                  key: postgres_user
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: reproserver-secret
-                  key: password
+                  key: postgres_password
             - name: POSTGRES_HOST
               value: postgres
             - name: POSTGRES_DB
@@ -297,12 +297,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: reproserver-secret
-                  key: user
+                  key: postgres_user
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: reproserver-secret
-                  key: password
+                  key: postgres_password
           ports:
             - name: proxy
               containerPort: 5432
