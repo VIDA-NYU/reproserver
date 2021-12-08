@@ -11,16 +11,16 @@ kubectl run --rm -ti --restart=Never psql --image=postgres:12.6 \
           { "name": "psql",
             "image": "postgres:12.6",
             "stdin": true, "stdinOnce": true, "tty": true,
-            "args": ["psql", "-h", "postgres", "-U", "$(POSTGRES_USER)"],
+            "args": ["psql", "-h", "postgres", "-U", "$(POSTGRES_USER)", "reproserver"],
              "env": [
                { "name": "POSTGRES_USER",
                  "valueFrom": { "secretKeyRef": {
                  "name": "reproserver-secret",
-                 "key": "user"}}},
+                 "key": "postgres_user"}}},
                { "name": "PGPASSWORD",
                  "valueFrom": {"secretKeyRef": {
                  "name": "reproserver-secret",
-                 "key": "password"}}}
+                 "key": "postgres_password"}}}
              ]
           }
         ]
