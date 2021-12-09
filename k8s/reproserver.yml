@@ -172,6 +172,8 @@ spec:
                 secretKeyRef:
                   name: reproserver-secret
                   key: zenodo_token
+            - name: OVERRIDE_RUNNER_IMAGE
+              value: reproserver_web
           volumeMounts:
             - name: k8s-config
               mountPath: /etc/k8s-config

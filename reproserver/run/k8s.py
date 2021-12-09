@@ -171,6 +171,10 @@ class K8sRunner(DockerRunner):
             if container['name'] == 'runner':
                 container['args'] += [str(run_id)]
 
+                # This is mostly used by Tilt
+                if os.environ.get('OVERRIDE_RUNNER_IMAGE'):
+                    container['image'] = os.environ['OVERRIDE_RUNNER_IMAGE']
+
         # Create a Kubernetes pod to run
         client = k8s.CoreV1Api()
         pod = k8s.V1Pod(
