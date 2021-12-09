@@ -43,11 +43,17 @@ k8s_yaml([
     'k8s/reproserver.yml',
 ])
 
-k8s_resource(
-    objects=['ingress-nginx-controller:Deployment:ingress-nginx'],
-    new_name='ingress-nginx',
-    port_forwards=[port_forward(8000, 80)],
+local_resource(
+    name='ingress-nginx',
+    serve_cmd='kubectl port-forward --namespace ingress-nginx deploy/ingress-nginx-controller 8000:80',
 )
+# This doesn't work, so use manual port-forward command above
+# https://github.com/tilt-dev/tilt/issues/4422
+#k8s_resource(
+#    objects=['ingress-nginx-controller:Deployment:ingress-nginx'],
+#    new_name='ingress-nginx',
+#    port_forwards=[port_forward(8000, 80)],
+#)
 
 # Add links
 k8s_resource(
