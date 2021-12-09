@@ -39,7 +39,7 @@ jobs:
           tar -xf /tmp/kubeconform.tar.gz -C /usr/local/bin
           rm /tmp/kubeconform.tar.gz
       - name: Check k8s config files using kubeconform
-        run: kubeconform --kubernetes-version 1.20.7 --strict --summary k8s*.yml
+        run: kubeconform --kubernetes-version 1.20.7 --strict --summary k8s/*.yml
 
   test:
     runs-on: ubuntu-latest
@@ -88,7 +88,7 @@ jobs:
             kubectl get pod
             exit 1
           fi
-          kubectl apply -f k8s-ingress.yml
+          kubectl apply -f k8s/ingress.yml
           export WEB_URL=http://localhost:8000
           # Wait a little bit more until the web server replies
           slept=0; while [ $(curl -s -o /dev/null -w "%{http_code}" $WEB_URL/) != 200 ]; do

@@ -54,3 +54,6 @@ desktop.ini
 
 # Vagrant
 .vagrant
+
+# Tilt
+tilt_modules
