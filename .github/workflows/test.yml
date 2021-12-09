@@ -39,7 +39,7 @@ jobs:
           tar -xf /tmp/kubeconform.tar.gz -C /usr/local/bin
           rm /tmp/kubeconform.tar.gz
       - name: Check k8s config files using kubeconform
-        run: kubeconform --kubernetes-version 1.20.7 --strict --summary k8s*.yml
+        run: kubeconform --kubernetes-version 1.20.7 --strict --summary k8s/*.yml
 
   test:
     runs-on: ubuntu-latest
@@ -76,17 +76,19 @@ jobs:
           kind load docker-image reproserver_web
       - name: Start reproserver on Kubernetes
         run: |
-          kubectl apply -f k8s-volumes.yml
-          kubectl apply -f k8s-sa.yml
-          kubectl apply -f k8s-secrets.yml
-          kubectl apply -f k8s-minio.yml
-          kubectl apply -f k8s.yml
+          kubectl apply -f k8s/volumes.yml
+          kubectl apply -f k8s/sa.yml
+          kubectl apply -f k8s/secrets.yml
+          kubectl apply -f k8s/minio.yml
+          kubectl apply -f k8s/postgres.yml
+          kubectl apply -f k8s/registry.yml
+          kubectl apply -f k8s/reproserver.yml
           # Wait for the pods to be available
           if ! kubectl wait --timeout=10m --for=condition=Available deploy --all; then
             kubectl get pod
             exit 1
           fi
-          kubectl apply -f k8s-ingress.yml
+          kubectl apply -f k8s/ingress.yml
           export WEB_URL=http://localhost:8000
           # Wait a little bit more until the web server replies
           slept=0; while [ $(curl -s -o /dev/null -w "%{http_code}" $WEB_URL/) != 200 ]; do
