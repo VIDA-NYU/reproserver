@@ -40,8 +40,17 @@ k8s_yaml([
     'k8s/minio.yml',
     'k8s/postgres.yml',
     'k8s/registry.yml',
-    'k8s/reproserver.yml',
 ])
+
+# Turn on debug mode
+web_pod, rest =  filter_yaml('k8s/reproserver.yml', kind='Deployment', name='web')
+web_pod = decode_yaml(web_pod)
+web_pod['spec']['template']['spec']['containers'][0]['env'].append({
+    'name': 'REPROSERVER_DEBUG',
+    'value': '1',
+})
+k8s_yaml(encode_yaml(web_pod))
+k8s_yaml(rest)
 
 local_resource(
     name='ingress-nginx',
