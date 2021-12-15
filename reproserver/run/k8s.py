@@ -9,9 +9,8 @@ import sys
 import time
 import yaml
 
-from .connector import DirectConnector
+from .connector import HttpConnector
 from .. import database
-from ..objectstore import get_object_store
 from ..proxy import ProxyHandler
 from ..utils import background_future
 from .base import PROM_RUNS, BaseRunner
@@ -314,10 +313,7 @@ def _run_in_pod(run_id):
 
     # Get a runner from environment
     runner = DockerRunner(
-        DirectConnector(
-            DBSession=database.connect(),
-            object_store=get_object_store(),
-        ),
+        HttpConnector(os.environ['API_ENDPOINT']),
     )
 
     # Load run information

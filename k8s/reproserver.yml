@@ -58,20 +58,8 @@ data:
               configMapKeyRef:
                 name: config
                 key: s3.client-url
-          - name: POSTGRES_USER
-            valueFrom:
-              secretKeyRef:
-                name: reproserver-secret
-                key: postgres_user
-          - name: POSTGRES_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: reproserver-secret
-                key: postgres_password
-          - name: POSTGRES_HOST
-            value: postgres
-          - name: POSTGRES_DB
-            value: reproserver
+          - name: API_ENDPOINT
+            value: http://web:8000
           - name: CONNECTION_TOKEN
             valueFrom:
               secretKeyRef:
