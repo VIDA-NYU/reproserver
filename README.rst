@@ -14,18 +14,6 @@ Goals
 - Run the experiment
 - Show the log and output files to the user
 
-How to run this with docker-compose
------------------------------------
-
-You will need `Docker <https://hub.docker.com/search/?type=edition&offering=community>`__ and `docker-compose <https://docs.docker.com/compose/install/>`__.
-
-- Make sure you have checked out the submodule with ``git submodule init && git submodule update``
-- Copy ``env.dist`` to ``.env`` (you probably don't need to change the settings)
-- Start services by running ``docker-compose up -d --build``
-- Open `localhost:8000 <http://localhost:8000/>`__ in your browser
-
-How to stop it: ``docker-compose down -v``
-
 How to run this with Tilt
 -------------------------
 
@@ -46,3 +34,15 @@ Start the application for development using::
     tilt up
 
 You can then open `http://localhost:8000/ <http://localhost:8000/>`__ in your browser. Tilt will automatically rebuild images and update Kubernetes as you make changes.
+
+How to run this with docker-compose
+-----------------------------------
+
+You will need `Docker <https://hub.docker.com/search/?type=edition&offering=community>`__ and `docker-compose <https://docs.docker.com/compose/install/>`__.
+
+- Make sure you have checked out the submodule with ``git submodule init && git submodule update``
+- Copy ``env.dist`` to ``.env`` (you probably don't need to change the settings)
+- Start services by running ``docker-compose up -d --build``
+- Open `localhost:8000 <http://localhost:8000/>`__ in your browser
+
+How to stop it: ``docker-compose down -v``
