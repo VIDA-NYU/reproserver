@@ -5,7 +5,8 @@ import shutil
 import subprocess
 import tempfile
 
-from ..utils import shell_escape
+from ..utils import subprocess_call_async, subprocess_check_call_async, \
+    shell_escape
 from .base import BaseRunner
 
 
@@ -23,7 +24,7 @@ class DockerRunner(BaseRunner):
     when running with docker-compose; on Kubernetes, the subclass K8sRunner
     will be used to schedule a pod that will run _docker_run().
     """
-    def run_async(self, run_info):
+    def run_inner(self, run_info):
         # Straight-up Docker, e.g. we're using docker-compose
         # Run and build right here
         return self._docker_run(
@@ -59,14 +60,13 @@ class DockerRunner(BaseRunner):
                 logger.info("Got file, %d bytes", os.stat(local_path).st_size)
 
                 # Build image
-                proc = await asyncio.create_subprocess_exec(
+                ret = await subprocess_call_async([
                     'reprounzip', '-v', 'docker', 'setup',
                     # `RUN --mount` doesn't work with userns-remap
                     '--dont-use-buildkit',
                     '--image-name', fq_image_name,
                     local_path, build_dir,
-                )
-                ret = await proc.wait()
+                ])
                 if ret != 0:
                     raise ValueError("Error: Docker returned %d" % ret)
             logger.info("Build over, pushing image")
@@ -135,17 +135,10 @@ class DockerRunner(BaseRunner):
             logger.info('$ %s', ' '.join(shell_escape(a) for a in cmdline))
 
             # Create container
-            proc = await asyncio.create_subprocess_exec(*cmdline)
-            retcode = await proc.wait()
-            if retcode != 0:
-                raise subprocess.CalledProcessError(retcode, cmdline)
+            await subprocess_check_call_async(cmdline)
 
             # Put input files in container
-            await asyncio.get_event_loop().run_in_executor(
-                None,
-                self._load_input_files,
-                run_info, container,
-            )
+            await self._load_input_files(run_info, container)
 
             # Update status in database
             logger.info("Starting container")
@@ -165,9 +158,7 @@ class DockerRunner(BaseRunner):
             await self.connector.run_done(run_info['id'])
 
             # Get output files
-            logs = await asyncio.get_event_loop().run_in_executor(
-                None,
-                self._upload_output_files,
+            logs = await self._upload_output_files(
                 run_info, container, directory,
             )
             await self.connector.log_multiple(run_info['id'], logs)
@@ -182,23 +173,21 @@ class DockerRunner(BaseRunner):
         if push_process:
             if push_process.returncode is None:
                 logger.info("Waiting for docker push to finish...")
-            retcode = await push_process.wait()
-            logger.info("docker push returned %d", retcode)
+            ret = await push_process.wait()
+            logger.info("docker push returned %d", ret)
 
-    def _load_input_files(self, run_info, container):
+    async def _load_input_files(self, run_info, container):
         for input_file in run_info['inputs']:
             logger.info("Copying file to container")
-            subprocess.check_call(
-                [
-                    'docker', 'cp', '--',
-                    input_file['local_path'],
-                    '%s:%s' % (container, input_file['path']),
-                ],
-            )
+            await subprocess_check_call_async([
+                'docker', 'cp', '--',
+                input_file['local_path'],
+                '%s:%s' % (container, input_file['path']),
+            ])
 
             os.remove(input_file['local_path'])
 
-    def _upload_output_files(self, run_info, container, directory):
+    async def _upload_output_files(self, run_info, container, directory):
         logs = []
 
         for path in run_info['outputs']:
@@ -209,13 +198,11 @@ class DockerRunner(BaseRunner):
 
             # Copy file out of container
             logger.info("Getting output file %s", path['name'])
-            ret = subprocess.call(
-                [
-                    'docker', 'cp', '--',
-                    '%s:%s' % (container, path['path']),
-                    local_path,
-                ],
-            )
+            ret = await subprocess_call_async([
+                'docker', 'cp', '--',
+                '%s:%s' % (container, path['path']),
+                local_path,
+            ])
             if ret != 0:
                 logger.warning("Couldn't get output %s", path['name'])
                 logs.append("Couldn't get output %s" % path['name'])
@@ -223,7 +210,7 @@ class DockerRunner(BaseRunner):
 
             # Upload file
             with open(local_path, 'rb') as file:
-                self.connector.upload_output_file_blocking(
+                await self.connector.upload_output_file(
                     run_info['id'],
                     path['name'],
                     file,

@@ -66,6 +66,11 @@ class BaseConnector(object):
         """
         raise NotImplementedError
 
+    def upload_output_file(self, run_id, name, file, *, digest=None):  # async
+        """Upload a file object to the run's output files.
+        """
+        raise NotImplementedError
+
     def log(self, run_id, msg, *args):  # async
         """Record a message to the run's log.
         """
@@ -296,6 +301,15 @@ class DirectConnector(BaseConnector):
         db.add(output_file)
         db.commit()
 
+    def upload_output_file(self, run_id, name, file, *, digest=None):
+        # TODO: async
+        return asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: self.upload_output_file_blocking(
+                run_id, name, file, digest=digest,
+            ),
+        )
+
     async def log(self, run_id, msg, *args):
         db = self.DBSession()
         line = msg % args
@@ -324,7 +338,7 @@ class DirectConnector(BaseConnector):
         return proc.wait()
 
     def run_cmd_and_log(self, run_id, cmd):
-        return asyncio.get_event_loop().run_in_executor(
+        return asyncio.get_event_loop().run_in_executor(  # FIXME async
             None,
             lambda: self._run_cmd_and_log(
                 run_id, cmd,
@@ -483,6 +497,21 @@ class HttpConnector(BaseConnector):
                 body_producer=file_body_producer(file)
             )
 
+    async def upload_output_file(
+        self, run_id, name, file, *, digest=None, http_client=None,
+    ):
+        if http_client is None:
+            http_client = AsyncHTTPClient()
+        await http_client.fetch(
+            '{0}/runners/run/{1}/output/{2}'.format(
+                self.api_endpoint,
+                run_id,
+                urllib.parse.quote_plus(name),
+            ),
+            method='PUT',
+            body_producer=file_body_producer(file)
+        )
+
     def log(self, run_id, msg, *args):
         line = msg % args
         return self.log_multiple(run_id, [line])
@@ -525,7 +554,7 @@ class HttpConnector(BaseConnector):
         return proc.wait()
 
     def run_cmd_and_log(self, run_id, cmd):
-        return asyncio.get_event_loop().run_in_executor(
+        return asyncio.get_event_loop().run_in_executor(  # FIXME async
             None,
             lambda: self._run_cmd_and_log(
                 run_id, cmd,

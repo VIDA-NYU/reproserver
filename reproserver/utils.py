@@ -1,10 +1,36 @@
 import asyncio
+import contextlib
 import logging
 import os
 import re
+import subprocess
+import sys
 
 
 logger = logging.getLogger(__name__)
+
+
+@contextlib.contextmanager
+def prom_incremented(metric, amount=1):
+    """Context manager that increments a metric, then decrements it at the end.
+    """
+    metric.inc(amount)
+    try:
+        yield
+    finally:
+        metric.dec(amount)
+
+
+async def subprocess_call_async(cmdline):
+    proc = await asyncio.create_subprocess_exec(*cmdline)
+    return await proc.wait()
+
+
+async def subprocess_check_call_async(cmdline):
+    proc = await asyncio.create_subprocess_exec(*cmdline)
+    ret = await proc.wait()
+    if ret != 0:
+        raise subprocess.CalledProcessError(ret, cmdline)
 
 
 safe_shell_chars = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -66,7 +92,7 @@ secure_filename.windows = os.name == 'nt'
 _futures = dict()
 
 
-def background_future(future):
+def background_future(future, *, should_never_exit=False):
     """Workaround for https://bugs.python.org/issue21163
 
     Adding a callback to a future and throwing it out cancels the task. Call
@@ -83,4 +109,8 @@ def background_future(future):
             f.result()
         except Exception:
             logger.exception("Error in background task")
+        if should_never_exit:
+            logger.critical("Critical task died, exiting")
+            asyncio.get_event_loop().stop()
+            sys.exit(1)
         _futures.pop(future_id, None)
