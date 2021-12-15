@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: $HOME/.poetry/bin/poetry install --no-interaction
       - name: flake8
-        run: flake8 --ignore=E731,W504 reproserver tests
+        run: flake8 --ignore=E731,W503,W504 reproserver tests
       - name: readme_renderer
         run: python -m readme_renderer README.rst >/dev/null
       - name: Unit tests
