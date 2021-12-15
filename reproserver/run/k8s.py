@@ -74,8 +74,9 @@ class K8sRunner(DockerRunner):
             logger.info("Attaching to run pod for %d", run_id)
             future = asyncio.get_event_loop().run_in_executor(
                 None,
-                self._watch_pod,
-                client, namespace, run_id,
+                lambda: self._watch_pod(
+                    client, namespace, run_id,
+                ),
             )
             future.add_done_callback(self._run_callback(run_id))
             PROM_RUNS.inc()
@@ -131,9 +132,11 @@ class K8sRunner(DockerRunner):
         # Run
         fut = asyncio.get_event_loop().run_in_executor(
             None,
-            runner._docker_run,
-            run_id,
-            '127.0.0.1',  # Only accept local connections, from the runner pod
+            lambda: runner._docker_run(
+                run_id,
+                # Only accept local connections, from the runner pod
+                '127.0.0.1',
+            ),
         )
 
         # Also set up a proxy

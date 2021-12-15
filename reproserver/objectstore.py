@@ -66,8 +66,9 @@ class ObjectStore(object):
     def upload_file_async(self, bucket, objectname, filename):
         return asyncio.get_event_loop().run_in_executor(
             None,
-            self.upload_file,
-            bucket, objectname, filename,
+            lambda: self.upload_file(
+                bucket, objectname, filename,
+            ),
         )
 
     def upload_bytes(self, bucket, objectname, bytestr):
@@ -76,8 +77,9 @@ class ObjectStore(object):
     def upload_bytes_async(self, bucket, objectname, bytestr):
         return asyncio.get_event_loop().run_in_executor(
             None,
-            self.upload_bytes,
-            bucket, objectname, bytestr,
+            lambda: self.upload_bytes(
+                bucket, objectname, bytestr,
+            ),
         )
 
     def create_buckets(self):

@@ -59,8 +59,7 @@ class BaseRunner(object):
         # can be overloaded
         future = asyncio.get_event_loop().run_in_executor(
             None,
-            self.run_sync,
-            run_id,
+            lambda: self.run_sync(run_id),
         )
         future.add_done_callback(self._run_callback(run_id))
         PROM_RUNS.inc()
