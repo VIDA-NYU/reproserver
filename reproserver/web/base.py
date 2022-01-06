@@ -20,7 +20,7 @@ class Application(tornado.web.Application):
     def __init__(self, handlers, **kwargs):
         super(Application, self).__init__(handlers, **kwargs)
 
-        self.DBSession = database.connect()
+        self.DBSession = database.connect(create=True)
 
         self.object_store = get_object_store()
         self.object_store.create_buckets()

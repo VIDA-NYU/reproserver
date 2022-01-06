@@ -7,6 +7,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.types import Boolean, DateTime, Integer, String, Text
+import sys
 import time
 
 from .shortid import ShortIDs
@@ -287,7 +288,7 @@ def purge(url=None):
     session.commit()
 
 
-def connect(url=None):
+def connect(url=None, *, create=False):
     """Connect to the database using an environment variable.
     """
     logger.info("Connecting to SQL database")
@@ -319,8 +320,12 @@ def connect(url=None):
     tables_exist = engine.dialect.has_table(conn, 'experiments')
 
     if not tables_exist:
-        logger.warning("The tables don't seem to exist; creating")
-        Base.metadata.create_all(bind=engine)
+        if create:
+            logger.warning("The tables don't seem to exist; creating")
+            Base.metadata.create_all(bind=engine)
+        else:
+            logger.warning("The tables don't seem to exist; exiting!")
+            sys.exit(1)
 
     DBSession = sessionmaker(bind=engine)
     db = DBSession()
