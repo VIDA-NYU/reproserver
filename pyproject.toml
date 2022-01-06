@@ -50,6 +50,7 @@ kubernetes_asyncio = "*"
 PyYAML = "*"
 prometheus_client = "*"
 
+reprozip-core = { path = "reprozip/reprozip-core", develop=true }
 reprounzip = { path = "reprozip/reprounzip", develop=true }
 reprounzip-docker = { path = "reprozip/reprounzip-docker", develop=true }
 
