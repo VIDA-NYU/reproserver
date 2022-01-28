@@ -165,8 +165,8 @@ class DirectConnector(BaseConnector):
         ports = []
         for port in run.ports:
             ports.append({
-                'type': port['type'],
-                'port_number': port['port_number'],
+                'type': port.type,
+                'port_number': port.port_number,
             })
 
         # Remove previous info
