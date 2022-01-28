@@ -52,6 +52,7 @@ class ProxyHandler(WebSocketHandler):
             request = httpclient.HTTPRequest(
                 'ws://' + url,
                 headers=headers,
+                follow_redirects=False,
             )
             self.alter_request(request)
             logger.info("Forwarding websocket connection, url=%r, headers=%r",
@@ -76,6 +77,7 @@ class ProxyHandler(WebSocketHandler):
                 'http://' + url,
                 method=self.request.method,
                 headers=headers,
+                follow_redirects=False,
                 body=self.request.body or None,
                 header_callback=self.got_header,
                 streaming_callback=self.write,
