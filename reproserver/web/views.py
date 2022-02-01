@@ -383,7 +383,7 @@ class Results(BaseHandler):
         def get_port_url(port_number):
             tpl = os.environ.get(
                 'WEB_PROXY_URL',
-                'http://{short_id}-{port}.127.0.0.1.xip.io:8001',
+                'http://{short_id}-{port}.127.0.0.1.nip.io:8001',
             )
             return tpl.format(
                 short_id=run_short_id,
