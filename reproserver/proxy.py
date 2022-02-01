@@ -182,6 +182,13 @@ class K8sProxyHandler(ProxyHandler):
         request.headers['Host'] = self.original_host
         request.headers['X-Reproserver-Port'] = self.target_port
 
+    @classmethod
+    def make_app(cls, **settings):
+        return super(K8sProxyHandler, cls).make_app(
+            connection_token=os.environ['CONNECTION_TOKEN'],
+            **settings,
+        )
+
 
 def _setup():
     logging.root.handlers.clear()
@@ -210,9 +217,7 @@ def k8s_proxy():
     # Database connection is not used, but we still need to prime short ids
     database.connect()
 
-    proxy = K8sProxyHandler.make_app(
-        connection_token=os.environ['CONNECTION_TOKEN'],
-    )
+    proxy = K8sProxyHandler.make_app()
     proxy.listen(8001, address='0.0.0.0', xheaders=True)
     loop = tornado.ioloop.IOLoop.current()
     loop.start()
