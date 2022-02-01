@@ -2,6 +2,7 @@ import itertools
 import logging
 import os
 import prometheus_client
+import re
 from tornado import httputil
 from tornado import httpclient
 import tornado.ioloop
@@ -188,6 +189,25 @@ class K8sProxyHandler(ProxyHandler):
             connection_token=os.environ['CONNECTION_TOKEN'],
             **settings,
         )
+
+
+class K8sSubdirProxyHandler(K8sProxyHandler):
+    _re_path = re.compile(r'^/?results/([^/]+)/port/([0-9]+)')
+
+    def select_destination(self):
+        self.original_host = self.request.host
+
+        # Read destination from path
+        m = self._re_path.match(self.request.path)
+        if m is None:
+            return
+        run_short_id, self.target_port = m.groups()
+        run_id = database.Run.decode_id(run_short_id)
+
+        uri = self.request.uri
+        uri = self._re_path.sub('', uri)
+        url = 'run-{0}:5597{1}'.format(run_id, uri)
+        return url
 
 
 def _setup():

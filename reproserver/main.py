@@ -1,4 +1,5 @@
 import asyncio
+import importlib
 import logging
 import os
 import prometheus_client
@@ -24,7 +25,15 @@ def main():
     if debug:
         logger.warning("Debug mode is ON")
         asyncio.get_event_loop().set_debug(True)
-    app = make_app(debug)
+    proxy_env = os.environ.get('WEB_PROXY_CLASS', '')
+    if proxy_env:
+        logger.info("Enabling proxy using %s", proxy_env)
+        module, klass = proxy_env.split(':', 1)
+        module = importlib.import_module(module)
+        proxy = getattr(module, klass)
+    else:
+        proxy = None
+    app = make_app(debug, proxy=proxy)
     app.listen(8000, address='0.0.0.0',
                xheaders=True,
                max_buffer_size=1_073_741_824)

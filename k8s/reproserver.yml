@@ -105,6 +105,8 @@ spec:
                 configMapKeyRef:
                   name: config
                   key: proxy.url
+            - name: WEB_PROXY_CLASS
+              value: reproserver.proxy:K8sSubdirProxyHandler
             - name: S3_KEY
               valueFrom:
                 secretKeyRef:
