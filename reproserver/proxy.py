@@ -158,6 +158,25 @@ class DockerProxyHandler(ProxyHandler):
         request.headers['Host'] = self.original_host
 
 
+class DockerSubdirProxyHandler(DockerProxyHandler):
+    _re_path = re.compile(r'^/?results/([^/]+)/port/([0-9]+)')
+
+    def select_destination(self):
+        self.original_host = self.request.host
+
+        # Read destination from path
+        m = self._re_path.match(self.request.path)
+        if m is None:
+            return
+        run_short_id, port = m.groups()
+        database.Run.decode_id(run_short_id)
+
+        uri = self.request.uri
+        uri = self._re_path.sub('', uri)
+        url = 'docker:{0}{1}'.format(port, uri)
+        return url
+
+
 class K8sProxyHandler(ProxyHandler):
     def select_destination(self):
         # Read destination from hostname
