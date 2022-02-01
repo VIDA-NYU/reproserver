@@ -5,9 +5,9 @@ import shutil
 import subprocess
 import tempfile
 
+from .base import PROM_RUNS, BaseRunner
 from ..utils import subprocess_call_async, subprocess_check_call_async, \
-    shell_escape
-from .base import BaseRunner
+    shell_escape, prom_incremented
 
 
 logger = logging.getLogger(__name__)
@@ -24,13 +24,14 @@ class DockerRunner(BaseRunner):
     when running with docker-compose; on Kubernetes, the subclass K8sRunner
     will be used to schedule a pod that will run _docker_run().
     """
-    def run_inner(self, run_info):
+    async def run_inner(self, run_info):
         # Straight-up Docker, e.g. we're using docker-compose
         # Run and build right here
-        return self._docker_run(
-            run_info,
-            '0.0.0.0',  # Accept connections to proxy from everywhere
-        )
+        with prom_incremented(PROM_RUNS):
+            await self._docker_run(
+                run_info,
+                '0.0.0.0',  # Accept connections to proxy from everywhere
+            )
 
     async def get_image(self, run_info):
         experiment_hash = run_info['experiment_hash']
