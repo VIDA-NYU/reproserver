@@ -168,7 +168,7 @@ class K8sProxyHandler(ProxyHandler):
             logger.info("Invalid hostname")
             self.finish("Invalid hostname")
             return
-        run_short_id, port = parts
+        run_short_id, self.target_port = parts
         run_id = database.Run.decode_id(run_short_id)
 
         url = 'run-{0}:5597{1}'.format(run_id, self.request.uri)
@@ -180,6 +180,7 @@ class K8sProxyHandler(ProxyHandler):
             self.application.settings['connection_token']
 
         request.headers['Host'] = self.original_host
+        request.headers['X-Reproserver-Port'] = self.target_port
 
 
 def _setup():
