@@ -57,7 +57,7 @@
 {% endif %}
 
 <p>Run log:</p>
-<pre id="log">{% for line in log %}{{ line }}
+<pre id="log" style="max-height: 200px">{% for line in log %}{{ line }}
 {% endfor %}</pre>
 
 <script>
@@ -85,6 +85,13 @@ function update_page() {
 setTimeout(update_page, 3000);
 </script>
 
+{% endif %}
+
+{% if run.ports | length %}
+<details open>
+<summary style="display: list-item">Web Archive Replay</summary>
+<replay-web-page style="height: 500px; display: flex; margin-top: 10px; border: 1px solid black;" url="http://localhost:{{ run.ports[0].port_number }}/" config='{"prefix": "https://oldweb.today/proxy/", "hostProxy": [{"host": "localhost:{{ run.ports[0].port_number }}", "prefix": "https://pywb-dev.webrecorder.net/results/{{ run.short_id }}/port/{{ run.ports[0].port_number }}", "pathOnly": true}], "type": "live", "proxyPathOnly": false, "noPostToGet": true}' replayBase="/static/replay/" source="proxy:{{ run.short_id }}/" deepLink></replay-web-page>
+</details>
 {% endif %}
 
 {% endblock content %}
