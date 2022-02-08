@@ -43,6 +43,9 @@ You will need `Docker <https://hub.docker.com/search/?type=edition&offering=comm
 - Make sure you have checked out the submodule with ``git submodule init && git submodule update``
 - Copy ``env.dist`` to ``.env`` (you probably don't need to change the settings)
 - Start services by running ``docker-compose up -d --build``
+
+  * Alternatively, use the development mode (insecure, but displays debug info and autoreloads): ``docker-compose -f docker-compose.dev.yml up -d --build``
+
 - Open `localhost:8000 <http://localhost:8000/>`__ in your browser
 
 How to stop it: ``docker-compose down -v``

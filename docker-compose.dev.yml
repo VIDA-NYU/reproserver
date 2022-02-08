@@ -1,0 +1,59 @@
+version: '3'
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - ".env"
+    environment:
+      REPROZIP_USAGE_STATS: "off"
+      DOCKER_HOST: tcp://docker:2375
+      REGISTRY: registry:5000
+      RUNNER_TYPE: docker
+      REPROSERVER_DEBUG: "1"
+    ports:
+      - 8000:8000
+    volumes:
+      - ./reproserver:/usr/src/app/reproserver
+  proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - ".env"
+    ports:
+      - 8001:8001
+    command:
+      - "reproserver-docker-proxy"
+  minio:
+    image: minio/minio:RELEASE.2021-04-06T23-11-00Z
+    command: ["server", "/export"]
+    environment:
+      MINIO_ACCESS_KEY: ${S3_KEY}
+      MINIO_SECRET_KEY: ${S3_SECRET}
+    healthcheck:
+      disable: true
+    ports:
+      - 9000:9000
+  registry:
+    image: registry:2.7
+    ports:
+      - 5000:5000
+  postgres:
+    image: postgres:12.6
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - 5432:5432
+  docker:
+    image: docker:20.10.7-dind
+    privileged: true
+    command:
+      - "dockerd"
+      - "--host=tcp://0.0.0.0:2375"
+      - "--storage-driver=overlay2"
+      - "--userns-remap=default"
+      - "--insecure-registry=registry:5000"
