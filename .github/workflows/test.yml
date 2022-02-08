@@ -25,7 +25,7 @@ jobs:
       - name: flake8
         run: flake8 --ignore=E731,W503,W504 reproserver tests
       - name: readme_renderer
-        run: python -m readme_renderer README.rst >/dev/null
+        run: python -m readme_renderer README.md >/dev/null
       - name: Unit tests
         run: TESTS_DIR=tests/unit python tests
 

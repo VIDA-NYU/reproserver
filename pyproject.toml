@@ -9,7 +9,7 @@ authors = [
     "Remi Rampin <r@remirampin.com>"
 ]
 
-readme = "README.rst"
+readme = "README.md"
 
 repository = "https://github.com/VIDA-NYU/reproserver"
 homepage = "https://server.reprozip.org/"
@@ -28,7 +28,7 @@ classifiers = [
 ]
 
 include = [
-    # LICENSE.txt README.rst
+    # LICENSE.txt README.md
     "reproserver/static/favicon.ico",
     "reproserver/static/css/*.css",
     "reproserver/static/js/*.js",
