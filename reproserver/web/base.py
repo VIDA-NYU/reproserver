@@ -2,7 +2,6 @@ import importlib
 import jinja2
 import json
 import logging
-import mimetypes
 import os
 import pkg_resources
 import tornado.web
@@ -56,18 +55,6 @@ class BaseHandler(tornado.web.RequestHandler):
         else:
             return self.reverse_url('reproduce_local', upload.short_id)
 
-    def output_link(self, output_file):
-        path = self.db.query(database.Path).filter(
-            database.Path.experiment_hash == output_file.run.experiment_hash,
-            database.Path.name == output_file.name,
-        ).one().path
-        mime = mimetypes.guess_type(path)[0]
-        return self.application.object_store.presigned_serve_url(
-            'outputs', output_file.hash,
-            output_file.name,
-            mime,
-        )
-
     template_env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(
             [pkg_resources.resource_filename('reproserver', 'templates')]
@@ -96,11 +83,6 @@ class BaseHandler(tornado.web.RequestHandler):
     def _tpl_url_for_upload(context, upload):
         return context['handler'].url_for_upload(upload)
     template_env.globals['url_for_upload'] = _tpl_url_for_upload
-
-    @jinja2.contextfunction
-    def _tpl_output_link(context, output_file):
-        return context['handler'].output_link(output_file)
-    template_env.globals['output_link'] = _tpl_output_link
 
     def __init__(self, application, request, **kwargs):
         super(BaseHandler, self).__init__(application, request, **kwargs)

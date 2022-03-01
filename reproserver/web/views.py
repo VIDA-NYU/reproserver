@@ -1,6 +1,7 @@
 from datetime import datetime
 from hashlib import sha256
 import logging
+import mimetypes
 import os
 import prometheus_client
 from sqlalchemy.orm import joinedload
@@ -390,6 +391,18 @@ class Results(BaseHandler):
                 port=port_number,
             )
 
+        def output_link(output_file):
+            path = self.db.query(database.Path).filter(
+                database.Path.experiment_hash == output_file.run.experiment_hash,
+                database.Path.name == output_file.name,
+            ).one().path
+            mime = mimetypes.guess_type(path)[0]
+            return self.application.object_store.presigned_serve_url(
+                'outputs', output_file.hash,
+                output_file.name,
+                mime,
+            )
+
         return self.render(
             'results.html',
             run=run,
@@ -398,6 +411,7 @@ class Results(BaseHandler):
             done=bool(run.done),
             experiment_url=self.url_for_upload(run.upload),
             get_port_url=get_port_url,
+            output_link=output_link,
         )
 
 
