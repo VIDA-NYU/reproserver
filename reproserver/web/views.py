@@ -392,8 +392,9 @@ class Results(BaseHandler):
             )
 
         def output_link(output_file):
+            experiment_hash = output_file.run.experiment_hash
             path = self.db.query(database.Path).filter(
-                database.Path.experiment_hash == output_file.run.experiment_hash,
+                database.Path.experiment_hash == experiment_hash,
                 database.Path.name == output_file.name,
             ).one().path
             mime = mimetypes.guess_type(path)[0]
