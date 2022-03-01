@@ -418,15 +418,24 @@ class Results(BaseHandler):
         # Look up the run in the database
         run = (
             self.db.query(database.Run)
-            .options(joinedload(database.Run.experiment),
-                     joinedload(database.Run.upload),
-                     joinedload(database.Run.parameter_values),
-                     joinedload(database.Run.input_files),
-                     joinedload(database.Run.output_files))
+            .options(
+                joinedload(database.Run.experiment).joinedload(
+                    database.Experiment.extensions,
+                ),
+                joinedload(database.Run.upload),
+                joinedload(database.Run.parameter_values),
+                joinedload(database.Run.input_files),
+                joinedload(database.Run.output_files),
+            )
         ).get(run_id)
         if run is None:
             self.set_status(404)
             return self.render('results_notfound.html')
+        # Read extensions
+        extensions = {
+            extension.name: json.loads(extension.data)
+            for extension in run.experiment.extensions
+        }
         # Update last access
         run.experiment.last_access = datetime.utcnow()
         self.db.commit()
@@ -449,9 +458,20 @@ class Results(BaseHandler):
             ).one().path
             mime = mimetypes.guess_type(path)[0]
             return self.application.object_store.presigned_serve_url(
-                'outputs', output_file.hash,
+                'outputs',
+                output_file.hash,
                 output_file.name,
                 mime,
+            )
+
+        if 'web1' in extensions:
+            extensions['web1']['url'] = (
+                self.application.object_store.presigned_serve_url(
+                    'web1',
+                    extensions['web1']['filehash'],
+                    'archive.wacz',
+                    'application/zip',
+                )
             )
 
         return self.render(
@@ -463,6 +483,7 @@ class Results(BaseHandler):
             experiment_url=self.url_for_upload(run.upload),
             get_port_url=get_port_url,
             output_link=output_link,
+            extensions=extensions,
         )
 
 
