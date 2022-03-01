@@ -1,9 +1,12 @@
+import asyncio
 from datetime import datetime
 from hashlib import sha256
+import json
 import logging
 import mimetypes
 import os
 import prometheus_client
+from reprozip_core.common import RPZPack
 from sqlalchemy.orm import joinedload
 import tempfile
 
@@ -42,6 +45,55 @@ class Index(BaseHandler):
     @PROM_REQUESTS.sync('index')
     def head(self):
         return self.finish()
+
+
+async def process_uploaded_rpz(application, db, experiment, local_filename):
+    """Do additional processing from uploaded RPZ.
+    """
+    rpz = RPZPack(local_filename)
+
+    # Extract WACZ if present
+    if 'web1' in rpz.extensions():
+        # Write it to disk
+        with tempfile.TemporaryDirectory() as tdir:
+            await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: rpz.extract_extension('web1', tdir),
+            )
+            wacz = os.path.join(tdir, 'archive.wacz')
+            extension_files = os.listdir(tdir)
+            if extension_files != ['archive.wacz']:
+                logger.warning(
+                    "Invalid web1 extension data, files: %r",
+                    extension_files,
+                )
+            else:
+                # Hash the WACZ
+                hasher = sha256()
+                with open(wacz, 'rb') as fp:
+                    chunk = fp.read(4096)
+                    while chunk:
+                        hasher.update(chunk)
+                        if len(chunk) != 4096:
+                            break
+                        chunk = fp.read(4096)
+                    filehash = hasher.hexdigest()
+
+                # Upload it
+                await application.object_store.upload_file_async(
+                    'web1',
+                    filehash,
+                    os.path.join(tdir, 'archive.wacz'),
+                )
+                logger.info("Inserted WACZ in storage")
+
+                # Insert it into the database
+                extension = database.Extension(
+                    experiment=experiment,
+                    name='web1',
+                    data=json.dumps({'filehash': filehash}),
+                )
+                db.add(extension)
 
 
 class Upload(BaseHandler):
@@ -91,6 +143,7 @@ class Upload(BaseHandler):
             # Write it to disk
             with tempfile.NamedTemporaryFile('w+b', suffix='.rpz') as tfile:
                 tfile.write(uploaded_file.body)
+                tfile.flush()
 
                 # Insert it in database
                 try:
@@ -109,6 +162,13 @@ class Upload(BaseHandler):
                     tfile.name,
                 )
                 logger.info("Inserted file in storage")
+
+                await process_uploaded_rpz(
+                    self.application,
+                    self.db,
+                    experiment,
+                    tfile.name,
+                )
 
         # Insert Upload in database
         upload = database.Upload(experiment=experiment,
