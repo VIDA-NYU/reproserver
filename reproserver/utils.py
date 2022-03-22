@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import logging
 import os
+from prometheus_async.aio import time as prom_async_time
 import re
 import subprocess
 import sys
@@ -19,6 +20,36 @@ def prom_incremented(metric, amount=1):
         yield
     finally:
         metric.dec(amount)
+
+
+class PromMeasureRequest(object):
+    def __init__(self, count, time):
+        self.count = count
+        self.time = time
+
+    def _wrap(self, name, timer):
+        counter = self.count.labels(name)
+        timer = timer(self.time.labels(name))
+
+        # Initialize count
+        counter.inc(0)
+
+        def decorator(func):
+            @contextlib.wraps(func)
+            def wrapper(*args, **kwargs):
+                # Count requests
+                counter.inc()
+                return func(*args, **kwargs)
+
+            return timer(wrapper)
+
+        return decorator
+
+    def sync(self, name):
+        return self._wrap(name, lambda metric: metric.time())
+
+    def async_(self, name):
+        return self._wrap(name, lambda metric: prom_async_time(metric))
 
 
 async def subprocess_call_async(cmdline):

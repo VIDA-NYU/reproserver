@@ -11,31 +11,36 @@ from .. import database
 from ..repositories import RepositoryError, get_experiment_from_repository, \
     get_repository_name, get_repository_page_url, parse_repository_url
 from .. import rpz_metadata
-from ..utils import background_future, secure_filename
+from ..utils import PromMeasureRequest, background_future, secure_filename
 from .base import BaseHandler
 
 
 logger = logging.getLogger(__name__)
 
 
-PROM_PAGE = prometheus_client.Counter(
-    'pages_total',
-    "Page requests",
-    ['name']
+PROM_REQUESTS = PromMeasureRequest(
+    count=prometheus_client.Counter(
+        'pages_total',
+        "Page requests",
+        ['name'],
+    ),
+    time=prometheus_client.Histogram(
+        'page_seconds',
+        "Page request time",
+        ['name'],
+    ),
 )
 
 
 class Index(BaseHandler):
     """Landing page from which a user can select an experiment to upload.
     """
-    PROM_PAGE.labels('index').inc(0)
-
+    @PROM_REQUESTS.sync('index')
     def get(self):
-        PROM_PAGE.labels('index').inc()
         return self.render('index.html')
 
+    @PROM_REQUESTS.sync('index')
     def head(self):
-        PROM_PAGE.labels('index').inc()
         return self.finish()
 
 
@@ -44,11 +49,8 @@ class Upload(BaseHandler):
 
     An experiment has been provided, store it and extract metadata.
     """
-    PROM_PAGE.labels('upload').inc(0)
-
+    @PROM_REQUESTS.async_('upload')
     async def post(self):
-        PROM_PAGE.labels('upload').inc()
-
         # If a URL was provided, and no file
         if self.get_body_argument('rpz_url', None):
             # Redirect to reproduce_repo view
@@ -149,13 +151,10 @@ class BaseReproduce(BaseHandler):
 
 
 class ReproduceRepo(BaseReproduce):
-    PROM_PAGE.labels('reproduce_repo').inc(0)
-
+    @PROM_REQUESTS.async_('reproduce_repo')
     async def get(self, repo, repo_path):
         """Reproduce an experiment from a data repository.
         """
-        PROM_PAGE.labels('reproduce_repo').inc()
-
         # Check the database for an experiment already stored matching the URI
         repository_key = '%s/%s' % (repo, repo_path)
         upload = (
@@ -190,13 +189,10 @@ class ReproduceRepo(BaseReproduce):
 
 
 class ReproduceLocal(BaseReproduce):
-    PROM_PAGE.labels('reproduce_local').inc(0)
-
+    @PROM_REQUESTS.sync('reproduce_local')
     def get(self, upload_short_id):
         """Ask for run parameters.
         """
-        PROM_PAGE.labels('reproduce_local').inc()
-
         # Decode info from URL
         try:
             upload_id = database.Upload.decode_id(upload_short_id)
@@ -223,15 +219,12 @@ class ReproduceLocal(BaseReproduce):
 
 
 class StartRun(BaseHandler):
-    PROM_PAGE.labels('start_run').inc(0)
-
+    @PROM_REQUESTS.async_('start_run')
     async def post(self, upload_short_id):
         """Gets the run parameters POSTed to from /reproduce.
 
         Triggers the run and redirects to the results page.
         """
-        PROM_PAGE.labels('start_run').inc()
-
         # Decode info from URL
         try:
             upload_id = database.Upload.decode_id(upload_short_id)
@@ -351,13 +344,10 @@ class StartRun(BaseHandler):
 
 
 class Results(BaseHandler):
-    PROM_PAGE.labels('results').inc(0)
-
+    @PROM_REQUESTS.sync('results')
     def get(self, run_short_id):
         """Shows the results of a run, whether it's done or in progress.
         """
-        PROM_PAGE.labels('results').inc()
-
         # Decode info from URL
         try:
             run_id = database.Run.decode_id(run_short_id)
@@ -417,6 +407,7 @@ class Results(BaseHandler):
 
 
 class ResultsJson(BaseHandler):
+    @PROM_REQUESTS.sync('results-json')
     def get(self, run_short_id):
         # Decode info from URL
         try:
@@ -445,20 +436,16 @@ class ResultsJson(BaseHandler):
 
 
 class About(BaseHandler):
-    PROM_PAGE.labels('about').inc(0)
-
+    @PROM_REQUESTS.sync('about')
     def get(self):
-        PROM_PAGE.labels('about').inc()
         return self.render('about.html')
 
 
 class Data(BaseHandler):
     """Print some system information.
     """
-    PROM_PAGE.labels('about').inc(0)
-
+    @PROM_REQUESTS.sync('data')
     def get(self):
-        PROM_PAGE.labels('data').inc()
         return self.render(
             'data.html',
             experiments=self.db.query(database.Experiment).all(),
