@@ -30,11 +30,14 @@ class InternalProxyHandler(ProxyHandler):
             self.finish("Unauthenticated pod communication")
             return
 
-        # Read port from hostname
         self.original_host = self.request.host
-        host_name = self.request.host_name.split('.', 1)[0]
-        run_short_id, port = host_name.split('-')
-        port = int(port)
+        if 'X-Reproserver-Port' in self.request.headers:
+            port = int(self.request.headers['X-Reproserver-Port'])
+        else:
+            # Read port from hostname
+            host_name = self.request.host_name.split('.', 1)[0]
+            run_short_id, port = host_name.split('-')
+            port = int(port)
 
         # TODO: Map Host with `self.application.settings['reproserver_run']`?
 
@@ -42,6 +45,7 @@ class InternalProxyHandler(ProxyHandler):
 
     def alter_request(self, request):
         request.headers['Host'] = self.original_host
+        request.headers.pop('X-Reproserver-Port', None)
 
 
 class K8sRunner(BaseRunner):

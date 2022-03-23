@@ -2,6 +2,7 @@ import itertools
 import logging
 import os
 import prometheus_client
+import re
 import socket
 from tornado import httputil
 from tornado import httpclient
@@ -184,6 +185,25 @@ class DockerProxyHandler(ProxyHandler):
         request.headers['Host'] = self.original_host
 
 
+class DockerSubdirProxyHandler(DockerProxyHandler):
+    _re_path = re.compile(r'^/?results/([^/]+)/port/([0-9]+)')
+
+    def select_destination(self):
+        self.original_host = self.request.host
+
+        # Read destination from path
+        m = self._re_path.match(self.request.path)
+        if m is None:
+            return
+        run_short_id, port = m.groups()
+        database.Run.decode_id(run_short_id)
+
+        uri = self.request.uri
+        uri = self._re_path.sub('', uri)
+        url = 'docker:{0}{1}'.format(port, uri)
+        return url
+
+
 class K8sProxyHandler(ProxyHandler):
     def select_destination(self):
         # Read destination from hostname
@@ -195,7 +215,7 @@ class K8sProxyHandler(ProxyHandler):
             logger.info("Invalid hostname")
             self.finish("Invalid hostname")
             return
-        run_short_id, port = parts
+        run_short_id, self.target_port = parts
         run_id = database.Run.decode_id(run_short_id)
 
         url = 'run-{0}:5597{1}'.format(run_id, self.request.uri)
@@ -207,6 +227,33 @@ class K8sProxyHandler(ProxyHandler):
             self.application.settings['connection_token']
 
         request.headers['Host'] = self.original_host
+        request.headers['X-Reproserver-Port'] = self.target_port
+
+    @classmethod
+    def make_app(cls, **settings):
+        return super(K8sProxyHandler, cls).make_app(
+            connection_token=os.environ['CONNECTION_TOKEN'],
+            **settings,
+        )
+
+
+class K8sSubdirProxyHandler(K8sProxyHandler):
+    _re_path = re.compile(r'^/?results/([^/]+)/port/([0-9]+)')
+
+    def select_destination(self):
+        self.original_host = self.request.host
+
+        # Read destination from path
+        m = self._re_path.match(self.request.path)
+        if m is None:
+            return
+        run_short_id, self.target_port = m.groups()
+        run_id = database.Run.decode_id(run_short_id)
+
+        uri = self.request.uri
+        uri = self._re_path.sub('', uri)
+        url = 'run-{0}:5597{1}'.format(run_id, uri)
+        return url
 
 
 def _setup():
@@ -236,9 +283,7 @@ def k8s_proxy():
     # Database connection is not used, but we still need to prime short ids
     database.connect()
 
-    proxy = K8sProxyHandler.make_app(
-        connection_token=os.environ['CONNECTION_TOKEN'],
-    )
+    proxy = K8sProxyHandler.make_app()
     proxy.listen(8001, address='0.0.0.0', xheaders=True)
     loop = tornado.ioloop.IOLoop.current()
     loop.start()

@@ -1,3 +1,4 @@
+import os
 import pkg_resources
 from tornado.routing import URLSpec
 
@@ -6,7 +7,15 @@ from . import api
 from . import views
 
 
-def make_app(debug=False, xsrf_cookies=True):
+def make_app(debug=False, xsrf_cookies=True, proxy=None):
+    if proxy is not None:
+        proxy = [
+            URLSpec('/results/(?:[^/]+)/port/(?:[0-9]+)(?:/.*)?', proxy,
+                    name='proxy'),
+        ]
+    else:
+        proxy = []
+
     return Application(
         [
             URLSpec('/', views.Index, name='index'),
@@ -19,6 +28,7 @@ def make_app(debug=False, xsrf_cookies=True):
             URLSpec('/results/([^/]+)', views.Results, name='results'),
             URLSpec('/results/([^/]+)/json', views.ResultsJson,
                     name='results_json'),
+        ] + proxy + [
             URLSpec('/about', views.About, name='about'),
             URLSpec('/data', views.Data, name='data'),
             URLSpec('/health', views.Health, name='health'),
@@ -32,4 +42,5 @@ def make_app(debug=False, xsrf_cookies=True):
         static_path=pkg_resources.resource_filename('reproserver', 'static'),
         xsrf_cookies=xsrf_cookies,
         debug=debug,
+        connection_token=os.environ.get('CONNECTION_TOKEN', ''),
     )
