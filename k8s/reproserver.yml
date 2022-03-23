@@ -105,8 +105,9 @@ spec:
                 configMapKeyRef:
                   name: config
                   key: proxy.url
-            - name: WEB_PROXY_CLASS
-              value: reproserver.proxy:K8sSubdirProxyHandler
+            # Uncomment to enable web proxying at /results/<run>/port/<number>/
+            #- name: WEB_PROXY_CLASS
+            #  value: reproserver.proxy:K8sSubdirProxyHandler
             - name: S3_KEY
               valueFrom:
                 secretKeyRef:

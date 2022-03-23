@@ -11,7 +11,8 @@ services:
       DOCKER_HOST: tcp://docker:2375
       REGISTRY: registry:5000
       RUNNER_TYPE: docker
-      WEB_PROXY_CLASS: reproserver.proxy:DockerSubdirProxyHandler
+      # Uncomment to enable web proxying at /results/<run>/port/<number>/
+      #WEB_PROXY_CLASS: reproserver.proxy:DockerSubdirProxyHandler
     ports:
       - 8000:8000
   proxy:
