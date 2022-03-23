@@ -46,6 +46,61 @@ class Index(BaseHandler):
         return self.finish()
 
 
+async def store_uploaded_rpz(object_store, db, uploaded_file, remote_ip):
+    assert uploaded_file.filename
+    logger.info("Incoming file: %r", uploaded_file.filename)
+    filename = secure_filename(uploaded_file.filename)
+
+    # Hash it
+    hasher = sha256(uploaded_file.body)
+    filehash = hasher.hexdigest()
+    logger.info("Computed hash: %s", filehash)
+
+    # Check for existence of experiment
+    experiment = db.query(database.Experiment).get(filehash)
+    if experiment:
+        experiment.last_access = datetime.utcnow()
+        logger.info("File exists in storage")
+    else:
+        # Write it to disk
+        with tempfile.NamedTemporaryFile('w+b', suffix='.rpz') as tfile:
+            tfile.write(uploaded_file.body)
+            tfile.flush()
+
+            # Insert it in database
+
+            # Might raise rpz_metadata.InvalidPackage
+            experiment = rpz_metadata.make_experiment(
+                filehash,
+                tfile.name,
+            )
+            db.add(experiment)
+
+            # Insert it on S3
+            await object_store.upload_file_async(
+                'experiments',
+                filehash,
+                tfile.name,
+            )
+            logger.info("Inserted file in storage")
+
+            await process_uploaded_rpz(
+                object_store,
+                db,
+                experiment,
+                tfile.name,
+            )
+
+    # Insert Upload in database
+    upload = database.Upload(experiment=experiment,
+                             filename=filename,
+                             submitted_ip=remote_ip)
+    db.add(upload)
+    db.commit()
+
+    return upload.short_id
+
+
 class Upload(BaseHandler):
     """Target of the landing page.
 
@@ -75,60 +130,16 @@ class Upload(BaseHandler):
             uploaded_file = self.request.files['rpz_file'][0]
         except (KeyError, IndexError):
             return self.render('setup_badfile.html', message="Missing file")
-        assert uploaded_file.filename
-        logger.info("Incoming file: %r", uploaded_file.filename)
-        filename = secure_filename(uploaded_file.filename)
 
-        # Hash it
-        hasher = sha256(uploaded_file.body)
-        filehash = hasher.hexdigest()
-        logger.info("Computed hash: %s", filehash)
-
-        # Check for existence of experiment
-        experiment = self.db.query(database.Experiment).get(filehash)
-        if experiment:
-            experiment.last_access = datetime.utcnow()
-            logger.info("File exists in storage")
-        else:
-            # Write it to disk
-            with tempfile.NamedTemporaryFile('w+b', suffix='.rpz') as tfile:
-                tfile.write(uploaded_file.body)
-                tfile.flush()
-
-                # Insert it in database
-                try:
-                    experiment = rpz_metadata.make_experiment(
-                        filehash,
-                        tfile.name,
-                    )
-                except rpz_metadata.InvalidPackage as e:
-                    return self.render('setup_badfile.html', message=str(e))
-                self.db.add(experiment)
-
-                # Insert it on S3
-                await self.application.object_store.upload_file_async(
-                    'experiments',
-                    filehash,
-                    tfile.name,
-                )
-                logger.info("Inserted file in storage")
-
-                await process_uploaded_rpz(
-                    self.application,
-                    self.db,
-                    experiment,
-                    tfile.name,
-                )
-
-        # Insert Upload in database
-        upload = database.Upload(experiment=experiment,
-                                 filename=filename,
-                                 submitted_ip=self.request.remote_ip)
-        self.db.add(upload)
-        self.db.commit()
-
-        # Encode ID for permanent URL
-        upload_short_id = upload.short_id
+        try:
+            upload_short_id = await store_uploaded_rpz(
+                self.application.object_store,
+                self.db,
+                uploaded_file,
+                self.request.remote_ip,
+            )
+        except rpz_metadata.InvalidPackage as e:
+            return self.render('setup_badfile.html', message=str(e))
 
         # Redirect to build page
         return self.redirect(
