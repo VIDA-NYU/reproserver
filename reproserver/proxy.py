@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 
 from . import __version__
 from . import database
+from .web.base import GracefulApplication
 
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,26 @@ def is_host_resolving(host):
         return False
     else:
         return len(ret) > 0
+
+
+class IsKubernetesProbe(tornado.routing.Matcher):
+    def match(self, request):
+        if 'X-Kubernetes-Probe' in request.headers:
+            return {}
+
+        return None
+
+
+class Health(tornado.web.RequestHandler):
+    def get(self):
+        self.set_header('Content-Type', 'text/plain')
+
+        # We're not ready if we've been asked to shut down
+        if self.application.is_exiting:
+            self.set_status(503, "Shutting down")
+            return self.finish('Shutting down')
+
+        return self.finish('Ok')
 
 
 class ProxyHandler(WebSocketHandler):
@@ -156,8 +177,14 @@ class ProxyHandler(WebSocketHandler):
 
     @classmethod
     def make_app(cls, **settings):
-        return tornado.web.Application(
+        return GracefulApplication(
             [
+                (
+                    IsKubernetesProbe(),
+                    [
+                        URLSpec('/health', Health),
+                    ],
+                ),
                 URLSpec('.*', cls),
             ],
             **settings,
