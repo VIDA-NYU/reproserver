@@ -173,12 +173,20 @@ spec:
               containerPort: 8000
             - name: prometheus
               containerPort: 8090
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 1
           livenessProbe:
             httpGet:
               path: /health
               port: 8000
             initialDelaySeconds: 30
-            periodSeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
       volumes:
         - name: k8s-config
           configMap:

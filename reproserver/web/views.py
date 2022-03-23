@@ -454,4 +454,8 @@ class Data(BaseHandler):
 
 class Health(BaseHandler):
     def get(self):
-        return self.finish('ok')
+        if self.application.is_exiting:
+            self.set_status(503, "Shutting down")
+            return self.finish('Shutting down')
+        else:
+            return self.finish('Ok')

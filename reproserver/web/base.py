@@ -4,6 +4,8 @@ import json
 import logging
 import os
 import pkg_resources
+import signal
+import tornado.ioloop
 import tornado.web
 
 from .. import __version__
@@ -15,7 +17,35 @@ from ..run.connector import DirectConnector
 logger = logging.getLogger(__name__)
 
 
-class Application(tornado.web.Application):
+class GracefulApplication(tornado.web.Application):
+    def __init__(self, *args, **kwargs):
+        super(GracefulApplication, self).__init__(*args, **kwargs)
+
+        self.is_exiting = False
+
+        exit_time = os.environ.get('TORNADO_SHUTDOWN_TIME')
+        if exit_time:
+            exit_time = int(exit_time, 10)
+        else:
+            exit_time = 30  # Default to 30 seconds
+
+        def exit():
+            logger.info("Shutting down")
+            tornado.ioloop.IOLoop.current().stop()
+
+        def exit_soon():
+            tornado.ioloop.IOLoop.current().call_later(exit_time, exit)
+
+        def signal_handler(signum, frame):
+            logger.info("Got SIGTERM")
+            self.is_exiting = True
+            tornado.ioloop.IOLoop.current().add_callback_from_signal(exit_soon)
+
+        signal.signal(signal.SIGTERM, signal_handler)
+        signal.signal(signal.SIGINT, signal_handler)
+
+
+class Application(GracefulApplication):
     def __init__(self, handlers, **kwargs):
         super(Application, self).__init__(handlers, **kwargs)
 
@@ -48,6 +78,8 @@ class Application(tornado.web.Application):
 class BaseHandler(tornado.web.RequestHandler):
     """Base class for all request handlers.
     """
+    application: Application
+
     def url_for_upload(self, upload):
         if upload.repository_key is not None:
             repo, repo_path = upload.repository_key.split('/', 1)
