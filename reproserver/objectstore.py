@@ -5,6 +5,7 @@ import botocore.exceptions
 import io
 import logging
 import os
+from tornado import httpclient
 
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,20 @@ class ObjectStore(object):
             config=Config(signature_version='s3v4'),
         )
         self.bucket_prefix = bucket_prefix
+
+    async def check(self):
+        client = httpclient.AsyncHTTPClient()
+        try:
+            res = await client.fetch(
+                os.environ['S3_URL'],
+                raise_error=False,
+                request_timeout=2,
+            )
+        except (OSError, httpclient.HTTPError):
+            return "S3 unavailable"
+        if not (200 <= res.code <= 500):
+            return "S3 failing"
+        return None
 
     def bucket_name(self, name):
         if name not in ('experiments', 'inputs', 'outputs'):

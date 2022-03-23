@@ -453,9 +453,23 @@ class Data(BaseHandler):
 
 
 class Health(BaseHandler):
-    def get(self):
+    @PROM_REQUESTS.sync('health')
+    async def get(self):
+        self.set_header('Content-Type', 'text/plain')
+
+        # We're not ready if we've been asked to shut down
         if self.application.is_exiting:
             self.set_status(503, "Shutting down")
-            return self.finish('Shutting down')
-        else:
-            return self.finish('Ok')
+            return await self.finish('Shutting down')
+
+        # Health checks
+        checks = [
+            await self.application.object_store.check(),
+            database.check(self.application.DBSession),
+        ]
+        errors = [c for c in checks if c]
+        if errors:
+            self.set_status(503)
+            return await self.finish('\n'.join(errors))
+
+        return await self.finish('Ok')

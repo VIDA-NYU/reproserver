@@ -347,3 +347,12 @@ def connect(url=None, *, create=False):
     upload_short_ids = ShortIDs(b'upload' + shortids_salt)
 
     return DBSession
+
+
+def check(DBSession):
+    try:
+        with DBSession() as db:
+            db.query(Experiment).limit(1).first()
+    except Exception:
+        return "Database unavailable"
+    return None
