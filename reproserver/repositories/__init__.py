@@ -7,7 +7,10 @@ from .mendeley import Mendeley
 
 __all__ = [
     'RepositoryError',
-    'get_experiment_from_repository', 'parse_repository_url',
+    'get_repository_name',
+    'get_experiment_from_repository',
+    'get_repository_page_url',
+    'parse_repository_url',
 ]
 
 

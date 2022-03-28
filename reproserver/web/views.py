@@ -1,40 +1,48 @@
 from datetime import datetime
 from hashlib import sha256
+import json
 import logging
+import mimetypes
 import os
 import prometheus_client
 from sqlalchemy.orm import joinedload
 import tempfile
 
 from .. import database
+from ..extensions import process_uploaded_rpz
 from ..repositories import RepositoryError, get_experiment_from_repository, \
     get_repository_name, get_repository_page_url, parse_repository_url
 from .. import rpz_metadata
-from ..utils import background_future, secure_filename
+from ..utils import PromMeasureRequest, background_future, secure_filename
 from .base import BaseHandler
 
 
 logger = logging.getLogger(__name__)
 
 
-PROM_PAGE = prometheus_client.Counter(
-    'pages_total',
-    "Page requests",
-    ['name']
+PROM_REQUESTS = PromMeasureRequest(
+    count=prometheus_client.Counter(
+        'pages_total',
+        "Page requests",
+        ['name'],
+    ),
+    time=prometheus_client.Histogram(
+        'page_seconds',
+        "Page request time",
+        ['name'],
+    ),
 )
 
 
 class Index(BaseHandler):
     """Landing page from which a user can select an experiment to upload.
     """
-    PROM_PAGE.labels('index').inc(0)
-
+    @PROM_REQUESTS.sync('index')
     def get(self):
-        PROM_PAGE.labels('index').inc()
         return self.render('index.html')
 
+    @PROM_REQUESTS.sync('index')
     def head(self):
-        PROM_PAGE.labels('index').inc()
         return self.finish()
 
 
@@ -43,11 +51,8 @@ class Upload(BaseHandler):
 
     An experiment has been provided, store it and extract metadata.
     """
-    PROM_PAGE.labels('upload').inc(0)
-
+    @PROM_REQUESTS.async_('upload')
     async def post(self):
-        PROM_PAGE.labels('upload').inc()
-
         # If a URL was provided, and no file
         if self.get_body_argument('rpz_url', None):
             # Redirect to reproduce_repo view
@@ -88,6 +93,7 @@ class Upload(BaseHandler):
             # Write it to disk
             with tempfile.NamedTemporaryFile('w+b', suffix='.rpz') as tfile:
                 tfile.write(uploaded_file.body)
+                tfile.flush()
 
                 # Insert it in database
                 try:
@@ -106,6 +112,13 @@ class Upload(BaseHandler):
                     tfile.name,
                 )
                 logger.info("Inserted file in storage")
+
+                await process_uploaded_rpz(
+                    self.application,
+                    self.db,
+                    experiment,
+                    tfile.name,
+                )
 
         # Insert Upload in database
         upload = database.Upload(experiment=experiment,
@@ -148,13 +161,10 @@ class BaseReproduce(BaseHandler):
 
 
 class ReproduceRepo(BaseReproduce):
-    PROM_PAGE.labels('reproduce_repo').inc(0)
-
+    @PROM_REQUESTS.async_('reproduce_repo')
     async def get(self, repo, repo_path):
         """Reproduce an experiment from a data repository.
         """
-        PROM_PAGE.labels('reproduce_repo').inc()
-
         # Check the database for an experiment already stored matching the URI
         repository_key = '%s/%s' % (repo, repo_path)
         upload = (
@@ -189,13 +199,10 @@ class ReproduceRepo(BaseReproduce):
 
 
 class ReproduceLocal(BaseReproduce):
-    PROM_PAGE.labels('reproduce_local').inc(0)
-
+    @PROM_REQUESTS.sync('reproduce_local')
     def get(self, upload_short_id):
         """Ask for run parameters.
         """
-        PROM_PAGE.labels('reproduce_local').inc()
-
         # Decode info from URL
         try:
             upload_id = database.Upload.decode_id(upload_short_id)
@@ -222,15 +229,12 @@ class ReproduceLocal(BaseReproduce):
 
 
 class StartRun(BaseHandler):
-    PROM_PAGE.labels('start_run').inc(0)
-
+    @PROM_REQUESTS.async_('start_run')
     async def post(self, upload_short_id):
         """Gets the run parameters POSTed to from /reproduce.
 
         Triggers the run and redirects to the results page.
         """
-        PROM_PAGE.labels('start_run').inc()
-
         # Decode info from URL
         try:
             upload_id = database.Upload.decode_id(upload_short_id)
@@ -350,13 +354,10 @@ class StartRun(BaseHandler):
 
 
 class Results(BaseHandler):
-    PROM_PAGE.labels('results').inc(0)
-
+    @PROM_REQUESTS.sync('results')
     def get(self, run_short_id):
         """Shows the results of a run, whether it's done or in progress.
         """
-        PROM_PAGE.labels('results').inc()
-
         # Decode info from URL
         try:
             run_id = database.Run.decode_id(run_short_id)
@@ -367,15 +368,24 @@ class Results(BaseHandler):
         # Look up the run in the database
         run = (
             self.db.query(database.Run)
-            .options(joinedload(database.Run.experiment),
-                     joinedload(database.Run.upload),
-                     joinedload(database.Run.parameter_values),
-                     joinedload(database.Run.input_files),
-                     joinedload(database.Run.output_files))
+            .options(
+                joinedload(database.Run.experiment).joinedload(
+                    database.Experiment.extensions,
+                ),
+                joinedload(database.Run.upload),
+                joinedload(database.Run.parameter_values),
+                joinedload(database.Run.input_files),
+                joinedload(database.Run.output_files),
+            )
         ).get(run_id)
         if run is None:
             self.set_status(404)
             return self.render('results_notfound.html')
+        # Read extensions
+        extensions = {
+            extension.name: json.loads(extension.data)
+            for extension in run.experiment.extensions
+        }
         # Update last access
         run.experiment.last_access = datetime.utcnow()
         self.db.commit()
@@ -390,6 +400,30 @@ class Results(BaseHandler):
                 port=port_number,
             )
 
+        def output_link(output_file):
+            experiment_hash = output_file.run.experiment_hash
+            path = self.db.query(database.Path).filter(
+                database.Path.experiment_hash == experiment_hash,
+                database.Path.name == output_file.name,
+            ).one().path
+            mime = mimetypes.guess_type(path)[0]
+            return self.application.object_store.presigned_serve_url(
+                'outputs',
+                output_file.hash,
+                output_file.name,
+                mime,
+            )
+
+        if 'web1' in extensions:
+            extensions['web1']['url'] = (
+                self.application.object_store.presigned_serve_url(
+                    'web1',
+                    extensions['web1']['filehash'],
+                    'archive.wacz',
+                    'application/zip',
+                )
+            )
+
         return self.render(
             'results.html',
             run=run,
@@ -398,10 +432,13 @@ class Results(BaseHandler):
             done=bool(run.done),
             experiment_url=self.url_for_upload(run.upload),
             get_port_url=get_port_url,
+            output_link=output_link,
+            extensions=extensions,
         )
 
 
 class ResultsJson(BaseHandler):
+    @PROM_REQUESTS.sync('results-json')
     def get(self, run_short_id):
         # Decode info from URL
         try:
@@ -430,20 +467,16 @@ class ResultsJson(BaseHandler):
 
 
 class About(BaseHandler):
-    PROM_PAGE.labels('about').inc(0)
-
+    @PROM_REQUESTS.sync('about')
     def get(self):
-        PROM_PAGE.labels('about').inc()
         return self.render('about.html')
 
 
 class Data(BaseHandler):
     """Print some system information.
     """
-    PROM_PAGE.labels('about').inc(0)
-
+    @PROM_REQUESTS.sync('data')
     def get(self):
-        PROM_PAGE.labels('data').inc()
         return self.render(
             'data.html',
             experiments=self.db.query(database.Experiment).all(),
@@ -451,5 +484,23 @@ class Data(BaseHandler):
 
 
 class Health(BaseHandler):
-    def get(self):
-        return self.finish('ok')
+    @PROM_REQUESTS.sync('health')
+    async def get(self):
+        self.set_header('Content-Type', 'text/plain')
+
+        # We're not ready if we've been asked to shut down
+        if self.application.is_exiting:
+            self.set_status(503, "Shutting down")
+            return await self.finish('Shutting down')
+
+        # Health checks
+        checks = [
+            await self.application.object_store.check(),
+            database.check(self.application.DBSession),
+        ]
+        errors = [c for c in checks if c]
+        if errors:
+            self.set_status(503)
+            return await self.finish('\n'.join(errors))
+
+        return await self.finish('Ok')

@@ -2,7 +2,7 @@ import asyncio
 import logging
 import prometheus_client
 
-from ..utils import background_future, prom_incremented
+from ..utils import background_future
 
 
 logger = logging.getLogger(__name__)
@@ -29,15 +29,14 @@ class BaseRunner(object):
         """
         logger.info("Run request received: %r", run_id)
 
-        with prom_incremented(PROM_RUNS):
-            run_info = await self.connector.init_run_get_info(run_id)
+        run_info = await self.connector.init_run_get_info(run_id)
 
-            try:
-                await asyncio.ensure_future(self.run_inner(run_info))
-            except Exception as e:
-                logger.exception("Error processing run!")
-                logger.warning("Got error: %s", str(e))
-                background_future(self.connector.run_failed(run_id, str(e)))
+        try:
+            await asyncio.ensure_future(self.run_inner(run_info))
+        except Exception as e:
+            logger.exception("Error processing run!")
+            logger.warning("Got error: %s", str(e))
+            background_future(self.connector.run_failed(run_id, str(e)))
 
     async def run_inner(self, run_info):
         """Executes the experiment. Overridable in subclasses.

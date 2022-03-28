@@ -2,9 +2,10 @@ import importlib
 import jinja2
 import json
 import logging
-import mimetypes
 import os
 import pkg_resources
+import signal
+import tornado.ioloop
 import tornado.web
 
 from .. import __version__
@@ -16,7 +17,35 @@ from ..run.connector import DirectConnector
 logger = logging.getLogger(__name__)
 
 
-class Application(tornado.web.Application):
+class GracefulApplication(tornado.web.Application):
+    def __init__(self, *args, **kwargs):
+        super(GracefulApplication, self).__init__(*args, **kwargs)
+
+        self.is_exiting = False
+
+        exit_time = os.environ.get('TORNADO_SHUTDOWN_TIME')
+        if exit_time:
+            exit_time = int(exit_time, 10)
+        else:
+            exit_time = 30  # Default to 30 seconds
+
+        def exit():
+            logger.info("Shutting down")
+            tornado.ioloop.IOLoop.current().stop()
+
+        def exit_soon():
+            tornado.ioloop.IOLoop.current().call_later(exit_time, exit)
+
+        def signal_handler(signum, frame):
+            logger.info("Got SIGTERM")
+            self.is_exiting = True
+            tornado.ioloop.IOLoop.current().add_callback_from_signal(exit_soon)
+
+        signal.signal(signal.SIGTERM, signal_handler)
+        signal.signal(signal.SIGINT, signal_handler)
+
+
+class Application(GracefulApplication):
     def __init__(self, handlers, **kwargs):
         super(Application, self).__init__(handlers, **kwargs)
 
@@ -49,24 +78,14 @@ class Application(tornado.web.Application):
 class BaseHandler(tornado.web.RequestHandler):
     """Base class for all request handlers.
     """
+    application: Application
+
     def url_for_upload(self, upload):
         if upload.repository_key is not None:
             repo, repo_path = upload.repository_key.split('/', 1)
             return self.reverse_url('reproduce_repo', repo, repo_path)
         else:
             return self.reverse_url('reproduce_local', upload.short_id)
-
-    def output_link(self, output_file):
-        path = self.db.query(database.Path).filter(
-            database.Path.experiment_hash == output_file.run.experiment_hash,
-            database.Path.name == output_file.name,
-        ).one().path
-        mime = mimetypes.guess_type(path)[0]
-        return self.application.object_store.presigned_serve_url(
-            'outputs', output_file.hash,
-            output_file.name,
-            mime,
-        )
 
     template_env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(
@@ -76,31 +95,26 @@ class BaseHandler(tornado.web.RequestHandler):
         extensions=['jinja2.ext.i18n'],
     )
 
-    @jinja2.contextfunction
+    @jinja2.pass_context
     def _tpl_static_url(context, path):
         v = not context['handler'].application.settings.get('debug', False)
         return context['handler'].static_url(path, include_version=v)
     template_env.globals['static_url'] = _tpl_static_url
 
-    @jinja2.contextfunction
+    @jinja2.pass_context
     def _tpl_reverse_url(context, path, *args):
         return context['handler'].reverse_url(path, *args)
     template_env.globals['reverse_url'] = _tpl_reverse_url
 
-    @jinja2.contextfunction
+    @jinja2.pass_context
     def _tpl_xsrf_form_html(context):
         return jinja2.Markup(context['handler'].xsrf_form_html())
     template_env.globals['xsrf_form_html'] = _tpl_xsrf_form_html
 
-    @jinja2.contextfunction
+    @jinja2.pass_context
     def _tpl_url_for_upload(context, upload):
         return context['handler'].url_for_upload(upload)
     template_env.globals['url_for_upload'] = _tpl_url_for_upload
-
-    @jinja2.contextfunction
-    def _tpl_output_link(context, output_file):
-        return context['handler'].output_link(output_file)
-    template_env.globals['output_link'] = _tpl_output_link
 
     def __init__(self, application, request, **kwargs):
         super(BaseHandler, self).__init__(application, request, **kwargs)

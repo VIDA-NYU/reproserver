@@ -113,6 +113,7 @@ class K8sRunner(BaseRunner):
                 body=pod,
             )
             logger.info("Pod created: %s", name)
+            PROM_RUNS.inc()
 
             # Create a service for proxy connections
             svc = k8s_client.V1Service(

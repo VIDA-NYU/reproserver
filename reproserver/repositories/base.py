@@ -4,6 +4,7 @@ import tempfile
 from tornado.httpclient import AsyncHTTPClient
 
 from .. import database
+from ..extensions import process_uploaded_rpz
 from .. import rpz_metadata
 
 
@@ -82,6 +83,13 @@ class BaseRepository(object):
                         tfile.name,
                     )
                     logger.info("Inserted file in storage")
+
+                    await process_uploaded_rpz(
+                        object_store,
+                        db,
+                        experiment,
+                        tfile.name,
+                    )
 
         # Insert Upload in database
         upload = database.Upload(

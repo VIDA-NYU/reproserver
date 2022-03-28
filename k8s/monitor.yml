@@ -32,6 +32,8 @@ metadata:
   name: prometheus
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: prometheus
@@ -80,6 +82,8 @@ metadata:
   name: grafana
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: grafana
@@ -97,7 +101,7 @@ spec:
               mountPath: /grafana
       containers:
         - name: grafana
-          image: grafana/grafana:6.4.4
+          image: quay.io/remram44/grafana:7.5.15-image_renderer
           imagePullPolicy: IfNotPresent
           env:
             - name: GF_AUTH_ANONYMOUS_ENABLED

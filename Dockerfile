@@ -26,7 +26,7 @@ RUN curl -Lo /tmp/docker.tgz https://download.docker.com/linux/static/stable/x86
 
 # Install package
 COPY reproserver /usr/src/app/reproserver
-COPY README.rst LICENSE.txt /usr/src/app/
+COPY README.md LICENSE.txt /usr/src/app/
 RUN /root/.poetry/bin/poetry install --no-interaction --no-dev
 
 # Set up user

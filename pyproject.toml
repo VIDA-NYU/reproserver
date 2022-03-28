@@ -9,7 +9,7 @@ authors = [
     "Remi Rampin <r@remirampin.com>"
 ]
 
-readme = "README.rst"
+readme = "README.md"
 
 repository = "https://github.com/VIDA-NYU/reproserver"
 homepage = "https://server.reprozip.org/"
@@ -28,7 +28,7 @@ classifiers = [
 ]
 
 include = [
-    # LICENSE.txt README.rst
+    # LICENSE.txt README.md
     "reproserver/static/favicon.ico",
     "reproserver/static/css/*.css",
     "reproserver/static/js/*.js",
@@ -40,7 +40,7 @@ include = [
 python = "^3.6"
 tornado = ">=5.0"
 sqlalchemy = "^1.4"
-jinja2 = "*"
+jinja2 = ">=3,<4"
 boto3 = "^1"
 google-api-python-client = "*"
 google-auth = "*"
@@ -53,11 +53,11 @@ prometheus_client = "*"
 reprozip-core = { path = "reprozip/reprozip-core", develop=true }
 reprounzip = { path = "reprozip/reprounzip", develop=true }
 reprounzip-docker = { path = "reprozip/reprounzip-docker", develop=true }
+prometheus-async = "*"
 
 [tool.poetry.dev-dependencies]
 coverage = "*"
 flake8 = "*"
-readme_renderer = "*"
 requests = "*"
 
 [tool.poetry.scripts]

@@ -35,6 +35,7 @@ class Experiment(Base):
                          default=lambda: datetime.utcnow())
     info = Column(Text, nullable=False)
 
+    extensions = relationship('Extension', back_populates='experiment')
     uploads = relationship('Upload', back_populates='experiment')
     runs = relationship('Run', back_populates='experiment')
     parameters = relationship('Parameter', back_populates='experiment')
@@ -44,6 +45,23 @@ class Experiment(Base):
         return "<Experiment hash=%r, docker_image=%r>" % (
             self.hash,
             self.docker_image)
+
+
+class Extension(Base):
+    """An extension discovered and processed.
+    """
+    __tablename__ = 'extensions'
+
+    experiment_hash = Column(
+        String(64),
+        ForeignKey('experiments.hash', ondelete='CASCADE'),
+        primary_key=True,
+        index=True,
+    )
+    experiment = relationship('Experiment', uselist=False,
+                              back_populates='extensions')
+    name = Column(String(64), primary_key=True)
+    data = Column(Text)
 
 
 class Upload(Base):
@@ -347,3 +365,12 @@ def connect(url=None, *, create=False):
     upload_short_ids = ShortIDs(b'upload' + shortids_salt)
 
     return DBSession
+
+
+def check(DBSession):
+    try:
+        with DBSession() as db:
+            db.query(Experiment).limit(1).first()
+    except Exception:
+        return "Database unavailable"
+    return None

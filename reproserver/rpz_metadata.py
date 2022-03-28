@@ -1,6 +1,6 @@
 import json
 import logging
-import subprocess
+from reprounzip.pack_info import get_package_info
 
 from . import database
 from .utils import shell_escape
@@ -19,17 +19,12 @@ def make_experiment(filehash, filename):
     experiment = database.Experiment(hash=filehash)
 
     # Extract metadata
-    info_proc = subprocess.Popen(
-        ['reprounzip', 'info', '--json', filename],
-        stdout=subprocess.PIPE,
-    )
-    info_stdout, _ = info_proc.communicate()
-    if info_proc.wait() != 0:
-        logger.exception("reprounzip info returned %d", info_proc.returncode)
+    try:
+        info = get_package_info(filename)
+    except Exception as e:
         raise InvalidPackage(
             "Error getting info from package (is it an RPZ file?)"
-        )
-    info = json.loads(info_stdout.decode('utf-8'))
+        ) from e
     logger.info("Got metadata, %d runs", len(info['runs']))
 
     # Store whole output

@@ -5,6 +5,7 @@ import botocore.exceptions
 import io
 import logging
 import os
+from tornado import httpclient
 
 
 logger = logging.getLogger(__name__)
@@ -20,6 +21,8 @@ def get_object_store():
 
 
 class ObjectStore(object):
+    BUCKETS = 'experiments', 'inputs', 'outputs', 'web1'
+
     def __init__(self, endpoint_url, client_endpoint_url, bucket_prefix):
         self.s3 = boto3.resource(
             's3', endpoint_url=endpoint_url,
@@ -37,8 +40,22 @@ class ObjectStore(object):
         )
         self.bucket_prefix = bucket_prefix
 
+    async def check(self):
+        client = httpclient.AsyncHTTPClient()
+        try:
+            res = await client.fetch(
+                os.environ['S3_URL'],
+                raise_error=False,
+                request_timeout=2,
+            )
+        except (OSError, httpclient.HTTPError):
+            return "S3 unavailable"
+        if not (200 <= res.code <= 500):
+            return "S3 failing"
+        return None
+
     def bucket_name(self, name):
-        if name not in ('experiments', 'inputs', 'outputs'):
+        if name not in self.BUCKETS:
             raise ValueError("Invalid bucket name %s" % name)
 
         name = '%s%s' % (self.bucket_prefix, name)
@@ -84,7 +101,7 @@ class ObjectStore(object):
 
     def create_buckets(self):
         missing = []
-        for name in ('experiments', 'inputs', 'outputs'):
+        for name in self.BUCKETS:
             name = self.bucket_name(name)
             try:
                 self.s3.meta.client.head_bucket(Bucket=name)
