@@ -90,12 +90,16 @@ setTimeout(update_page, 3000);
 {% if extensions.web1 and run.ports | length %}
 <details open>
 <summary style="display: list-item">Web Archive Replay</summary>
-<replay-web-page style="height: 500px; display: flex; margin-top: 10px; border: 1px solid black;" url="http://localhost:{{ run.ports[0].port_number }}/"
-replayBase="/static/replay/" source="proxy:{{ run.short_id }}/" deepLink
-config='{"prefix": "https://oldweb.today/proxy/", "hostProxy": [{"host": "localhost:{{ run.ports[0].port_number }}", "prefix": "/results/{{ run.short_id }}/port/{{ run.ports[0].port_number }}", "pathOnly": true}], "type": "live", "proxyPathOnly": false, "noPostToGet": true}'>
+<replay-web-page
+  style="height: 500px; display: flex; margin-top: 10px; border: 1px solid black;"
+  url="http://localhost:{{ run.ports[0].port_number }}/"
+  replayBase="/static/replay/"
+  source="{{ extensions.web1.url }}"
+  deepLink
+  config='{"hostProxy": [{"host": "localhost:{{ run.ports[0].port_number }}", "prefix": "/results/{{ run.short_id }}/port/{{ run.ports[0].port_number }}", "pathOnly": true}]}'
+>
 </replay-web-page>
 </details>
-<!-- {{ extensions.web1.url }} -->
 {% endif %}
 
 {% endblock content %}
