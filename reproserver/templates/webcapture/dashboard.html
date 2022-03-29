@@ -7,6 +7,7 @@
 <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean laoreet enim malesuada neque pellentesque, sit amet tincidunt tortor congue. Fusce cursus eleifend nunc ut feugiat. Ut ut mauris orci. Etiam bibendum magna nisi, non placerat turpis viverra quis. Suspendisse ut ligula volutpat, dignissim magna et, venenatis orci. Aenean volutpat vitae felis a sodales. Duis cursus orci in egestas rhoncus. In orci nisl, consequat vel orci vel, iaculis consectetur quam. Duis magna orci, accumsan ac nulla vitae, vulputate porttitor nulla. Nulla tempus aliquam dui, consequat gravida elit dapibus accumsan. Duis pulvinar ligula elit, ut vehicula lectus blandit quis. Vestibulum cursus dolor eget elit tempus blandit. Quisque dignissim auctor lectus rutrum blandit.</p>
 
 <form method="POST" action="{{ reverse_url('webcapture_start_record', upload_short_id) }}">
+  {{ xsrf_form_html() }}
   <div class="form-group">
     <label for="filename">RPZ File:</label>
     <!--<input type="text" class="form-control" id="filename" value="{{ filename }}" disabled />-->
@@ -14,13 +15,19 @@
   </div>
   <div class="form-group">
     <label for="wacz">WACZ FILE:</label>
-    <p class="form-control" id="wacz">wacz filename (size)</p>
+    <p class="form-control" id="wacz">
+      {% if wacz %}
+      present, {{ wacz.filesize }} bytes
+      {% else %}
+      none
+      {% endif %}
+    </p>
   </div>
   <p>Would you like to replace the web archive?</p>
   <div class="form-group">
     <button type="submit" class="btn btn-default">Record from browser</button>
     <button type="submit" class="btn btn-default">Start automated crawl</button>
-    <button type="submit" class="btn btn-info">Upload existing file</button>
+    <a href="#" class="btn btn-info">Upload existing file</a>
   </div>
   <div class="form-group">
     <a href="#">Download the finished Web RPZ file</a>

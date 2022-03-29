@@ -1,3 +1,4 @@
+import json
 import logging
 from sqlalchemy.orm import joinedload
 
@@ -44,14 +45,14 @@ class Upload(BaseHandler):
 
         # Redirect to dashboard
         return self.redirect(
-            self.reverse_url('webcapture_dashboard', upload_short_id),
+            self.reverse_url('webcapture_dashboard', upload_short_id, ''),
             status=302,
         )
 
 
 class Dashboard(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_dashboard')
-    def get(self, upload_short_id):
+    def get(self, upload_short_id, wacz_hash):
         # Decode info from URL
         try:
             upload_id = database.Upload.decode_id(upload_short_id)
@@ -62,17 +63,59 @@ class Dashboard(BaseHandler):
         # Look up the experiment in database
         upload = (
             self.db.query(database.Upload)
-            .options(joinedload(database.Upload.experiment))
+            .options(
+                joinedload(database.Upload.experiment).joinedload(
+                    database.Experiment.extensions,
+                )
+            )
             .get(upload_id)
         )
         if upload is None:
             self.set_status(404)
             return self.render('webcapture/notfound.html')
 
+        if wacz_hash:
+            try:
+                meta = self.application.object_store.get_file_metadata(
+                    'web1',
+                    wacz_hash + '.wacz',
+                )
+            except KeyError:
+                self.set_status(404)
+                return self.render('webcapture/notfound.html')
+
+            wacz = {
+                'filesize': meta['size'],
+                'url': self.application.object_store.presigned_serve_url(
+                    'web1',
+                    wacz_hash + '.wacz',
+                    'archive.wacz',
+                    'application/zip',
+                )
+            }
+        else:
+            # Look for web extension
+            extensions = {
+                extension.name: json.loads(extension.data)
+                for extension in upload.experiment.extensions
+            }
+            if 'web1' in extensions:
+                wacz_hash = extensions['web1']['filehash']
+                return self.redirect(
+                    self.reverse_url(
+                        'webcapture_dashboard',
+                        upload_short_id,
+                        wacz_hash,
+                    ),
+                )
+
+            wacz = None
+
         return self.render(
             'webcapture/dashboard.html',
             filename=upload.filename,
             upload_short_id=upload.short_id,
+            wacz=wacz,
         )
 
 

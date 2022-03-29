@@ -46,6 +46,7 @@ async def process_uploaded_rpz(object_store, db, experiment, local_filename):
                             break
                         chunk = fp.read(4096)
                     filehash = hasher.hexdigest()
+                    filesize = fp.tell()
 
                 # Upload it
                 await object_store.upload_file_async(
@@ -59,6 +60,9 @@ async def process_uploaded_rpz(object_store, db, experiment, local_filename):
                 extension = database.Extension(
                     experiment=experiment,
                     name='web1',
-                    data=json.dumps({'filehash': filehash}),
+                    data=json.dumps({
+                        'filehash': filehash,
+                        'filesize': filesize,
+                    }),
                 )
                 db.add(extension)
