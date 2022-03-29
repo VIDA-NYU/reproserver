@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Web Capture</h1>
+
+<p>This page lets you lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec ullamcorper lorem vitae porta malesuada. Sed dictum turpis non consequat porttitor. Sed tellus arcu, tempus non diam in, rutrum pharetra sapien. Pellentesque hendrerit libero sit amet mattis finibus. In in tortor non tellus commodo vestibulum sit amet elementum magna. Praesent vestibulum mollis enim, eu mollis erat venenatis nec. Duis nulla libero, sagittis non maximus ac, venenatis vulputate risus.</p>
+
+<form method="POST" action="{{ reverse_url('webcapture_upload') }}" enctype="multipart/form-data">
+  {{ xsrf_form_html() }}
+  <div class="form-group">
+    <label for="rpz_file">Upload a file to get started</label>
+    <input type="file" class="form-control-file" id="rpz_file" name="rpz_file" placeholder="experiment.rpz">
+  </div>
+  <button type="submit" class="btn btn-default">Upload</button>
+</form>
+
+{% endblock content %}
