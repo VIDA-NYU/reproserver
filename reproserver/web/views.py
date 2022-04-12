@@ -418,7 +418,7 @@ class Results(BaseHandler):
             extensions['web1']['url'] = (
                 self.application.object_store.presigned_serve_url(
                     'web1',
-                    extensions['web1']['filehash'],
+                    extensions['web1']['filehash'] + '.wacz',
                     'archive.wacz',
                     'application/zip',
                 )

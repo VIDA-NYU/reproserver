@@ -50,7 +50,7 @@ async def process_uploaded_rpz(object_store, db, experiment, local_filename):
                 # Upload it
                 await object_store.upload_file_async(
                     'web1',
-                    filehash,
+                    filehash + '.wacz',
                     os.path.join(tdir, 'archive.wacz'),
                 )
                 logger.info("Inserted WACZ in storage")
