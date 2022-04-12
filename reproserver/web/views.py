@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from hashlib import sha256
 import json
@@ -52,8 +53,10 @@ async def store_uploaded_rpz(object_store, db, uploaded_file, remote_ip):
     filename = secure_filename(uploaded_file.filename)
 
     # Hash it
-    hasher = sha256(uploaded_file.body)
-    filehash = hasher.hexdigest()
+    filehash = await asyncio.get_event_loop().run_in_executor(
+        None,
+        lambda: sha256(uploaded_file.body).hexdigest(),
+    )
     logger.info("Computed hash: %s", filehash)
 
     # Check for existence of experiment
@@ -64,8 +67,14 @@ async def store_uploaded_rpz(object_store, db, uploaded_file, remote_ip):
     else:
         # Write it to disk
         with tempfile.NamedTemporaryFile('w+b', suffix='.rpz') as tfile:
-            tfile.write(uploaded_file.body)
-            tfile.flush()
+            def write_and_flush():
+                tfile.write(uploaded_file.body)
+                tfile.flush()
+
+            await asyncio.get_event_loop().run_in_executor(
+                None,
+                write_and_flush,
+            )
 
             # Insert it in database
 
