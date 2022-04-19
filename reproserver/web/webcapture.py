@@ -128,19 +128,31 @@ class Dashboard(BaseHandler):
 
 class Record(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_record')
-    async def get(self, upload_short_id):
-        TODO
+    def get(self, upload_short_id):
+        # TODO: Need to run the container to do this
+        return self.render(
+            'webcapture/record.html',
+        )
 
 
 class StartCrawl(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_start_crawl')
-    async def get(self, upload_short_id):
-        TODO
+    def get(self, upload_short_id):
+        return self.render(
+            'webcapture/start_crawl.html',
+            upload_short_id=upload_short_id,
+        )
 
 
 class UploadWacz(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_upload_wacz')
     async def get(self, upload_short_id):
+        return self.render(
+            'webcapture/upload_wacz.html',
+        )
+
+    @PROM_REQUESTS.sync('webcapture_upload_wacz')
+    async def post(self, upload_short_id):
         TODO
 
 

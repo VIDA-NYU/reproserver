@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Start an automated crawl</h1>
+
+<p>This page lets you lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec ullamcorper lorem vitae porta malesuada. Sed dictum turpis non consequat porttitor. Sed tellus arcu, tempus non diam in, rutrum pharetra sapien. Pellentesque hendrerit libero sit amet mattis finibus. In in tortor non tellus commodo vestibulum sit amet elementum magna. Praesent vestibulum mollis enim, eu mollis erat venenatis nec. Duis nulla libero, sagittis non maximus ac, venenatis vulputate risus.</p>
+
+<form method="POST" action="{{ reverse_url('webcapture_start_crawl', upload_short_id) }}">
+  {{ xsrf_form_html() }}
+  <div class="form-group">
+    <label for="domains">Domain name(s)</label>
+    <input type="text" class="form-control" id="domains" name="domains" placeholder="localhost:3000 localhost:5000">
+  </div>
+  <div class="form-group">
+    <label for="seeds">Starting page(s)</label>
+    <input type="text" class="form-control" id="seeds" name="seeds" placeholder="http://localhost:3000/index.php">
+  </div>
+  <button type="submit" class="btn btn-default">Start crawl</button>
+</form>
+
+{% endblock content %}
