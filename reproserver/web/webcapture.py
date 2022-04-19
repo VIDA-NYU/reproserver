@@ -1,6 +1,10 @@
+import asyncio
 import json
 import logging
+import os
+from reprozip_web.combine import combine
 from sqlalchemy.orm import joinedload
+import tempfile
 
 from .base import BaseHandler
 from .views import PROM_REQUESTS, store_uploaded_rpz
@@ -124,23 +128,80 @@ class Dashboard(BaseHandler):
 
 class Record(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_record')
-    async def post(self, upload_short_id):
+    async def get(self, upload_short_id):
         TODO
 
 
 class StartCrawl(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_start_crawl')
-    async def post(self, upload_short_id):
+    async def get(self, upload_short_id):
         TODO
 
 
 class UploadWacz(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_upload_wacz')
-    async def post(self, upload_short_id):
+    async def get(self, upload_short_id):
         TODO
 
 
 class Download(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_download')
-    async def post(self, upload_short_id):
-        TODO
+    async def get(self, upload_short_id):
+        # Decode info from URL
+        try:
+            upload_id = database.Upload.decode_id(upload_short_id)
+        except ValueError:
+            self.set_status(404)
+            return self.render('webcapture/notfound.html')
+
+        wacz_hash = self.get_query_argument('wacz')
+
+        with tempfile.TemporaryDirectory() as directory:
+            input_rpz = os.path.join(directory, 'input.rpz')
+            input_wacz = os.path.join(directory, 'input.wacz')
+            output_rpz = os.path.join(directory, 'output.rpz')
+
+            # Download RPZ
+            upload = (
+                self.db.query(database.Upload)
+                .get(upload_id)
+            )
+            if upload is None:
+                self.set_status(404)
+                return self.render('webcapture/notfound.html')
+            await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: self.application.object_store.download_file(
+                    'experiments', upload.experiment_hash, input_rpz,
+                ),
+            )
+
+            # Download WACZ
+            await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: self.application.object_store.download_file(
+                    'web1', wacz_hash + '.wacz', input_wacz,
+                ),
+            )
+
+            # Build combined file
+            await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: combine(input_rpz, input_wacz, output_rpz),
+            )
+
+            # Send combined file
+            with open(output_rpz, 'rb') as fp:
+                self.set_header('Content-Type', 'application/octet-stream')
+                self.set_header(
+                    'Content-Disposition',
+                    'attachment; filename=results.web.rpz',
+                )
+                chunk = fp.read(1_000_000)
+                while chunk:
+                    self.write(chunk)
+                    await self.flush()
+                    if len(chunk) != 1_000_000:
+                        break
+                    chunk = fp.read(1_000_000)
+            return await self.finish()
