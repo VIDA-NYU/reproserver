@@ -544,6 +544,23 @@ type = "directory"
 url = "reprozip/reprozip-core"
 
 [[package]]
+name = "reprozip-web"
+version = "2.0.0"
+description = "Capture and Replay Remote Web Content for ReproZip"
+category = "main"
+optional = false
+python-versions = "*"
+develop = true
+
+[package.dependencies]
+reprounzip = ">=2.0.0,<3.0.0"
+reprounzip-docker = ">=2.0.0,<3.0.0"
+
+[package.source]
+type = "directory"
+url = "reprozip/reprozip-web"
+
+[[package]]
 name = "requests"
 version = "2.27.1"
 description = "Python HTTP for Humans."
@@ -720,7 +737,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "e0a74792643ed7451fc1e0be73e75a4352587e8be7b21feb9f74f614dfa89ffc"
+content-hash = "d3abd78f0fcf1381d37382318f38556e0de7564b8ec08a30433bff643d2f22b4"
 
 [metadata.files]
 aiohttp = [
@@ -1351,6 +1368,7 @@ pyyaml = [
 reprounzip = []
 reprounzip-docker = []
 reprozip-core = []
+reprozip-web = []
 requests = [
     {file = "requests-2.27.1-py2.py3-none-any.whl", hash = "sha256:f22fa1e554c9ddfd16e6e41ac79759e17be9e492b3587efa038054674760e72d"},
     {file = "requests-2.27.1.tar.gz", hash = "sha256:68d7c56fd5a8999887728ef304a6d12edc7be74f1cfa47714fc8b414525c9a61"},
