@@ -45,20 +45,22 @@ class Upload(BaseHandler):
 
         # Redirect to dashboard
         return self.redirect(
-            self.reverse_url('webcapture_dashboard', upload_short_id, ''),
+            self.reverse_url('webcapture_dashboard', upload_short_id),
             status=302,
         )
 
 
 class Dashboard(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_dashboard')
-    def get(self, upload_short_id, wacz_hash):
+    def get(self, upload_short_id):
         # Decode info from URL
         try:
             upload_id = database.Upload.decode_id(upload_short_id)
         except ValueError:
             self.set_status(404)
             return self.render('webcapture/notfound.html')
+
+        wacz_hash = self.get_query_argument('wacz', None)
 
         # Look up the experiment in database
         upload = (
@@ -85,6 +87,7 @@ class Dashboard(BaseHandler):
                 return self.render('webcapture/notfound.html')
 
             wacz = {
+                'hash': wacz_hash,
                 'filesize': meta['size'],
                 'url': self.application.object_store.presigned_serve_url(
                     'web1',
@@ -105,7 +108,7 @@ class Dashboard(BaseHandler):
                     self.reverse_url(
                         'webcapture_dashboard',
                         upload_short_id,
-                        wacz_hash,
+                        wacz=wacz_hash,
                     ),
                 )
 
@@ -119,7 +122,25 @@ class Dashboard(BaseHandler):
         )
 
 
-class StartRecord(BaseHandler):
-    @PROM_REQUESTS.sync('webcapture_start_record')
+class Record(BaseHandler):
+    @PROM_REQUESTS.sync('webcapture_record')
+    async def post(self, upload_short_id):
+        TODO
+
+
+class StartCrawl(BaseHandler):
+    @PROM_REQUESTS.sync('webcapture_start_crawl')
+    async def post(self, upload_short_id):
+        TODO
+
+
+class UploadWacz(BaseHandler):
+    @PROM_REQUESTS.sync('webcapture_upload_wacz')
+    async def post(self, upload_short_id):
+        TODO
+
+
+class Download(BaseHandler):
+    @PROM_REQUESTS.sync('webcapture_download')
     async def post(self, upload_short_id):
         TODO
