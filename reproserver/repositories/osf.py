@@ -73,7 +73,7 @@ class OSF(BaseRepository):
         return await self._get_from_link(
             db, object_store, remote_addr,
             repo, repo_path,
-            link, filename, filehash,
+            link, filename, filehash=filehash,
         )
 
     async def get_page_url(self, repo, repo_path):

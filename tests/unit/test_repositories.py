@@ -142,7 +142,7 @@ class TestGet(AsyncTestCase):
 
     @staticmethod
     def mock_get(self, db, object_store, remote_addr, repo, repo_path,
-                 link, filename, filehash=None):
+                 link, filename, *, filehash=None):
         assert db is TestGet.db
         assert object_store is TestGet.object_store
         assert remote_addr == '1.2.3.4'
