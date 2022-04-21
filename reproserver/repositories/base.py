@@ -14,6 +14,10 @@ class RepositoryError(Exception):
     pass
 
 
+class RepositoryUnknown(RepositoryError):
+    pass
+
+
 class BaseRepository(object):
     IDENTIFIER = ''
     NAME = '(unknown repository)'

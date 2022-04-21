@@ -1,4 +1,4 @@
-from .base import RepositoryError
+from .base import RepositoryError, RepositoryUnknown
 from .osf import OSF
 from .zenodo import Zenodo
 from .figshare import Figshare
@@ -7,6 +7,7 @@ from .mendeley import Mendeley
 
 __all__ = [
     'RepositoryError',
+    'RepositoryUnknown',
     'get_repository_name',
     'get_experiment_from_repository',
     'get_repository_page_url',
@@ -33,7 +34,7 @@ def get_repository_name(repo):
     try:
         repo_obj = _map[repo]
     except KeyError:
-        raise RepositoryError("No such repository %s" % repo)
+        raise RepositoryUnknown("No such repository %s" % repo)
     return repo_obj.NAME
 
 
@@ -44,7 +45,7 @@ def get_experiment_from_repository(db, object_store, remote_addr,
     try:
         repo_obj = _map[repo]
     except KeyError:
-        raise RepositoryError("No such repository %s" % repo)
+        raise RepositoryUnknown("No such repository %s" % repo)
     return repo_obj.get_experiment(
         db, object_store, remote_addr,
         repo, repo_path,
@@ -57,7 +58,7 @@ def get_repository_page_url(repo, repo_path):
     try:
         repo_obj = _map[repo]
     except KeyError:
-        raise RepositoryError("No such repository %s" % repo)
+        raise RepositoryUnknown("No such repository %s" % repo)
     return repo_obj.get_page_url(repo, repo_path)
 
 
@@ -78,6 +79,6 @@ def parse_repository_url(url):
     try:
         repo = _parse_domains[domain.lower()]
     except KeyError:
-        raise RepositoryError("Unrecognized URL")
+        raise RepositoryUnknown("Unrecognized URL")
     else:
         return repo.parse_url(url)
