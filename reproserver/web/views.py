@@ -8,10 +8,11 @@ from sqlalchemy.orm import joinedload
 import tempfile
 
 from .. import database
-from ..repositories import RepositoryError, get_experiment_from_repository, \
-    get_repository_name, get_repository_page_url, parse_repository_url
+from ..repositories import RepositoryError, RepositoryUnknown, \
+    get_from_link, get_experiment_from_repository, get_repository_name, \
+    get_repository_page_url, parse_repository_url
 from .. import rpz_metadata
-from ..utils import PromMeasureRequest, background_future, secure_filename
+from ..utils import PromMeasureRequest, background_future
 from .base import BaseHandler
 
 
@@ -51,21 +52,49 @@ class Upload(BaseHandler):
     """
     @PROM_REQUESTS.async_('upload')
     async def post(self):
-        # If a URL was provided, and no file
-        if self.get_body_argument('rpz_url', None):
+        # If a URL was provided, not a file
+        rpz_url = self.get_body_argument('rpz_url', None)
+        if rpz_url:
             # Redirect to reproduce_repo view
             try:
                 repo, repo_path = await parse_repository_url(
                     self.get_body_argument('rpz_url')
                 )
+            except RepositoryUnknown:
+                if not self.get_argument('not_permanent', None):
+                    return self.render(
+                        'repository_notfound.html',
+                        rpz_url=rpz_url,
+                    )
+                # else: fall through
             except RepositoryError as e:
                 self.set_status(404)
-                return self.render('repository_notfound.html', message=str(e))
+                return self.render(
+                    'repository_error.html',
+                    message=str(e),
+                    rpz_url=rpz_url,
+                )
             else:
                 return self.redirect(self.reverse_url(
                     'reproduce_repo',
                     repo, repo_path,
                 ))
+
+            # Fetch and upload URL
+            upload = await get_from_link(
+                self.db, self.application.object_store, self.request.remote_ip,
+                None, None,
+                rpz_url, rpz_url,
+            )
+
+            # Encode ID for permanent URL
+            upload_short_id = upload.short_id
+
+            # Redirect to build page
+            return self.redirect(
+                self.reverse_url('reproduce_local', upload_short_id),
+                status=302,
+            )
 
         # Get uploaded file
         # FIXME: Don't hold the file in memory!
@@ -75,7 +104,6 @@ class Upload(BaseHandler):
             return self.render('setup_badfile.html', message="Missing file")
         assert uploaded_file.filename
         logger.info("Incoming file: %r", uploaded_file.filename)
-        filename = secure_filename(uploaded_file.filename)
 
         # Hash it
         hasher = sha256(uploaded_file.body)
@@ -112,7 +140,7 @@ class Upload(BaseHandler):
 
         # Insert Upload in database
         upload = database.Upload(experiment=experiment,
-                                 filename=filename,
+                                 filename=uploaded_file.filename,
                                  submitted_ip=self.request.remote_ip)
         self.db.add(upload)
         self.db.commit()

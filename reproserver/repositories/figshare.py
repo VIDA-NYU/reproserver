@@ -96,7 +96,7 @@ class Figshare(BaseRepository):
             try:
                 filename = response['name']
             except KeyError:
-                filename = 'unnamed_figshare_file'
+                filename = repo_path
             logger.info("Got response: %s %s", link, filename)
             return await self._get_from_link(
                 db, object_store, remote_addr,
