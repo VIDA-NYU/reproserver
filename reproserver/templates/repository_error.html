@@ -2,28 +2,18 @@
 
 {% block content %}
 
-<h1>Unrecognized permanent URL</h1>
+<h1>Unrecognized URL</h1>
 
-<p>ReproServer recognizes links to some data repositories. If you provide one, you will get a permanent URL which will be back by the repository and does not depend on ReproServer's database integrity.</p>
-
-<p>Because the URL you provided is not recognized, we can't provide you a permanent URL, but if you provided a direct link to a RPZ file we can still reproduce it. Do you want to continue?</p>
-
-<form method="POST" action="{{ reverse_url('upload') }}" enctype="multipart/form-data">
-  {{ xsrf_form_html() }}
-  <input type="hidden" name="rpz_url" value="{{ rpz_url }}">
-  <input type="hidden" name="not_permanent" value="1">
-  <div class="form-group">
-    <label for="rpz_file">Direct RPZ URL</label>
-    <input type="text" class="form-control" id="rpz_file" value="{{ rpz_url }}" disabled>
-  </div>
-  <button type="submit" class="btn btn-default">Upload</button>
-</form>
+{% if message %}
+<p>{{ message }}</p>
+{% else %}
+<p>We couldn't recognize the URL you provided.</p>
+{% endif %}
 
 <p>Currently, this system recognizes the following URLs:</p>
 <ul>
   <li>Direct links to RPZ files hosted on OSF, of the form <code>https://osf.io/&lt;5-character-ID&gt;</code> for example <code>https://osf.io/5ztp2/</code></li>
   <li>Links to files hosted on Zenodo, of the form <code>https://zenodo.org/record/3374942/files/bash-count.rpz</code> (you can pass the record if it only contains one RPZ file, like <code>https://zenodo.org/record/3374942</code>)</li>
-  <!-- TODO: Put an actual RPZ on Figshare and link to it -->
   <li>Links to RPZ files hosted on Figshare, of the form <code>https://figshare.com/&lt;path/to/article&gt;/&lt;file_id&gt;</code> for example <code>https://figshare.com/articles/Preserving_and_Reproducing_Research_with_ReproZip/4141776</code></li>
   <li>Links to RPZ files hosted on Mendeley, of the form <code>https://data.mendeley.com/datasets/&lt;id&gt;/1/files/&lt;file_id&gt;</code> (you can pass the article if it only contains one RPZ file, like <code>https://data.mendeley.com/datasets/&lt;id&gt;</code>)</li>
 </ul>
