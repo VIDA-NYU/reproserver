@@ -147,7 +147,7 @@ class TestGet(AsyncTestCase):
         assert object_store is TestGet.object_store
         assert remote_addr == '1.2.3.4'
         future = asyncio.Future()
-        future.set_result((TestGet.result, link))
+        future.set_result((TestGet.result, link, filename))
         return future
 
     @gen_test
@@ -194,7 +194,11 @@ rent_user_can_comment":false,"guid":"ab12c","checkout":null,"tags":[],"size":8\
                     self.db, self.object_store, '1.2.3.4',
                     'osf.io', 'ab12c',
                 ),
-                (self.result, 'https://osf.io/download/ab12c/'),
+                (
+                    self.result,
+                    'https://osf.io/download/ab12c/',
+                    'digits_sklearn_opencv.rpz',
+                ),
             )
 
         self.assertEqual(
@@ -220,6 +224,7 @@ rent_user_can_comment":false,"guid":"ab12c","checkout":null,"tags":[],"size":8\
                     self.result,
                     'https://zenodo.org/record/1234567/files/bash-count.rpz' +
                     '?download=1',
+                    'bash-count.rpz',
                 ),
             )
 
@@ -257,6 +262,7 @@ rent_user_can_comment":false,"guid":"ab12c","checkout":null,"tags":[],"size":8\
                 (
                     self.result,
                     'https://ndownloader.figshare.com/files/3456789',
+                    'poster-force2018.rpz',
                 ),
             )
 
