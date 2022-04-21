@@ -1,4 +1,4 @@
-from .base import RepositoryError, RepositoryUnknown
+from .base import RepositoryError, RepositoryUnknown, get_from_link
 from .osf import OSF
 from .zenodo import Zenodo
 from .figshare import Figshare
@@ -8,6 +8,7 @@ from .mendeley import Mendeley
 __all__ = [
     'RepositoryError',
     'RepositoryUnknown',
+    'get_from_link',
     'get_repository_name',
     'get_experiment_from_repository',
     'get_repository_page_url',
