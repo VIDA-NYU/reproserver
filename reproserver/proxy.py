@@ -62,6 +62,28 @@ class Health(tornado.web.RequestHandler):
         return self.finish('Ok')
 
 
+class SubdirRewriteMixin:
+    def set_status(self, code, reason=None):
+        if code >= 300 and code < 400:
+            logger.info(
+                "Rewrite status %d %s -> 200 OK, add as headers",
+                code,
+                reason,
+            )
+            super(SubdirRewriteMixin, self).set_status(200, "OK")
+            self.set_header("x-redirect-status", str(code))
+            self.set_header("x-redirect-statusText", reason)
+        else:
+            super(SubdirRewriteMixin, self).set_status(code, reason)
+
+    def set_header(self, name, value):
+        if name and name.lower() == "location":
+            name = "x-orig-location"
+            logger.info("Rewrite location -> x-orig-location")
+
+        super(SubdirRewriteMixin, self).set_header(name, value)
+
+
 class ProxyHandler(WebSocketHandler):
     def __init__(self, application, request, **kwargs):
         super(ProxyHandler, self).__init__(application, request, **kwargs)
@@ -212,7 +234,7 @@ class DockerProxyHandler(ProxyHandler):
         request.headers['Host'] = self.original_host
 
 
-class DockerSubdirProxyHandler(DockerProxyHandler):
+class DockerSubdirProxyHandler(SubdirRewriteMixin, DockerProxyHandler):
     _re_path = re.compile(r'^/?results/([^/]+)/port/([0-9]+)')
 
     def select_destination(self):
@@ -264,7 +286,7 @@ class K8sProxyHandler(ProxyHandler):
         )
 
 
-class K8sSubdirProxyHandler(K8sProxyHandler):
+class K8sSubdirProxyHandler(SubdirRewriteMixin, K8sProxyHandler):
     _re_path = re.compile(r'^/?results/([^/]+)/port/([0-9]+)')
 
     def select_destination(self):
