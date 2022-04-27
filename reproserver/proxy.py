@@ -76,6 +76,13 @@ class SubdirRewriteMixin:
         else:
             super(SubdirRewriteMixin, self).set_status(code, reason)
 
+    def set_header(self, name, value):
+        if name and name.lower() == "location":
+            name = "x-orig-location"
+            logger.info("Rewrite location -> x-orig-location")
+
+        super(SubdirRewriteMixin, self).set_header(name, value)
+
 
 class ProxyHandler(WebSocketHandler):
     def __init__(self, application, request, **kwargs):
