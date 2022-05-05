@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Error getting package</h1>
+
+{% if message %}
+<p>{{ message }}</p>
+{% else %}
+<p>This package does not exist. If it existed before, it was probably removed due to inactivity.</p>
+{% endif %}
+
+<p>If you have the file, you can try <a href="{{ reverse_url('webcapture_index') }}">uploading it again</a>.</p>
+
+{% endblock content %}
