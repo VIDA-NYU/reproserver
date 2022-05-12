@@ -93,7 +93,7 @@ class Upload(BaseHandler):
             # Redirect to build page
             return self.redirect(
                 self.reverse_url('reproduce_local', upload_short_id),
-                status=302,
+                status=303,
             )
 
         # Get uploaded file
@@ -151,7 +151,7 @@ class Upload(BaseHandler):
         # Redirect to build page
         return self.redirect(
             self.reverse_url('reproduce_local', upload_short_id),
-            status=302,
+            status=303,
         )
 
 
@@ -368,7 +368,7 @@ class StartRun(BaseHandler):
         # Redirect to results page
         return self.redirect(
             self.reverse_url('results', run.short_id),
-            status=302,
+            status=303,
         )
 
 
