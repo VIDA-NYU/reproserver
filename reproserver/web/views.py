@@ -158,7 +158,7 @@ class Upload(BaseHandler):
             # Redirect to build page
             return self.redirect(
                 self.reverse_url('reproduce_local', upload_short_id),
-                status=302,
+                status=303,
             )
 
         # Get uploaded file
@@ -181,7 +181,7 @@ class Upload(BaseHandler):
         # Redirect to build page
         return self.redirect(
             self.reverse_url('reproduce_local', upload_short_id),
-            status=302,
+            status=303,
         )
 
 
@@ -307,7 +307,8 @@ class StartRun(BaseHandler):
 
         # New run entry
         run = database.Run(experiment_hash=experiment.hash,
-                           upload_id=upload_id)
+                           upload_id=upload_id,
+                           submitted_ip=self.request.remote_ip)
         self.db.add(run)
 
         # Get list of parameters
@@ -397,7 +398,7 @@ class StartRun(BaseHandler):
         # Redirect to results page
         return self.redirect(
             self.reverse_url('results', run.short_id),
-            status=302,
+            status=303,
         )
 
 

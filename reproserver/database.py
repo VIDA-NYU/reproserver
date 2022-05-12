@@ -175,6 +175,8 @@ class Run(Base):
     started = Column(DateTime, nullable=True)
     done = Column(DateTime, nullable=True)
 
+    submitted_ip = Column(Text, nullable=True)
+
     parameter_values = relationship('ParameterValue', back_populates='run')
     input_files = relationship('InputFile', back_populates='run')
     ports = relationship('RunPort', back_populates='run')

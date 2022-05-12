@@ -50,7 +50,7 @@ class Upload(BaseHandler):
         # Redirect to dashboard
         return self.redirect(
             self.reverse_url('webcapture_dashboard', upload_short_id),
-            status=302,
+            status=303,
         )
 
 
