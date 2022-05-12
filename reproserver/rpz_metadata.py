@@ -38,7 +38,7 @@ def make_experiment(filehash, filename):
     for i, run in enumerate(info['runs']):
         cmdline = ' '.join(shell_escape(a) for a in run['argv'])
         experiment.parameters.append(database.Parameter(
-            name="cmdline_%05d" % i, optional=False, default=cmdline,
+            name="cmdline_%05d" % i, optional=True, default=cmdline,
             description="Command-line for step %s" % run['id'],
         ))
     # Input/output files
