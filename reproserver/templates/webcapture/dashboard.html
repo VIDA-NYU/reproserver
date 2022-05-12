@@ -37,9 +37,11 @@
     <input type="submit" formaction="{{ reverse_url('webcapture_start_crawl', upload_short_id) }}" class="btn btn-default" value="Start automated crawl">
     <a href="{{ reverse_url('webcapture_upload_wacz', upload_short_id) }}" class="btn btn-info">Upload existing file</a>
   </div>
+  {% if wacz %}
   <div class="form-group">
     <a href="{{ reverse_url('webcapture_download', upload_short_id, wacz=wacz.hash) }}">Download the finished Web RPZ file</a>
   </div>
+  {% endif %}
 </form>
 
 {% endblock content %}
