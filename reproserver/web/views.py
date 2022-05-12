@@ -277,7 +277,8 @@ class StartRun(BaseHandler):
 
         # New run entry
         run = database.Run(experiment_hash=experiment.hash,
-                           upload_id=upload_id)
+                           upload_id=upload_id,
+                           submitted_ip=self.request.remote_ip)
         self.db.add(run)
 
         # Get list of parameters
