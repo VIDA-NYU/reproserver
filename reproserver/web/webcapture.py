@@ -1,13 +1,17 @@
 import asyncio
+from datetime import datetime
 import json
 import logging
 import os
 from reprozip_web.combine import combine
 from sqlalchemy.orm import joinedload
 import tempfile
+from tornado.web import HTTPError
+from urllib.parse import urlencode
 
 from .base import BaseHandler
 from .views import PROM_REQUESTS, store_uploaded_rpz
+from ..utils import background_future
 from .. import rpz_metadata, database
 
 
@@ -126,12 +130,104 @@ class Dashboard(BaseHandler):
         )
 
 
+class StartRecord(BaseHandler):
+    @PROM_REQUESTS.sync('webcapture_start_record')
+    def post(self, upload_short_id):
+        # Decode info from URL
+        try:
+            upload_id = database.Upload.decode_id(upload_short_id)
+        except ValueError:
+            self.set_status(404)
+            return self.render('webcapture/notfound.html')
+
+        hostname = self.get_body_argument('hostname')
+        port_number = self.get_body_argument('port_number')
+        try:
+            port_number = int(port_number, 10)
+            if not (1 <= port_number <= 65535):
+                raise OverflowError
+        except (ValueError, OverflowError):
+            raise HTTPError(400, "Wrong port number")
+
+        if port_number == 80:
+            seed_url = f'http://{hostname}/'
+        else:
+            seed_url = f'http://{hostname}:{port_number}/'
+
+        # Look up the experiment in database
+        upload = (
+            self.db.query(database.Upload)
+            .options(joinedload(database.Upload.experiment))
+            .get(upload_id)
+        )
+        if upload is None:
+            self.set_status(404)
+            return self.render('setup_notfound.html')
+        experiment = upload.experiment
+
+        # Update last access
+        upload.last_access = datetime.utcnow()
+        upload.experiment.last_access = datetime.utcnow()
+
+        # New run entry
+        run = database.Run(experiment_hash=experiment.hash,
+                           upload_id=upload_id)
+        self.db.add(run)
+
+        # Mark exposed port
+        run.ports.append(database.RunPort(
+            port_number=port_number,
+        ))
+
+        # Trigger run
+        self.db.commit()
+        background_future(self.application.runner.run(run.id))
+
+        # Redirects to recording page
+        return self.redirect(
+            (
+                self.reverse_url('webcapture_record', run.short_id)
+                + '#' + urlencode({'url': seed_url})
+            ),
+            status=303,
+        )
+
+
 class Record(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_record')
-    def get(self, upload_short_id):
-        # TODO: Need to run the container to do this
+    def get(self, run_short_id):
+        # Decode info from URL
+        try:
+            run_id = database.Run.decode_id(run_short_id)
+        except ValueError:
+            self.set_status(404)
+            return self.render('results_notfound.html')
+
+        # Look up the run in the database
+        run = (
+            self.db.query(database.Run)
+            .options(
+                joinedload(database.Run.upload),
+            )
+        ).get(run_id)
+        if run is None:
+            self.set_status(404)
+            return self.render('webcapture/notfound.html')
+
+        # Get the port number
+        if len(run.ports) != 1:
+            logger.warning(
+                "Run has %d ports, can't load into record view",
+                len(run.ports),
+            )
+            return self.render('webcapture/notfound.html')
+        port_number = run.ports[0].port_number
+
         return self.render(
             'webcapture/record.html',
+            run=run,
+            log=run.get_log(0),
+            port_number=port_number,
         )
 
 

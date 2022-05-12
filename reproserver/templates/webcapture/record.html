@@ -4,4 +4,46 @@
 
 <h1>Live recording here (from browser)</h1>
 
+<p>Run log:</p>
+<pre id="log" style="max-height: 200px">{% for line in log %}{{ line }}
+{% endfor %}</pre>
+
+<script>
+var log_lines = {{ log | length }};
+function update_page() {
+  var req = new XMLHttpRequest();
+  req.addEventListener("load", function(e) {
+    if(this.status == 200) {
+      if(this.response.done) {
+        window.location.reload();
+      } else if(this.response.log.length > 0) {
+        log_lines += this.response.log.length;
+        var dom_log = document.getElementById("log");
+        dom_log.textContent += this.response.log.join("\n") + "\n";
+      }
+    }
+    setTimeout(update_page, 3000);
+  });
+  req.responseType = "json";
+  req.open("GET", "{{ reverse_url('results_json', run.short_id) }}?log_from=" + log_lines);
+  req.setRequestHeader("Accept", "application/json");
+  req.send();
+}
+
+setTimeout(update_page, 3000);
+</script>
+
+<details open>
+<summary style="display: list-item">Web Archive Capture</summary>
+<replay-web-page
+  style="height: 500px; display: flex; margin-top: 10px; border: 1px solid black;"
+  url="http://localhost:{{ port_number }}/"
+  replayBase="/static/replay/"
+  source=""
+  deepLink
+  config='{"hostProxy": {"localhost:{{ port_number }}": {"prefix": "/results/{{ run.short_id }}/port/{{ port_number }}", "pathOnly": true}}}'
+>
+</replay-web-page>
+</details>
+
 {% endblock content %}
