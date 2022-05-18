@@ -36,7 +36,7 @@ class Upload(BaseHandler):
         try:
             uploaded_file = self.request.files['rpz_file'][0]
         except (KeyError, IndexError):
-            return self.render(
+            return await self.render(
                 'webcapture/badfile.html',
                 message="Missing file",
             )
@@ -49,7 +49,7 @@ class Upload(BaseHandler):
                 self.request.remote_ip,
             )
         except rpz_metadata.InvalidPackage as e:
-            return self.render('webcapture/badfile.html', message=str(e))
+            return await self.render('webcapture/badfile.html', message=str(e))
 
         # Redirect to dashboard
         return self.redirect(
@@ -243,7 +243,7 @@ class StartCrawl(BaseHandler):
 class UploadWacz(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_upload_wacz')
     async def get(self, upload_short_id):
-        return self.render(
+        return await self.render(
             'webcapture/upload_wacz.html',
         )
 
@@ -260,7 +260,7 @@ class Download(BaseHandler):
             upload_id = database.Upload.decode_id(upload_short_id)
         except ValueError:
             self.set_status(404)
-            return self.render('webcapture/notfound.html')
+            return await self.render('webcapture/notfound.html')
 
         wacz_hash = self.get_query_argument('wacz')
 
@@ -276,7 +276,7 @@ class Download(BaseHandler):
             )
             if upload is None:
                 self.set_status(404)
-                return self.render('webcapture/notfound.html')
+                return await self.render('webcapture/notfound.html')
             await asyncio.get_event_loop().run_in_executor(
                 None,
                 lambda: self.application.object_store.download_file(
