@@ -3,6 +3,7 @@ from datetime import datetime
 import json
 import logging
 import os
+from hashlib import sha256
 from reprozip_web.combine import combine
 from sqlalchemy.orm import joinedload
 import tempfile
@@ -245,11 +246,43 @@ class UploadWacz(BaseHandler):
     async def get(self, upload_short_id):
         return await self.render(
             'webcapture/upload_wacz.html',
+            upload_short_id=upload_short_id,
         )
 
     @PROM_REQUESTS.sync('webcapture_upload_wacz')
     async def post(self, upload_short_id):
-        TODO
+        try:
+            uploaded_file = self.request.files['wacz_file'][0]
+        except (KeyError, IndexError):
+            return await self.render('webcapture/upload_wacz_bad.html')
+
+        logger.info("Incoming WACZ: %s", )
+
+        # Hash file
+        wacz_hash = sha256(uploaded_file.body).hexdigest()
+
+        object_store = self.application.object_store
+        try:
+            object_store.get_file_metadata('web1', wacz_hash + '.wacz')
+        except KeyError:
+            # Insert it on S3
+            await object_store.upload_bytes_async(
+                'web1',
+                wacz_hash + '.wacz',
+                uploaded_file.body,
+            )
+            logger.info("WACZ uploaded to S3")
+        else:
+            logger.info("WACZ is already on S3")
+
+        return self.redirect(
+            self.reverse_url(
+                'webcapture_dashboard',
+                upload_short_id,
+                wacz=wacz_hash,
+            ),
+            status=303,
+        )
 
 
 class Download(BaseHandler):

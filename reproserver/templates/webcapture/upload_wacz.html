@@ -6,7 +6,7 @@
 
 <p>This page lets you lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec ullamcorper lorem vitae porta malesuada. Sed dictum turpis non consequat porttitor. Sed tellus arcu, tempus non diam in, rutrum pharetra sapien. Pellentesque hendrerit libero sit amet mattis finibus. In in tortor non tellus commodo vestibulum sit amet elementum magna. Praesent vestibulum mollis enim, eu mollis erat venenatis nec. Duis nulla libero, sagittis non maximus ac, venenatis vulputate risus.</p>
 
-<form method="POST" action="{{ reverse_url('webcapture_upload') }}" enctype="multipart/form-data">
+<form method="POST" action="{{ reverse_url('webcapture_upload_wacz', upload_short_id) }}" enctype="multipart/form-data">
   {{ xsrf_form_html() }}
   <div class="form-group">
     <label for="wacz_file">WACZ file</label>
