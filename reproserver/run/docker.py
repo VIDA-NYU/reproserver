@@ -92,6 +92,13 @@ class DockerRunner(BaseRunner):
         """
         container = None
 
+        extra_config = run_info['extra_config']
+        if extra_config is not None:
+            if extra_config.get('required'):
+                raise ValueError("Unsupported required extra config: %s" % (
+                    ", ".join(extra_config['required']),
+                ))
+
         # Make build directory
         directory = tempfile.mkdtemp('build_%s' % run_info['experiment_hash'])
 

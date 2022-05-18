@@ -68,7 +68,21 @@ class K8sRunner(BaseRunner):
 
     async def run_inner(self, run_info):
         run_id = run_info['id']
+        extra_config = run_info['extra_config']
         del run_info
+
+        # Load extra configuration
+        extra_containers = None
+        if extra_config is not None:
+            try:
+                extra_containers = extra_config['required'].pop('containers')
+            except KeyError:
+                pass
+
+            if extra_config.get('required'):
+                raise ValueError("Unsupported required extra config: %s" % (
+                    ", ".join(extra_config['required']),
+                ))
 
         # This does not run the experiment, it schedules a runner pod by
         # talking to the Kubernetes API. That pod will run the experiment and
@@ -92,6 +106,9 @@ class K8sRunner(BaseRunner):
                 # This is mostly used by Tilt
                 if os.environ.get('OVERRIDE_RUNNER_IMAGE'):
                     container['image'] = os.environ['OVERRIDE_RUNNER_IMAGE']
+
+        if extra_containers:
+            pod_spec['containers'].extend(extra_containers)
 
         async with k8s_client.ApiClient() as api:
             # Create a Kubernetes pod to run
@@ -325,6 +342,12 @@ def _run_in_pod(run_id):
     run_info = asyncio.get_event_loop().run_until_complete(
         runner.connector.init_run_get_info(run_id),
     )
+
+    # Remove extra_config.required.containers setting, we handled it
+    extra_config = run_info.get('extra_config')
+    if extra_config is not None:
+        if 'containers' in extra_config.get('required', ()):
+            del extra_config['required']['containers']
 
     # Run
     fut = runner._docker_run(
