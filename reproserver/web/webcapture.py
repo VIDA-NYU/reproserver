@@ -234,11 +234,80 @@ class Record(BaseHandler):
 
 class StartCrawl(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_start_crawl')
-    def get(self, upload_short_id):
-        return self.render(
-            'webcapture/start_crawl.html',
-            upload_short_id=upload_short_id,
+    def post(self, upload_short_id):
+        # Decode info from URL
+        try:
+            upload_id = database.Upload.decode_id(upload_short_id)
+        except ValueError:
+            self.set_status(404)
+            return self.render('webcapture/notfound.html')
+
+        hostname = self.get_body_argument('hostname')
+        port_number = self.get_body_argument('port_number')
+        try:
+            port_number = int(port_number, 10)
+            if not (1 <= port_number <= 65535):
+                raise OverflowError
+        except (ValueError, OverflowError):
+            raise HTTPError(400, "Wrong port number")
+
+        if port_number == 80:
+            seed_url = f'http://{hostname}/'
+        else:
+            seed_url = f'http://{hostname}:{port_number}/'
+
+        # Look up the experiment in database
+        upload = (
+            self.db.query(database.Upload)
+            .options(joinedload(database.Upload.experiment))
+            .get(upload_id)
         )
+        if upload is None:
+            self.set_status(404)
+            return self.render('setup_notfound.html')
+        experiment = upload.experiment
+
+        # Update last access
+        upload.last_access = datetime.utcnow()
+        upload.experiment.last_access = datetime.utcnow()
+
+        # New run entry
+        run = database.Run(experiment_hash=experiment.hash,
+                           upload_id=upload_id)
+        self.db.add(run)
+
+        # Mark exposed port
+        run.ports.append(database.RunPort(
+            port_number=port_number,
+        ))
+
+        # Add browsertrix container
+        run.extra_config = json.dumps({
+            'required': {
+                'containers': [
+                    {
+                        'name': 'browsertrix',
+                        'image': 'webrecorder/browsertrix-crawler:dev',
+                        'args': ['false', seed_url],
+                    },
+                ],
+            },
+        })
+
+        # Trigger run
+        self.db.commit()
+        background_future(self.application.runner.run(run.id))
+
+        # Redirects to crawl status page
+        return self.redirect(
+            self.reverse_url('webcapture_crawl_status', run.short_id),
+            status=303,
+        )
+
+
+class CrawlStatus(BaseHandler):
+    def get(self, upload_short_id):
+        return self.finish('TODO')
 
 
 class UploadWacz(BaseHandler):
