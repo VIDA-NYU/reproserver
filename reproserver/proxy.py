@@ -104,7 +104,7 @@ class ProxyHandler(WebSocketHandler):
                             e.code, e.message)
                 PROM_PROXY_REQUESTS.labels('ws', 'error').inc()
                 self.set_status(e.code, reason=e.message)
-                return self.finish()
+                return await self.finish()
             PROM_PROXY_REQUESTS.labels('ws', 'success').inc()
             return await WebSocketHandler.get(self)
         else:
@@ -135,7 +135,7 @@ class ProxyHandler(WebSocketHandler):
                     logger.info("Host doesn't reply, sending 503")
                     self.set_status(503)
                     self.set_header('Content-Type', 'text/plain')
-                    return self.finish(
+                    return await self.finish(
                         "This run is not responding or starting up",
                     )
                 else:
@@ -143,10 +143,10 @@ class ProxyHandler(WebSocketHandler):
                     logger.info("Host doesn't resolve, sending 410 error")
                     self.set_status(410)
                     self.set_header('Content-Type', 'text/plain')
-                    return self.finish("This run is now over")
+                    return await self.finish("This run is now over")
 
             PROM_PROXY_REQUESTS.labels('http', 'success').inc()
-            return self.finish()
+            return await self.finish()
 
     def post(self):
         return self.get()

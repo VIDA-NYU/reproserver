@@ -62,14 +62,14 @@ class Upload(BaseHandler):
                 )
             except RepositoryUnknown:
                 if not self.get_argument('not_permanent', None):
-                    return self.render(
+                    return await self.render(
                         'repository_notfound.html',
                         rpz_url=rpz_url,
                     )
                 # else: fall through
             except RepositoryError as e:
                 self.set_status(404)
-                return self.render(
+                return await self.render(
                     'repository_error.html',
                     message=str(e),
                     rpz_url=rpz_url,
@@ -101,7 +101,10 @@ class Upload(BaseHandler):
         try:
             uploaded_file = self.request.files['rpz_file'][0]
         except (KeyError, IndexError):
-            return self.render('setup_badfile.html', message="Missing file")
+            return await self.render(
+                'setup_badfile.html',
+                message="Missing file",
+            )
         assert uploaded_file.filename
         logger.info("Incoming file: %r", uploaded_file.filename)
 
@@ -127,7 +130,10 @@ class Upload(BaseHandler):
                         tfile.name,
                     )
                 except rpz_metadata.InvalidPackage as e:
-                    return self.render('setup_badfile.html', message=str(e))
+                    return await self.render(
+                        'setup_badfile.html',
+                        message=str(e),
+                    )
                 self.db.add(experiment)
 
                 # Insert it on S3
@@ -200,10 +206,10 @@ class ReproduceRepo(BaseReproduce):
                 )
             except RepositoryError as e:
                 self.set_status(404)
-                return self.render('setup_notfound.html', message=str(e))
+                return await self.render('setup_notfound.html', message=str(e))
             except rpz_metadata.InvalidPackage as e:
                 self.set_status(404)
-                return self.render('setup_badfile.html', message=str(e))
+                return await self.render('setup_badfile.html', message=str(e))
         else:
             upload.last_access = datetime.utcnow()
 
@@ -213,7 +219,7 @@ class ReproduceRepo(BaseReproduce):
 
         repo_name = get_repository_name(repo)
         repo_url = await get_repository_page_url(repo, repo_path)
-        return self.reproduce(upload, repo_name, repo_url)
+        return await self.reproduce(upload, repo_name, repo_url)
 
 
 class ReproduceLocal(BaseReproduce):
@@ -258,7 +264,7 @@ class StartRun(BaseHandler):
             upload_id = database.Upload.decode_id(upload_short_id)
         except ValueError:
             self.set_status(404)
-            return self.render('setup_notfound.html')
+            return await self.render('setup_notfound.html')
 
         # Look up the experiment in database
         upload = (
@@ -268,7 +274,7 @@ class StartRun(BaseHandler):
         )
         if upload is None:
             self.set_status(404)
-            return self.render('setup_notfound.html')
+            return await self.render('setup_notfound.html')
         experiment = upload.experiment
 
         # Update last access
