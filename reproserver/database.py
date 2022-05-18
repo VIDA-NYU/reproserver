@@ -184,6 +184,8 @@ class Run(Base):
     log = relationship('RunLogLine', back_populates='run')
     output_files = relationship('OutputFile', back_populates='run')
 
+    extra_config = Column(Text, nullable=True)
+
     @property
     def short_id(self):
         return run_short_ids.encode(self.id)
