@@ -283,7 +283,22 @@ class StartCrawl(BaseHandler):
         ))
 
         # Add browsertrix container
-        script = textwrap.dedent('''\
+        script = textwrap.dedent(r'''\
+        SLEPT=0
+        CURL_STATUS="$(curl -s -o /dev/null -w "%{{http_code}}" \
+            --connect-timeout 5 "{url}")"
+        while ! printf '%s\n' "$CURL_STATUS" | grep '^[23]' > /dev/null; do
+            printf "waiting for web server (curl: $CURL_STATUS)\n" >&2
+            sleep 5
+            SLEPT=$((SLEPT + 5))
+            if [ $SLEPT -gt 300 ]; then
+                printf "web server didn't come online\n" >&2
+                exit 1
+            fi
+            CURL_STATUS="$(curl -s -o /dev/null -w "%{{http_code}}" \
+                --connect-timeout 5 "{url}")"
+        done
+        printf 'web server reading (curl: %s)\n' "$CURL_STATUS"
         if ! crawl --url "{url}" --workers 2; then
             printf "crawl failed\n" >&2
             exit 1
@@ -375,6 +390,10 @@ class UploadWacz(BaseHandler):
             ),
             status=303,
         )
+
+    def check_xsrf_cookie(self):
+        # Disable XSRF prevention here, to allow 
+        pass
 
 
 class Download(BaseHandler):
