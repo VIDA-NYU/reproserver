@@ -75,10 +75,13 @@ class Upload(BaseHandler):
                     rpz_url=rpz_url,
                 )
             else:
-                return self.redirect(self.reverse_url(
-                    'reproduce_repo',
-                    repo, repo_path,
-                ))
+                return self.redirect(
+                    self.reverse_url(
+                        'reproduce_repo',
+                        repo, repo_path,
+                    ),
+                    status=303,
+                )
 
             # Fetch and upload URL
             upload = await get_from_link(
