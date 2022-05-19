@@ -160,7 +160,7 @@ class Upload(BaseHandler):
         else:
             # Insert it in database
             try:
-                experiment = rpz_metadata.make_experiment(
+                experiment = await rpz_metadata.make_experiment(
                     filehash,
                     self.uploaded_file.filename,
                 )

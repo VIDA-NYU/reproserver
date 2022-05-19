@@ -59,7 +59,7 @@ async def get_from_link(db, object_store, remote_addr,
             else:
                 # Insert it in database
                 # Might raise rpz_metadata.InvalidPackage
-                experiment = rpz_metadata.make_experiment(
+                experiment = await rpz_metadata.make_experiment(
                     filehash,
                     tfile.name,
                 )
