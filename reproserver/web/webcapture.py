@@ -283,18 +283,6 @@ class StartCrawl(BaseHandler):
         ))
 
         # Add browsertrix container
-        rclone_remote = (
-            ":s3"
-            + ",endpoint='{s3_url}'"
-            + ",access_key_id='{s3_key}'"
-            + ",secret_access_key='{s3_secret}'"
-            + ":{bucket}/"
-        ).format(
-            s3_url=os.environ['S3_URL'],
-            s3_key=os.environ['S3_KEY'],
-            s3_secret=os.environ['S3_SECRET'],
-            bucket=os.environ['S3_BUCKET_PREFIX'] + 'web1/',
-        )
         script = textwrap.dedent('''\
         if ! crawl --url "{url}" --workers 2; then
             printf "crawl failed\n" >&2
@@ -305,12 +293,17 @@ class StartCrawl(BaseHandler):
             printf "can't find WACZ\n" >&2"
             exit 1
         fi
-        WACZ_HASH="$(shasum -a 256 "$WACZ_PATH")"
-        printf "WACZ hash is $WACZ_HASH\n" >&2
-        rclone copyto "$WACZ_PATH" "{remote}$WACZ_HASH.wacz"
+        CURL_STATUS="$(curl -s -o /dev/null \
+            -w "%{http_code}" \
+            -F "wacz_file=@$WACZ_PATH" \
+            http://web:8000/web/upload-wacz/{upload_short_id})"
+        if [ "$CURL_STATUS" != 303 ]; then
+            printf "upload failed\n" >&2
+            exit 1
+        fi
         '''.format(
             url=seed_url,
-            remote=rclone_remote,
+            upload_short_id=upload_short_id,
         ))
         run.extra_config = json.dumps({
             'required': {

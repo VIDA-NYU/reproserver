@@ -166,7 +166,7 @@ spec:
             - name: OVERRIDE_RUNNER_IMAGE
               value: reproserver_web
             - name: BROWSERTRIX_IMAGE
-              value: ghcr.io/vida-nyu/reproserver/browsertrix:20220518230224
+              value: webrecorder/browsertrix-crawler@sha256:b9822b7bd699748903e8f6663775442292263599e62f00d6e402e0eac145211c
           volumeMounts:
             - name: k8s-config
               mountPath: /etc/k8s-config
