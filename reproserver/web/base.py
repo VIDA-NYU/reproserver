@@ -1,3 +1,4 @@
+from hashlib import sha256
 import importlib
 import jinja2
 import json
@@ -5,6 +6,7 @@ import logging
 import os
 import pkg_resources
 import signal
+from streaming_form_data.targets import FileTarget
 import tornado.ioloop
 import tornado.web
 
@@ -169,3 +171,17 @@ class BaseHandler(tornado.web.RequestHandler):
     def send_error_json(self, status, message, reason=None):
         self.set_status(status, reason)
         return self.send_json({'error': message})
+
+
+class HashedFileTarget(FileTarget):
+    def __init__(self, *args, hasher=None, **kwargs):
+        super(HashedFileTarget, self).__init__(*args, **kwargs)
+
+        if hasher is None:
+            self.hasher = sha256()
+        else:
+            self.hasher = hasher
+
+    def on_data_received(self, chunk):
+        super(HashedFileTarget, self).on_data_received(chunk)
+        self.hasher.update(chunk)
