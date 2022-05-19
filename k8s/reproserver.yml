@@ -165,6 +165,8 @@ spec:
                   key: zenodo_token
             - name: OVERRIDE_RUNNER_IMAGE
               value: reproserver_web
+            - name: BROWSERTRIX_IMAGE
+              value: ghcr.io/vida-nyu/reproserver/browsertrix:20220518230224
           volumeMounts:
             - name: k8s-config
               mountPath: /etc/k8s-config

@@ -7,6 +7,7 @@ from hashlib import sha256
 from reprozip_web.combine import combine
 from sqlalchemy.orm import joinedload
 import tempfile
+import textwrap
 from tornado.web import HTTPError
 from urllib.parse import urlencode
 
@@ -282,13 +283,42 @@ class StartCrawl(BaseHandler):
         ))
 
         # Add browsertrix container
+        rclone_remote = (
+            ":s3"
+            + ",endpoint='{s3_url}'"
+            + ",access_key_id='{s3_key}'"
+            + ",secret_access_key='{s3_secret}'"
+            + ":{bucket}/"
+        ).format(
+            s3_url=os.environ['S3_URL'],
+            s3_key=os.environ['S3_KEY'],
+            s3_secret=os.environ['S3_SECRET'],
+            bucket=os.environ['S3_BUCKET_PREFIX'] + 'web1/',
+        )
+        script = textwrap.dedent('''\
+        if ! crawl --url "{url}" --workers 2; then
+            printf "crawl failed\n" >&2
+            exit 1
+        fi
+        WACZ_PATH="/crawls/collections/*/*.wacz"
+        if [ -e "$WACZ_PATH" ]; then
+            printf "can't find WACZ\n" >&2"
+            exit 1
+        fi
+        WACZ_HASH="$(shasum -a 256 "$WACZ_PATH")"
+        printf "WACZ hash is $WACZ_HASH\n" >&2
+        rclone copyto "$WACZ_PATH" "{remote}$WACZ_HASH.wacz"
+        '''.format(
+            url=seed_url,
+            remote=rclone_remote,
+        ))
         run.extra_config = json.dumps({
             'required': {
                 'containers': [
                     {
                         'name': 'browsertrix',
-                        'image': 'webrecorder/browsertrix-crawler:dev',
-                        'args': ['false', seed_url],
+                        'image': os.environ['BROWSERTRIX_IMAGE'],
+                        'args': ['sh', '-c', script],
                     },
                 ],
             },
