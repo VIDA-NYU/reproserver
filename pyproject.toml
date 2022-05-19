@@ -54,6 +54,7 @@ reprozip-core = { path = "reprozip/reprozip-core", develop=true }
 reprounzip = { path = "reprozip/reprounzip", develop=true }
 reprounzip-docker = { path = "reprozip/reprounzip-docker", develop=true }
 prometheus-async = "*"
+streaming-form-data = ">=1.10,<2"
 
 [tool.poetry.dev-dependencies]
 coverage = "*"
