@@ -42,9 +42,10 @@ class DockerRunner(BaseRunner):
             'rpuz_exp_%s' % experiment_hash,
         )
         logger.info("Image name: %s", fq_image_name)
-        ret = await asyncio.create_subprocess_exec(
+        pull_proc = await asyncio.create_subprocess_exec(
             'docker', 'pull', fq_image_name,
         )
+        ret = await pull_proc.wait()
         if ret == 0:
             logger.info("Pulled image from cache")
         else:
