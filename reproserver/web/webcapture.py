@@ -294,7 +294,7 @@ class StartCrawl(BaseHandler):
             exit 1
         fi
         CURL_STATUS="$(curl -s -o /dev/null \
-            -w "%{http_code}" \
+            -w "%{{http_code}}" \
             -F "wacz_file=@$WACZ_PATH" \
             http://web:8000/web/upload-wacz/{upload_short_id})"
         if [ "$CURL_STATUS" != 303 ]; then
