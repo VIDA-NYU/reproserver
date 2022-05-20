@@ -34,9 +34,7 @@ def main():
     else:
         proxy = None
     app = make_app(debug, proxy=proxy)
-    app.listen(8000, address='0.0.0.0',
-               xheaders=True,
-               max_buffer_size=1_073_741_824)
+    app.listen(8000, address='0.0.0.0', xheaders=True)
 
     loop = tornado.ioloop.IOLoop.current()
     print("\n    reproserver is now running: http://localhost:8000/\n")
