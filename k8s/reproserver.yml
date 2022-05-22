@@ -17,6 +17,7 @@ data:
   runner.namespace: default
   runner.pod_spec: |
     restartPolicy: Never
+    enableServiceLinks: false
     containers:
       - name: docker
         image: docker:20.10.7-dind

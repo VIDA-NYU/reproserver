@@ -283,10 +283,10 @@ class StartCrawl(BaseHandler):
         ))
 
         # Add browsertrix container
-        script = textwrap.dedent(r'''\
+        script = textwrap.dedent(r'''
         SLEPT=0
-        CURL_STATUS="$(curl -s -o /dev/null -w "%{{http_code}}" \
-            --connect-timeout 5 "{url}")"
+        CURL_STATUS="$(curl -s -o /dev/null -w "%{http_code}" \
+            --connect-timeout 5 "__URL))")"
         while ! printf '%s\n' "$CURL_STATUS" | grep '^[23]' > /dev/null; do
             printf "waiting for web server (curl: $CURL_STATUS)\n" >&2
             sleep 5
@@ -295,30 +295,32 @@ class StartCrawl(BaseHandler):
                 printf "web server didn't come online\n" >&2
                 exit 1
             fi
-            CURL_STATUS="$(curl -s -o /dev/null -w "%{{http_code}}" \
-                --connect-timeout 5 "{url}")"
+            CURL_STATUS="$(curl -s -o /dev/null -w "%{http_code}" \
+                --connect-timeout 5 "__URL__")"
         done
-        printf 'web server reading (curl: %s)\n' "$CURL_STATUS"
-        if ! crawl --url "{url}" --workers 2; then
+        printf 'web server ready (curl: %s)\n' "$CURL_STATUS"
+        if ! crawl --url "__URL__" --screencastPort 9223 --workers 2 --generateWACZ; then
             printf "crawl failed\n" >&2
             exit 1
         fi
-        WACZ_PATH="/crawls/collections/*/*.wacz"
-        if [ -e "$WACZ_PATH" ]; then
-            printf "can't find WACZ\n" >&2"
+        WACZ_PATH=$(ls -1 /crawls/collections/*/*.wacz | head -n 1)
+        if [ ! -e "$WACZ_PATH" ]; then
+            printf "can't find WACZ\n" >&2
             exit 1
         fi
+        ls -l $WACZ_PATH
         CURL_STATUS="$(curl -s -o /dev/null \
-            -w "%{{http_code}}" \
+            -w "%{http_code}" \
             -F "wacz_file=@$WACZ_PATH" \
-            http://web:8000/web/upload-wacz/{upload_short_id})"
+            http://web:8000/web/upload-wacz/__UPLOAD_SHORT_ID__)"
         if [ "$CURL_STATUS" != 303 ]; then
-            printf "upload failed\n" >&2
+            printf "upload failed (status %s)\n" "$CURL_STATUS" >&2
             exit 1
         fi
-        '''.format(
-            url=seed_url,
-            upload_short_id=upload_short_id,
+        '''.replace(
+            '__URL__', seed_url,
+        ).replace(
+            '__UPLOAD_SHORT_ID__', upload_short_id,
         ))
         run.extra_config = json.dumps({
             'required': {
@@ -345,7 +347,8 @@ class StartCrawl(BaseHandler):
 
 class CrawlStatus(BaseHandler):
     def get(self, upload_short_id):
-        return self.finish('TODO')
+        # TODO: If finished, redirect to finished page
+        return self.finish('TODO: Show crawl status and screencast')
 
 
 class UploadWacz(BaseHandler):
@@ -396,7 +399,7 @@ class UploadWacz(BaseHandler):
         )
 
     def check_xsrf_cookie(self):
-        # Disable XSRF prevention here, to allow 
+        # Disable XSRF prevention here, to allow upload from browsertrix
         pass
 
 
