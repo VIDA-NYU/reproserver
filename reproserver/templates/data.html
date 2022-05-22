@@ -10,7 +10,7 @@
 
   <p>Uploaded by {{ upload.submitted_ip }} at {{ upload.timestamp }}
   as <a href="{{ url_for_upload(upload) }}">{{ upload.filename }}</a>
-  {% if upload.repository_key %} ({{ upload.repository_key}}){% endif %}</p>
+  {% if upload.repository_key %} ({{ upload.repository_key}}){% endif %} id={{ upload.id }}</p>
 
   {% endfor %}
 
