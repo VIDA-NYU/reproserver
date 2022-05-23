@@ -473,11 +473,17 @@ class Results(BaseHandler):
                 mime,
             )
 
-        if 'web1' in extensions:
-            extensions['web1']['url'] = (
+        wacz_hash = self.get_query_argument('wacz', None)
+        if wacz_hash is None and 'web1' in extensions:
+            wacz_hash = extensions['web1']['filehash']
+
+        if wacz_hash is None:
+            wacz = None
+        else:
+            wacz = (
                 self.application.object_store.presigned_serve_url(
                     'web1',
-                    extensions['web1']['filehash'] + '.wacz',
+                    wacz_hash + '.wacz',
                     'archive.wacz',
                     'application/zip',
                 )
@@ -492,7 +498,7 @@ class Results(BaseHandler):
             experiment_url=self.url_for_upload(run.upload),
             get_port_url=get_port_url,
             output_link=output_link,
-            extensions=extensions,
+            wacz=wacz,
         )
 
 
