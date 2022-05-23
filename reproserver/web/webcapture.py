@@ -164,7 +164,7 @@ class StartRecord(BaseHandler):
         )
         if upload is None:
             self.set_status(404)
-            return self.render('setup_notfound.html')
+            return self.render('webcapture/notfound.html')
         experiment = upload.experiment
 
         # Update last access
@@ -173,7 +173,8 @@ class StartRecord(BaseHandler):
 
         # New run entry
         run = database.Run(experiment_hash=experiment.hash,
-                           upload_id=upload_id)
+                           upload_id=upload_id,
+                           submitted_ip=self.request.remote_ip)
         self.db.add(run)
 
         # Mark exposed port
@@ -203,7 +204,7 @@ class Record(BaseHandler):
             run_id = database.Run.decode_id(run_short_id)
         except ValueError:
             self.set_status(404)
-            return self.render('results_notfound.html')
+            return self.render('webcapture/notfound.html')
 
         # Look up the run in the database
         run = (
@@ -265,7 +266,7 @@ class StartCrawl(BaseHandler):
         )
         if upload is None:
             self.set_status(404)
-            return self.render('setup_notfound.html')
+            return self.render('webcapture/notfound.html')
         experiment = upload.experiment
 
         # Update last access
@@ -274,7 +275,8 @@ class StartCrawl(BaseHandler):
 
         # New run entry
         run = database.Run(experiment_hash=experiment.hash,
-                           upload_id=upload_id)
+                           upload_id=upload_id,
+                           submitted_ip=self.request.remote_ip)
         self.db.add(run)
 
         # Mark exposed port
