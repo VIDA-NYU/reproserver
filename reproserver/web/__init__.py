@@ -34,6 +34,8 @@ def make_app(debug=False, xsrf_cookies=True, proxy=None):
                     name='webcapture_upload'),
             URLSpec('/web/([^/]+)', webcapture.Dashboard,
                     name='webcapture_dashboard'),
+            URLSpec('/web/preview/([^/]+)', webcapture.Preview,
+                    name='webcapture_preview'),
             URLSpec('/web/start-record/([^/]+)', webcapture.StartRecord,
                     name='webcapture_start_record'),
             URLSpec('/web/record/([^/]+)', webcapture.Record,

@@ -132,6 +132,55 @@ class Dashboard(BaseHandler):
         )
 
 
+class Preview(BaseHandler):
+    @PROM_REQUESTS.sync('webcapture_preview')
+    def post(self, upload_short_id):
+        # Decode info from URL
+        try:
+            upload_id = database.Upload.decode_id(upload_short_id)
+        except ValueError:
+            self.set_status(404)
+            return self.render('webcapture/notfound.html')
+
+        wacz_hash = self.get_query_argument('wacz')
+
+        # Look up the experiment in database
+        upload = (
+            self.db.query(database.Upload)
+            .options(joinedload(database.Upload.experiment))
+            .get(upload_id)
+        )
+        if upload is None:
+            self.set_status(404)
+            return self.render('webcapture/notfound.html')
+        experiment = upload.experiment
+
+        # Update last access
+        upload.last_access = datetime.utcnow()
+        upload.experiment.last_access = datetime.utcnow()
+
+        # New run entry
+        run = database.Run(experiment_hash=experiment.hash,
+                           upload_id=upload_id,
+                           submitted_ip=self.request.remote_ip)
+        self.db.add(run)
+
+        # Expose port
+        run.ports.append(database.RunPort(
+            port_number=3000,
+        ))
+
+        # Trigger run
+        self.db.commit()
+        background_future(self.application.runner.run(run.id))
+
+        # Redirects to crawl status page
+        return self.redirect(
+            self.reverse_url('results', run.short_id, wacz=wacz_hash),
+            status=303,
+        )
+
+
 class StartRecord(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_start_record')
     def post(self, upload_short_id):

@@ -41,6 +41,9 @@
   <div class="form-group">
     <a href="{{ reverse_url('webcapture_download', upload_short_id, wacz=wacz.hash) }}">Download the finished Web RPZ file</a>
   </div>
+  <div class="form-group">
+    <input type="submit" formaction="{{ reverse_url('webcapture_preview', upload_short_id, wacz=wacz.hash) }}" class="btn btn-default" value="Preview the result">
+  </div>
   {% endif %}
 </form>
 
