@@ -50,7 +50,11 @@ class Index(BaseHandler):
 
 async def store_uploaded_rpz(object_store, db, uploaded_file, remote_ip):
     assert uploaded_file.filename
-    logger.info("Incoming file: %r", uploaded_file.filename)
+    logger.info(
+        "Incoming file: %r, %d bytes",
+        uploaded_file.filename,
+        len(uploaded_file.body),
+    )
 
     # Hash it
     filehash = await asyncio.get_event_loop().run_in_executor(

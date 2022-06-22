@@ -363,7 +363,11 @@ class UploadWacz(BaseHandler):
         except (KeyError, IndexError):
             return await self.render('webcapture/upload_wacz_bad.html')
 
-        logger.info("Incoming WACZ: %s", )
+        logger.info(
+            "Incoming WACZ: %r %d bytes",
+            uploaded_file.filename,
+            len(uploaded_file.body),
+        )
 
         # Hash file
         wacz_hash = sha256(uploaded_file.body).hexdigest()
