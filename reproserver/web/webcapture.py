@@ -188,8 +188,11 @@ class StartRecord(BaseHandler):
         # Redirects to recording page
         return self.redirect(
             (
-                self.reverse_url('webcapture_record', upload_short_id, run.short_id)
-                + '#' + urlencode({'url': seed_url})
+                self.reverse_url(
+                    'webcapture_record',
+                    upload_short_id,
+                    run.short_id
+                ) + '#' + urlencode({'url': seed_url})
             ),
             status=303,
         )
@@ -396,7 +399,7 @@ class UploadWacz(BaseHandler):
             return self.redirect(redirect_url, status=303)
 
     def check_xsrf_cookie(self):
-        # Disable XSRF prevention here, to allow 
+        # Disable XSRF prevention here, to allow
         pass
 
 
