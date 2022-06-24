@@ -95,6 +95,8 @@ setTimeout(update_page, 3000);
   url="http://localhost:{{ run.ports[0].port_number }}/"
   replayBase="/static/replay/"
   source="{{ extensions.web1.url }}"
+  coll="{{ run.short_id }}"
+  noWebWorker
   deepLink
   config='{"hostProxy": {"localhost:{{ run.ports[0].port_number }}": {"prefix": "/results/{{ run.short_id }}/port/{{ run.ports[0].port_number }}", "pathOnly": true}}}'
 >

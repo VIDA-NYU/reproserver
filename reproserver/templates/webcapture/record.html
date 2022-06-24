@@ -31,19 +31,54 @@ function update_page() {
 }
 
 setTimeout(update_page, 3000);
+
+window.addEventListener("load", () => {
+  document.querySelector("#upload").addEventListener("click", doUpload);
+});
+
+async function doUpload() {
+  const recorder = document.querySelector("record-web-page");
+  if (!recorder) {
+    return;
+  }
+
+  const blobUrl = await recorder.doDownload();
+  console.log(blobUrl);
+
+  const resp = await fetch(blobUrl);
+  const blob = await resp.blob();
+
+  const f = new FormData();
+  f.append("wacz_file", blob, "wacz_file.wacz");
+
+  const headers = {"Accept": "application/json"};
+
+  const resp2 = await fetch("{{ reverse_url('webcapture_upload_wacz', upload_short_id) }}", {method: "POST", headers, body: f});
+
+  const json = await resp2.json();
+
+  // todo: add error handling
+  if (json.redirect_url) {
+    window.location.href = json.redirect_url;
+  }
+}
+
 </script>
+
 
 <details open>
 <summary style="display: list-item">Web Archive Capture</summary>
-<replay-web-page
+<button class="btn btn-default" id="upload">Upload WACZ</button>
+<record-web-page
   style="height: 500px; display: flex; margin-top: 10px; border: 1px solid black;"
   url="http://localhost:{{ port_number }}/"
   replayBase="/static/replay/"
-  source=""
-  deepLink
-  config='{"hostProxy": {"localhost:{{ port_number }}": {"prefix": "/results/{{ run.short_id }}/port/{{ port_number }}", "pathOnly": true}}}'
+  coll="{{ run.short_id }}"
+  noWebWorker
+  config='{"hostProxy": {"localhost:{{ run.ports[0].port_number }}": {"prefix": "/results/{{ run.short_id }}/port/{{ run.ports[0].port_number }}", "pathOnly": true}}}'
+
 >
-</replay-web-page>
+</record-web-page>
 </details>
 
 {% endblock content %}
