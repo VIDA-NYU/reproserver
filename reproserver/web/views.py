@@ -1,3 +1,4 @@
+import hmac
 from datetime import datetime
 from hashlib import sha256
 import logging
@@ -5,7 +6,11 @@ import mimetypes
 import os
 import prometheus_client
 from sqlalchemy.orm import joinedload
+from streaming_form_data import StreamingFormDataParser
+from streaming_form_data.targets import ValueTarget
 import tempfile
+from tornado.escape import utf8
+from tornado.web import HTTPError, stream_request_body
 
 from .. import database
 from ..repositories import RepositoryError, RepositoryUnknown, \
@@ -13,7 +18,7 @@ from ..repositories import RepositoryError, RepositoryUnknown, \
     get_repository_page_url, parse_repository_url
 from .. import rpz_metadata
 from ..utils import PromMeasureRequest, background_future
-from .base import BaseHandler
+from .base import BaseHandler, HashedFileTarget
 
 
 logger = logging.getLogger(__name__)
@@ -45,23 +50,58 @@ class Index(BaseHandler):
         return self.finish()
 
 
+@stream_request_body
 class Upload(BaseHandler):
     """Target of the landing page.
 
     An experiment has been provided, store it and extract metadata.
     """
+    def prepare(self):
+        self.request.connection.set_max_body_size(10_000_000_000)
+        self.streaming_parser = StreamingFormDataParser(self.request.headers)
+
+        self.uploaded_file_tmp = tempfile.NamedTemporaryFile(prefix='upload_')
+        self.uploaded_file = HashedFileTarget(self.uploaded_file_tmp.name)
+        self.streaming_parser.register('rpz_file', self.uploaded_file)
+
+        self.rpz_url = ValueTarget()
+        self.streaming_parser.register('rpz_url', self.rpz_url)
+
+        self.not_permanent = ValueTarget()
+        self.streaming_parser.register('not_permanent', self.not_permanent)
+
+        self.sent_xsrf_token = ValueTarget()
+        self.streaming_parser.register('_xsrf', self.sent_xsrf_token)
+
+    def data_received(self, chunk):
+        self.streaming_parser.data_received(chunk)
+
+    def check_xsrf_cookie(self):
+        pass  # Skip built-in XSRF cookie checking, wait for body
+
+    def check_xsrf_cookie_with_body(self):
+        token = self.sent_xsrf_token.value.decode('utf-8', 'replace')
+        if not token:
+            raise HTTPError(403, "'_xsrf' argument missing from POST")
+        _, token, _ = self._decode_xsrf_token(token)
+        _, expected_token, _ = self._get_raw_xsrf_token()
+        if not token:
+            raise HTTPError(403, "'_xsrf' argument has invalid format")
+        if not hmac.compare_digest(utf8(token), utf8(expected_token)):
+            raise HTTPError(403, "XSRF cookie does not match POST argument")
+
     @PROM_REQUESTS.async_('upload')
     async def post(self):
+        self.check_xsrf_cookie_with_body()
+
         # If a URL was provided, not a file
-        rpz_url = self.get_body_argument('rpz_url', None)
+        rpz_url = self.rpz_url.value.decode('utf-8', 'replace')
         if rpz_url:
             # Redirect to reproduce_repo view
             try:
-                repo, repo_path = await parse_repository_url(
-                    self.get_body_argument('rpz_url')
-                )
+                repo, repo_path = await parse_repository_url(rpz_url)
             except RepositoryUnknown:
-                if not self.get_argument('not_permanent', None):
+                if not self.not_permanent.value:
                     return await self.render(
                         'repository_notfound.html',
                         rpz_url=rpz_url,
@@ -100,21 +140,17 @@ class Upload(BaseHandler):
             )
 
         # Get uploaded file
-        # FIXME: Don't hold the file in memory!
-        try:
-            uploaded_file = self.request.files['rpz_file'][0]
-        except (KeyError, IndexError):
+        if (
+            not os.path.getsize(self.uploaded_file.filename)
+            or not self.uploaded_file.multipart_filename
+        ):
             return await self.render(
                 'setup_badfile.html',
                 message="Missing file",
             )
-        assert uploaded_file.filename
-        logger.info("Incoming file: %r", uploaded_file.filename)
-
-        # Hash it
-        hasher = sha256(uploaded_file.body)
-        filehash = hasher.hexdigest()
-        logger.info("Computed hash: %s", filehash)
+        logger.info("Incoming file: %r", self.uploaded_file.multipart_filename)
+        filehash = self.uploaded_file.hasher.hexdigest()
+        logger.info("Computed hash: %s", self.uploaded_file.hasher.hexdigest())
 
         # Check for existence of experiment
         experiment = self.db.query(database.Experiment).get(filehash)
@@ -122,35 +158,33 @@ class Upload(BaseHandler):
             experiment.last_access = datetime.utcnow()
             logger.info("File exists in storage")
         else:
-            # Write it to disk
-            with tempfile.NamedTemporaryFile('w+b', suffix='.rpz') as tfile:
-                tfile.write(uploaded_file.body)
-
-                # Insert it in database
-                try:
-                    experiment = rpz_metadata.make_experiment(
-                        filehash,
-                        tfile.name,
-                    )
-                except rpz_metadata.InvalidPackage as e:
-                    return await self.render(
-                        'setup_badfile.html',
-                        message=str(e),
-                    )
-                self.db.add(experiment)
-
-                # Insert it on S3
-                await self.application.object_store.upload_file_async(
-                    'experiments',
+            # Insert it in database
+            try:
+                experiment = await rpz_metadata.make_experiment(
                     filehash,
-                    tfile.name,
+                    self.uploaded_file.filename,
                 )
-                logger.info("Inserted file in storage")
+            except rpz_metadata.InvalidPackage as e:
+                return await self.render(
+                    'setup_badfile.html',
+                    message=str(e),
+                )
+            self.db.add(experiment)
+
+            # Insert it on S3
+            await self.application.object_store.upload_file_async(
+                'experiments',
+                filehash,
+                self.uploaded_file.filename,
+            )
+            logger.info("Inserted file in storage")
 
         # Insert Upload in database
-        upload = database.Upload(experiment=experiment,
-                                 filename=uploaded_file.filename,
-                                 submitted_ip=self.request.remote_ip)
+        upload = database.Upload(
+            experiment=experiment,
+            filename=self.uploaded_file.multipart_filename,
+            submitted_ip=self.request.remote_ip,
+        )
         self.db.add(upload)
         self.db.commit()
 

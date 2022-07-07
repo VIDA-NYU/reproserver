@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import subprocess
@@ -14,11 +15,7 @@ class InvalidPackage(ValueError):
     """
 
 
-def make_experiment(filehash, filename):
-    # Insert it in database
-    experiment = database.Experiment(hash=filehash)
-
-    # Extract metadata
+def get_metadata(filename):
     info_proc = subprocess.Popen(
         ['reprounzip', 'info', '--json', filename],
         stdout=subprocess.PIPE,
@@ -32,10 +29,22 @@ def make_experiment(filehash, filename):
     info = json.loads(info_stdout.decode('utf-8'))
     logger.info("Got metadata, %d runs", len(info['runs']))
 
-    # Store whole output
-    experiment.info = json.dumps(
+    compact_json = json.dumps(
         info,
         sort_keys=True, separators=(',', ':'),
+    )
+
+    return info, compact_json
+
+
+async def make_experiment(filehash, filename):
+    # Insert it in database
+    experiment = database.Experiment(hash=filehash)
+
+    # Extract metadata
+    info, experiment.info = await asyncio.get_event_loop().run_in_executor(
+        None,
+        lambda: get_metadata(filename),
     )
 
     # Add parameters
