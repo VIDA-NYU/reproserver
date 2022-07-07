@@ -190,43 +190,51 @@ class K8sRunner(BaseRunner):
                 namespace=namespace,
                 label_selector='app=run',
             )
-            async for event in watch.stream(f, **kwargs):
-                pod = event['object']
+            while True:
                 try:
-                    run_id = int(pod.metadata.labels['run'], 10)
-                except (KeyError, ValueError):
-                    logger.warning(
-                        "Invalid pod '%s' doesn't have run label",
-                        pod.metadata.name,
-                    )
-                    continue
+                    async for event in watch.stream(f, **kwargs):
+                        await self._handle_watch_event(api, DBSession, event)
+                except k8s_client.ApiException as e:
+                    if e.status != 410:
+                        raise
 
-                if (
-                    event['type'] != 'DELETED'
-                    and pod.metadata.deletion_timestamp is not None
-                ):
-                    # Ignore, pod is being deleted
-                    continue
+    async def _handle_watch_event(self, api, DBSession, event):
+        pod = event['object']
+        try:
+            run_id = int(pod.metadata.labels['run'], 10)
+        except (KeyError, ValueError):
+            logger.warning(
+                "Invalid pod '%s' doesn't have run label",
+                pod.metadata.name,
+            )
+            return
 
-                # Get run
-                db = DBSession()
-                run = db.query(database.Run).get(run_id)
-                if run is None:
-                    logger.warning("Event in pod for unknown run %d", run_id)
-                    continue
+        if (
+            event['type'] != 'DELETED'
+            and pod.metadata.deletion_timestamp is not None
+        ):
+            # Ignore, pod is being deleted
+            return
 
-                if event['type'] == 'DELETED':
-                    logger.info("Run pod for %d deleted", run_id)
-                    if run.done is None:
-                        logger.warning(
-                            "Run pod deleted but run wasn't set as done!",
-                        )
-                        await self.connector.run_failed(
-                            run_id,
-                            "Internal error",
-                        )
-                else:
-                    await self._check_pod(api, run_id, pod)
+        # Get run
+        db = DBSession()
+        run = db.query(database.Run).get(run_id)
+        if run is None:
+            logger.warning("Event in pod for unknown run %d", run_id)
+            return
+
+        if event['type'] == 'DELETED':
+            logger.info("Run pod for %d deleted", run_id)
+            if run.done is None:
+                logger.warning(
+                    "Run pod deleted but run wasn't set as done!",
+                )
+                await self.connector.run_failed(
+                    run_id,
+                    "Internal error",
+                )
+        else:
+            await self._check_pod(api, run_id, pod)
 
     async def _check_pod(self, api, run_id, pod):
         v1 = k8s_client.CoreV1Api(api)
