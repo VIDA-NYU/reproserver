@@ -38,7 +38,7 @@ def make_app(debug=False, xsrf_cookies=True, proxy=None):
                     name='webcapture_preview'),
             URLSpec('/web/start-record/([^/]+)', webcapture.StartRecord,
                     name='webcapture_start_record'),
-            URLSpec('/web/record/([^/]+)', webcapture.Record,
+            URLSpec('/web/record/([^/]+)/([^/]+)', webcapture.Record,
                     name='webcapture_record'),
             URLSpec('/web/crawl/([^/]+)/start', webcapture.StartCrawl,
                     name='webcapture_start_crawl'),

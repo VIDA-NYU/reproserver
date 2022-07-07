@@ -238,8 +238,11 @@ class StartRecord(BaseHandler):
         # Redirects to recording page
         return self.redirect(
             (
-                self.reverse_url('webcapture_record', run.short_id)
-                + '#' + urlencode({'url': seed_url})
+                self.reverse_url(
+                    'webcapture_record',
+                    upload_short_id,
+                    run.short_id,
+                ) + '#' + urlencode({'url': seed_url})
             ),
             status=303,
         )
@@ -247,7 +250,7 @@ class StartRecord(BaseHandler):
 
 class Record(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_record')
-    def get(self, run_short_id):
+    def get(self, upload_short_id, run_short_id):
         # Decode info from URL
         try:
             run_id = database.Run.decode_id(run_short_id)
@@ -278,6 +281,7 @@ class Record(BaseHandler):
         return self.render(
             'webcapture/record.html',
             run=run,
+            upload_short_id=upload_short_id,
             log=run.get_log(0),
             port_number=port_number,
         )
@@ -440,14 +444,17 @@ class UploadWacz(BaseHandler):
         else:
             logger.info("WACZ is already on S3")
 
-        return self.redirect(
-            self.reverse_url(
-                'webcapture_dashboard',
-                upload_short_id,
-                wacz=wacz_hash,
-            ),
-            status=303,
+        redirect_url = self.reverse_url(
+            'webcapture_dashboard',
+            upload_short_id,
+            wacz=wacz_hash,
         )
+
+        # Send JSON response if Accept: application/json (for use with fetch)
+        if self.is_json_requested():
+            return self.send_json({"redirect_url": redirect_url})
+        else:
+            return self.redirect(redirect_url, status=303)
 
     def check_xsrf_cookie(self):
         # Disable XSRF prevention here, to allow upload from browsertrix
