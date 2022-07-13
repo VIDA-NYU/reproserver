@@ -260,6 +260,7 @@ class StartRecord(BaseHandler):
             (
                 self.reverse_url(
                     'webcapture_record',
+                    upload_short_id,
                     run.short_id,
                 ) + '#' + urlencode({'url': seed_url})
             ),
@@ -269,7 +270,7 @@ class StartRecord(BaseHandler):
 
 class Record(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_record')
-    def get(self, run_short_id):
+    def get(self, upload_short_id, run_short_id):
         # Decode info from URL
         try:
             run_id = database.Run.decode_id(run_short_id)
@@ -284,7 +285,7 @@ class Record(BaseHandler):
                 joinedload(database.Run.upload),
             )
         ).get(run_id)
-        if run is None:
+        if run is None or run.upload.short_id != upload_short_id:
             self.set_status(404)
             return self.render('webcapture/notfound.html')
 
@@ -300,7 +301,7 @@ class Record(BaseHandler):
         return self.render(
             'webcapture/record.html',
             run=run,
-            upload_short_id=run.upload.short_id,
+            upload_short_id=upload_short_id,
             log=run.get_log(0),
             port_number=port_number,
         )
@@ -392,7 +393,7 @@ class StartCrawl(BaseHandler):
             -F "wacz_file=@$WACZ_PATH" \
             -F "hostname=__HOSTNAME__" \
             -F "port_number=__PORT_NUMBER__" \
-            http://web:8000/web/upload-wacz/__UPLOAD_SHORT_ID__)"
+            http://web:8000/web/__UPLOAD_SHORT_ID__/upload-wacz)"
         if [ "$CURL_STATUS" != 303 ]; then
             printf "upload failed (status %s)\n" "$CURL_STATUS" >&2
             exit 1
@@ -423,13 +424,17 @@ class StartCrawl(BaseHandler):
 
         # Redirects to crawl status page
         return self.redirect(
-            self.reverse_url('webcapture_crawl_status', run.short_id),
+            self.reverse_url(
+                'webcapture_crawl_status',
+                upload_short_id,
+                run.short_id,
+            ),
             status=303,
         )
 
 
 class CrawlStatus(BaseHandler):
-    def get(self, upload_short_id):
+    def get(self, upload_short_id, run_short_id):
         # TODO: If finished, redirect to finished page
         return self.finish('TODO: Show crawl status and screencast')
 
