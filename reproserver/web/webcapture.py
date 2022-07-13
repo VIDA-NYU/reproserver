@@ -240,7 +240,6 @@ class StartRecord(BaseHandler):
             (
                 self.reverse_url(
                     'webcapture_record',
-                    upload_short_id,
                     run.short_id,
                 ) + '#' + urlencode({'url': seed_url})
             ),
@@ -250,7 +249,7 @@ class StartRecord(BaseHandler):
 
 class Record(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_record')
-    def get(self, upload_short_id, run_short_id):
+    def get(self, run_short_id):
         # Decode info from URL
         try:
             run_id = database.Run.decode_id(run_short_id)
@@ -281,7 +280,7 @@ class Record(BaseHandler):
         return self.render(
             'webcapture/record.html',
             run=run,
-            upload_short_id=upload_short_id,
+            upload_short_id=run.upload.short_id,
             log=run.get_log(0),
             port_number=port_number,
         )
