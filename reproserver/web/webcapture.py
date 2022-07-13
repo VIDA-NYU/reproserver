@@ -72,6 +72,15 @@ class Dashboard(BaseHandler):
 
         wacz_hash = self.get_query_argument('wacz', None)
 
+        hostname = self.get_query_argument('hostname', 'localhost')
+        port_number = self.get_query_argument('port_number', '3000')
+        try:
+            port_number = int(port_number, 10)
+            if not (1 <= port_number <= 65535):
+                raise OverflowError
+        except (ValueError, OverflowError):
+            raise HTTPError(400, "Wrong port number")
+
         # Look up the experiment in database
         upload = (
             self.db.query(database.Upload)
@@ -129,6 +138,8 @@ class Dashboard(BaseHandler):
             filename=upload.filename,
             upload_short_id=upload.short_id,
             wacz=wacz,
+            hostname=hostname,
+            port_number=port_number,
         )
 
 
@@ -143,6 +154,15 @@ class Preview(BaseHandler):
             return self.render('webcapture/notfound.html')
 
         wacz_hash = self.get_query_argument('wacz')
+
+        hostname = self.get_body_argument('hostname')
+        port_number = self.get_body_argument('port_number')
+        try:
+            port_number = int(port_number, 10)
+            if not (1 <= port_number <= 65535):
+                raise OverflowError
+        except (ValueError, OverflowError):
+            raise HTTPError(400, "Wrong port number")
 
         # Look up the experiment in database
         upload = (
@@ -167,7 +187,7 @@ class Preview(BaseHandler):
 
         # Expose port
         run.ports.append(database.RunPort(
-            port_number=3000,
+            port_number=port_number,
         ))
 
         # Trigger run
@@ -305,6 +325,10 @@ class StartCrawl(BaseHandler):
         except (ValueError, OverflowError):
             raise HTTPError(400, "Wrong port number")
 
+        if hostname != 'localhost':
+            logger.warning("Using 'localhost' instead of '%s'", hostname)
+            hostname = 'localhost'
+
         if port_number == 80:
             seed_url = f'http://{hostname}/'
         else:
@@ -366,16 +390,21 @@ class StartCrawl(BaseHandler):
         CURL_STATUS="$(curl -s -o /dev/null \
             -w "%{http_code}" \
             -F "wacz_file=@$WACZ_PATH" \
+            -F "hostname=__HOSTNAME__" \
+            -F "port_number=__PORT_NUMBER__" \
             http://web:8000/web/upload-wacz/__UPLOAD_SHORT_ID__)"
         if [ "$CURL_STATUS" != 303 ]; then
             printf "upload failed (status %s)\n" "$CURL_STATUS" >&2
             exit 1
         fi
-        '''.replace(
-            '__URL__', seed_url,
-        ).replace(
-            '__UPLOAD_SHORT_ID__', upload_short_id,
-        ))
+        ''')
+        for k, v in {
+            '__URL__': seed_url,
+            '__UPLOAD_SHORT_ID__': upload_short_id,
+            '__HOSTNAME__': hostname,
+            '__PORT_NUMBER__': str(port_number),
+        }.items():
+            script = script.replace(k, v)
         run.extra_config = json.dumps({
             'required': {
                 'containers': [
@@ -426,6 +455,15 @@ class UploadWacz(BaseHandler):
             len(uploaded_file.body),
         )
 
+        hostname = self.get_body_argument('hostname')
+        port_number = self.get_body_argument('port_number')
+        try:
+            port_number = int(port_number, 10)
+            if not (1 <= port_number <= 65535):
+                raise OverflowError
+        except (ValueError, OverflowError):
+            raise HTTPError(400, "Wrong port number")
+
         # Hash file
         wacz_hash = sha256(uploaded_file.body).hexdigest()
 
@@ -447,6 +485,8 @@ class UploadWacz(BaseHandler):
             'webcapture_dashboard',
             upload_short_id,
             wacz=wacz_hash,
+            hostname=hostname,
+            port_number=port_number,
         )
 
         # Send JSON response if Accept: application/json (for use with fetch)
