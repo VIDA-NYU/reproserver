@@ -60,7 +60,7 @@ class Extension(Base):
     )
     experiment = relationship('Experiment', uselist=False,
                               back_populates='extensions')
-    name = Column(String(64), primary_key=True)
+    name = Column(Text, primary_key=True)
     data = Column(Text)
 
 
