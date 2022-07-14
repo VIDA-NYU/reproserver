@@ -507,7 +507,7 @@ class UploadWacz(BaseHandler):
 
 class Download(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_download')
-    async def get(self, upload_short_id):
+    async def post(self, upload_short_id):
         # Decode info from URL
         try:
             upload_id = database.Upload.decode_id(upload_short_id)
@@ -516,6 +516,16 @@ class Download(BaseHandler):
             return await self.render('webcapture/notfound.html')
 
         wacz_hash = self.get_query_argument('wacz')
+
+        # TODO: Those go into the RPZ file somewhere
+        hostname = self.get_body_argument('hostname')
+        port_number = self.get_body_argument('port_number')
+        try:
+            port_number = int(port_number, 10)
+            if not (1 <= port_number <= 65535):
+                raise OverflowError
+        except (ValueError, OverflowError):
+            raise HTTPError(400, "Wrong port number")
 
         with tempfile.TemporaryDirectory() as directory:
             input_rpz = os.path.join(directory, 'input.rpz')
