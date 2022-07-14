@@ -356,6 +356,8 @@ class StartCrawl(BaseHandler):
                            submitted_ip=self.request.remote_ip)
         self.db.add(run)
 
+        self.db.flush()  # Set run.id
+
         # Mark exposed port
         run.ports.append(database.RunPort(
             port_number=port_number,
@@ -393,7 +395,7 @@ class StartCrawl(BaseHandler):
             -F "wacz_file=@$WACZ_PATH" \
             -F "hostname=__HOSTNAME__" \
             -F "port_number=__PORT_NUMBER__" \
-            http://web:8000/web/__UPLOAD_SHORT_ID__/upload-wacz)"
+            http://web:8000/web/__UPLOAD_SHORT_ID__/upload-wacz?run=__RUN_ID__)"
         if [ "$CURL_STATUS" != 303 ]; then
             printf "upload failed (status %s)\n" "$CURL_STATUS" >&2
             exit 1
@@ -402,6 +404,7 @@ class StartCrawl(BaseHandler):
         for k, v in {
             '__URL__': seed_url,
             '__UPLOAD_SHORT_ID__': upload_short_id,
+            '__RUN_ID__': run.short_id,
             '__HOSTNAME__': hostname,
             '__PORT_NUMBER__': str(port_number),
         }.items():
@@ -485,6 +488,27 @@ class UploadWacz(BaseHandler):
             logger.info("WACZ uploaded to S3")
         else:
             logger.info("WACZ is already on S3")
+
+        # Store which run it came from, if provided
+        run_short_id = self.get_query_argument('run', None)
+        if run_short_id is not None:
+            try:
+                run_id = database.Run.decode_id(run_short_id)
+            except ValueError:
+                self.set_status(404)
+                return self.render('webcapture/notfound.html')
+            logger.info("Associating WACZ with run %d", run_id)
+            self.db.add(database.RunExtensionResult(
+                run_id=run_id,
+                extension_name='web1',
+                name='wacz',
+                value=json.dumps({
+                    'wacz_hash': wacz_hash,
+                    'hostname': hostname,
+                    'port_number': port_number,
+                }),
+            ))
+            self.db.commit()
 
         redirect_url = self.reverse_url(
             'webcapture_dashboard',
