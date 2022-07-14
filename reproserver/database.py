@@ -183,6 +183,8 @@ class Run(Base):
 
     log = relationship('RunLogLine', back_populates='run')
     output_files = relationship('OutputFile', back_populates='run')
+    extension_results = relationship('RunExtensionResult',
+                                     back_populates='run')
 
     extra_config = Column(Text, nullable=True)
 
@@ -298,6 +300,20 @@ class Setting(Base):
     """
     __tablename__ = 'settings'
 
+    name = Column(Text, nullable=False, primary_key=True)
+    value = Column(Text, nullable=False)
+
+
+class RunExtensionResult(Base):
+    """A special result from a run, controlled by an extension.
+    """
+    __tablename__ = 'run_extension_results'
+
+    run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'),
+                    primary_key=True)
+    run = relationship('Run', uselist=False,
+                       back_populates='extension_results')
+    extension_name = Column(String(64), primary_key=True)
     name = Column(Text, nullable=False, primary_key=True)
     value = Column(Text, nullable=False)
 
