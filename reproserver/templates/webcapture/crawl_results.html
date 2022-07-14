@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Package <a href="{{ reverse_url('webcapture_dashboard', run.upload.short_id) }}">{{ run.upload.filename | truncate(60) }}</a>, run {{ run.short_id }}</h1>
+
+{% if run.done %}
+
+<div class="panel panel-success" id="panel1">
+  <div class="panel-heading">
+    <h4 class="panel-title">
+      <a data-toggle="collapse" data-target="#runlog"
+         href="#runlog" class="collapsed">
+        Run log
+      </a>
+    </h4>
+  </div>
+  <div id="runlog" class="panel-collapse collapse">
+    <div class="panel-body">
+      <pre>{% for line in log %}{{ line }}
+{% endfor %}</pre>
+    </div>
+  </div>
+</div>
+
+  {% if wacz %}
+<p>The crawl was successful, <a href="{{ reverse_url('webcapture_dashboard', run.upload.short_id, wacz=wacz, hostname=hostname, port_number=port_number) }}">click here to return to the dashboard</a>.</p>
+  {% else %}
+<p>The crawl failed to produce a WACZ file!</p>
+  {% endif %}
+
+{% else %}
+
+<p>Run in progress, please wait...</p>
+
+<p>Run log:</p>
+<pre id="log" style="max-height: 200px">{% for line in log %}{{ line }}
+{% endfor %}</pre>
+
+<script>
+var log_lines = {{ log | length }};
+function update_page() {
+  var req = new XMLHttpRequest();
+  req.addEventListener("load", function(e) {
+    if(this.status == 200) {
+      if(this.response.done) {
+        window.location.reload();
+      } else if(this.response.log.length > 0) {
+        log_lines += this.response.log.length;
+        var dom_log = document.getElementById("log");
+        dom_log.textContent += this.response.log.join("\n") + "\n";
+      }
+    }
+    setTimeout(update_page, 3000);
+  });
+  req.responseType = "json";
+  req.open("GET", "{{ reverse_url('results_json', run.short_id) }}?log_from=" + log_lines);
+  req.setRequestHeader("Accept", "application/json");
+  req.send();
+}
+
+setTimeout(update_page, 3000);
+</script>
+
+{% endif %}
+
+{% endblock content %}

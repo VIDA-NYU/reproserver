@@ -438,8 +438,47 @@ class StartCrawl(BaseHandler):
 
 class CrawlStatus(BaseHandler):
     def get(self, upload_short_id, run_short_id):
-        # TODO: If finished, redirect to finished page
-        return self.finish('TODO: Show crawl status and screencast')
+        # Decode info from URL
+        try:
+            run_id = database.Run.decode_id(run_short_id)
+        except ValueError:
+            self.set_status(404)
+            return self.render('webcapture/notfound.html')
+        try:
+            upload_id = database.Upload.decode_id(upload_short_id)
+        except ValueError:
+            self.set_status(404)
+            return self.render('webcapture/notfound.html')
+
+        # Look up the run in the database
+        run = (
+            self.db.query(database.Run)
+        ).get(run_id)
+        if run is None or run.upload_id != upload_id:
+            self.set_status(404)
+            return self.render('webcapture/notfound.html')
+
+        # Look for an output WACZ in the database
+        wacz = None
+        hostname = None
+        port_number = None
+        extension_result = (
+            self.db.query(database.RunExtensionResult)
+        ).get(dict(run_id=run_id, extension_name='web1', name='wacz'))
+        if extension_result:
+            extension_result = json.loads(extension_result.value)
+            wacz = extension_result['wacz_hash']
+            hostname = extension_result['hostname']
+            port_number = extension_result['port_number']
+
+        return self.render(
+            'webcapture/crawl_results.html',
+            run=run,
+            log=run.get_log(0),
+            wacz=wacz,
+            hostname=hostname,
+            port_number=port_number,
+        )
 
 
 class UploadWacz(BaseHandler):
