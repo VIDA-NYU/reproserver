@@ -470,8 +470,6 @@ class Results(BaseHandler):
             'results.html',
             run=run,
             log=run.get_log(0),
-            started=bool(run.started),
-            done=bool(run.done),
             experiment_url=self.url_for_upload(run.upload),
             get_port_url=get_port_url,
             output_link=output_link,
