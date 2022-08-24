@@ -62,6 +62,27 @@ class Health(tornado.web.RequestHandler):
         return self.finish('Ok')
 
 
+class ProxyApplication(GracefulApplication):
+    def __init__(self, handler, **settings):
+        super(ProxyApplication, self).__init__(
+            [
+                (
+                    IsKubernetesProbe(),
+                    [
+                        URLSpec('/health', Health),
+                    ],
+                ),
+                URLSpec('.*', handler),
+            ],
+            **settings,
+        )
+
+    def log_request(self, handler):
+        if isinstance(handler, Health):
+            return
+        super(GracefulApplication, self).log_request(handler)
+
+
 class ProxyHandler(WebSocketHandler):
     def __init__(self, application, request, **kwargs):
         super(ProxyHandler, self).__init__(application, request, **kwargs)
@@ -177,18 +198,7 @@ class ProxyHandler(WebSocketHandler):
 
     @classmethod
     def make_app(cls, **settings):
-        return GracefulApplication(
-            [
-                (
-                    IsKubernetesProbe(),
-                    [
-                        URLSpec('/health', Health),
-                    ],
-                ),
-                URLSpec('.*', cls),
-            ],
-            **settings,
-        )
+        return ProxyApplication(cls, **settings)
 
 
 class DockerProxyHandler(ProxyHandler):
