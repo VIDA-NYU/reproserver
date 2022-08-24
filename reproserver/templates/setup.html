@@ -1,3 +1,5 @@
+{% set current_page = 'reproduce' %}
+
 {% extends "base.html" %}
 
 {% block content %}
@@ -17,8 +19,8 @@
     {% if params %}
 
       {% for param in params %}
-  <div class="form-group">
-    <label for="param_{{ param.name }}">{{ param.description }}</label>
+  <div class="mb-3">
+    <label for="param_{{ param.name }}" class="form-label">{{ param.description }}</label>
     <input type="text" class="form-control" id="param_{{ param.name }}" name="param_{{ param.name }}" value="{{ param.default }}" placeholder="value">
   </div>
       {% endfor %}
@@ -28,8 +30,8 @@
     {% endif %}
 
   <h3>Expose ports</h3>
-  <div class="form-group">
-    <label for="ports">Space-separated list of ports to expose:</label>
+  <div class="mb-3">
+    <label for="ports" class="form-label">Space-separated list of ports to expose:</label>
     <input type="text" class="form-control" id="ports" name="ports" value="">
   </div>
 
@@ -37,14 +39,14 @@
   <h3>Input files</h3>
 
       {% for file in input_files %}
-  <div class="form-group">
-    <label for="inputfile_{{ file.name }}">{{ file.name }}</label>
-    <input type="file" class="form-control-file" id="inputfile_{{ file.name }}" name="inputfile_{{ file.name }}">
+  <div class="mb-3">
+    <label for="inputfile_{{ file.name }}" class="form-label">{{ file.name }}</label>
+    <input type="file" class="form-control" id="inputfile_{{ file.name }}" name="inputfile_{{ file.name }}">
   </div>
       {% endfor %}
     {% endif %}
 
-  <button type="submit" class="btn btn-default">Run</button>
+  <button type="submit" class="btn btn-primary">Run</button>
 </form>
 
 {% endblock content %}
