@@ -1,3 +1,5 @@
+{% set current_page = 'webcapture_dashboard' %}
+
 {% extends "base.html" %}
 
 {% block content %}
@@ -8,13 +10,12 @@
 
 <form method="POST">
   {{ xsrf_form_html() }}
-  <div class="form-group">
-    <label for="filename">RPZ File:</label>
-    <!--<input type="text" class="form-control" id="filename" value="{{ filename }}" disabled />-->
+  <div class="mb-3">
+    <label for="filename" class="form-label">RPZ File:</label>
     <p class="form-control" id="filename">{{ filename }}</p>
   </div>
-  <div class="form-group">
-    <label for="wacz">WACZ FILE:</label>
+  <div class="mb-3">
+    <label for="wacz" class="form-label">WACZ FILE:</label>
     <p class="form-control" id="wacz">
       {% if wacz %}
       present, {{ wacz.filesize }} bytes
@@ -23,26 +24,26 @@
       {% endif %}
     </p>
   </div>
-  <div class="form-group">
-    <label for="hostname">Hostname:</label>
+  <div class="mb-3">
+    <label for="hostname" class="form-label">Hostname:</label>
     <input type="text" name="hostname" id="hostname" class="form-control" value="{{ hostname }}">
   </div>
-  <div class="form-group">
-    <label for="port_number">Port number:</label>
+  <div class="mb-3">
+    <label for="port_number" class="form-label">Port number:</label>
     <input type="number" name="port_number" id="port_number" class="form-control" min="1" max="65535" value="{{ port_number }}">
   </div>
   <p>Would you like to replace the web archive?</p>
-  <div class="form-group">
-    <input type="submit" formaction="{{ reverse_url('webcapture_start_record', upload_short_id) }}" class="btn btn-default" value="Record from browser">
-    <input type="submit" formaction="{{ reverse_url('webcapture_start_crawl', upload_short_id) }}" class="btn btn-default" value="Start automated crawl">
-    <a href="{{ reverse_url('webcapture_upload_wacz', upload_short_id) }}" class="btn btn-info">Upload existing file</a>
+  <div class="mb-3">
+    <input type="submit" formaction="{{ reverse_url('webcapture_start_record', upload_short_id) }}" class="btn btn-primary" value="Record from browser">
+    <input type="submit" formaction="{{ reverse_url('webcapture_start_crawl', upload_short_id) }}" class="btn btn-primary" value="Start automated crawl">
+    <a href="{{ reverse_url('webcapture_upload_wacz', upload_short_id) }}" class="btn btn-secondary">Upload existing file</a>
   </div>
   {% if wacz %}
-  <div class="form-group">
+  <div class="mb-3">
     <input type="submit" formaction="{{ reverse_url('webcapture_download', upload_short_id, wacz=wacz.hash) }}" class="btn btn-primary" value="Download the finished Web RPZ file">
   </div>
-  <div class="form-group">
-    <input type="submit" formaction="{{ reverse_url('webcapture_preview', upload_short_id, wacz=wacz.hash) }}" class="btn btn-default" value="Preview the result">
+  <div class="mb-3">
+    <input type="submit" formaction="{{ reverse_url('webcapture_preview', upload_short_id, wacz=wacz.hash) }}" class="btn btn-secondary" value="Preview the result">
   </div>
   {% endif %}
 </form>

@@ -11,7 +11,7 @@ import textwrap
 from tornado.web import HTTPError
 from urllib.parse import urlencode
 
-from .base import BaseHandler
+from .base import BaseHandler, HashedFileTarget, StreamedRequestHandler
 from .views import PROM_REQUESTS, store_uploaded_rpz
 from ..utils import background_future
 from .. import rpz_metadata, database
@@ -28,26 +28,38 @@ class Index(BaseHandler):
         return self.render('webcapture/index.html')
 
 
-class Upload(BaseHandler):
+class Upload(StreamedRequestHandler):
     """Upload RPZ.
     """
+    def register_streaming_targets(self):
+        self.uploaded_file_tmp = tempfile.NamedTemporaryFile(prefix='upload_')
+        self.uploaded_file = HashedFileTarget(self.uploaded_file_tmp.name)
+        self.streaming_parser.register('rpz_file', self.uploaded_file)
+
     @PROM_REQUESTS.async_('webcapture_upload')
     async def post(self):
+        super(Upload, self).post()
+
         # Get uploaded file
-        # FIXME: Don't hold the file in memory!
-        try:
-            uploaded_file = self.request.files['rpz_file'][0]
-        except (KeyError, IndexError):
+        filename = self.uploaded_file.filename
+        orig_filename = self.uploaded_file.multipart_filename
+        if (
+            not os.path.getsize(filename)
+            or not orig_filename
+        ):
             return await self.render(
                 'webcapture/badfile.html',
                 message="Missing file",
             )
+        filehash = self.uploaded_file.hasher.hexdigest()
 
         try:
             upload_short_id = await store_uploaded_rpz(
                 self.application.object_store,
                 self.db,
-                uploaded_file,
+                filename,
+                filehash,
+                orig_filename,
                 self.request.remote_ip,
             )
         except rpz_metadata.InvalidPackage as e:

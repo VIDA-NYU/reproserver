@@ -1,4 +1,3 @@
-import asyncio
 from datetime import datetime
 from hashlib import sha256
 import json
@@ -7,6 +6,7 @@ import mimetypes
 import os
 import prometheus_client
 from sqlalchemy.orm import joinedload
+from streaming_form_data.targets import ValueTarget
 import tempfile
 
 from .. import database
@@ -16,7 +16,7 @@ from ..repositories import RepositoryError, RepositoryUnknown, \
     get_repository_page_url, parse_repository_url
 from .. import rpz_metadata
 from ..utils import PromMeasureRequest, background_future
-from .base import BaseHandler
+from .base import BaseHandler, HashedFileTarget, StreamedRequestHandler
 
 
 logger = logging.getLogger(__name__)
@@ -48,65 +48,47 @@ class Index(BaseHandler):
         return self.finish()
 
 
-async def store_uploaded_rpz(object_store, db, uploaded_file, remote_ip):
-    assert uploaded_file.filename
-    logger.info(
-        "Incoming file: %r, %d bytes",
-        uploaded_file.filename,
-        len(uploaded_file.body),
-    )
-
-    # Hash it
-    filehash = await asyncio.get_event_loop().run_in_executor(
-        None,
-        lambda: sha256(uploaded_file.body).hexdigest(),
-    )
-    logger.info("Computed hash: %s", filehash)
-
+async def store_uploaded_rpz(
+    object_store,
+    db,
+    filename,
+    filehash,
+    orig_filename,
+    remote_ip,
+):
     # Check for existence of experiment
     experiment = db.query(database.Experiment).get(filehash)
     if experiment:
         experiment.last_access = datetime.utcnow()
         logger.info("File exists in storage")
     else:
-        # Write it to disk
-        with tempfile.NamedTemporaryFile('w+b', suffix='.rpz') as tfile:
-            def write_and_flush():
-                tfile.write(uploaded_file.body)
-                tfile.flush()
+        # Insert it in database
 
-            await asyncio.get_event_loop().run_in_executor(
-                None,
-                write_and_flush,
-            )
+        # Might raise rpz_metadata.InvalidPackage
+        experiment = await rpz_metadata.make_experiment(
+            filehash,
+            filename,
+        )
+        db.add(experiment)
 
-            # Insert it in database
+        # Insert it on S3
+        await object_store.upload_file_async(
+            'experiments',
+            filehash,
+            filename,
+        )
+        logger.info("Inserted file in storage")
 
-            # Might raise rpz_metadata.InvalidPackage
-            experiment = rpz_metadata.make_experiment(
-                filehash,
-                tfile.name,
-            )
-            db.add(experiment)
-
-            # Insert it on S3
-            await object_store.upload_file_async(
-                'experiments',
-                filehash,
-                tfile.name,
-            )
-            logger.info("Inserted file in storage")
-
-            await process_uploaded_rpz(
-                object_store,
-                db,
-                experiment,
-                tfile.name,
-            )
+        await process_uploaded_rpz(
+            object_store,
+            db,
+            experiment,
+            filename,
+        )
 
     # Insert Upload in database
     upload = database.Upload(experiment=experiment,
-                             filename=uploaded_file.filename,
+                             filename=orig_filename,
                              submitted_ip=remote_ip)
     db.add(upload)
     db.commit()
@@ -114,23 +96,34 @@ async def store_uploaded_rpz(object_store, db, uploaded_file, remote_ip):
     return upload.short_id
 
 
-class Upload(BaseHandler):
+class Upload(StreamedRequestHandler):
     """Target of the landing page.
 
     An experiment has been provided, store it and extract metadata.
     """
+    def register_streaming_targets(self):
+        self.uploaded_file_tmp = tempfile.NamedTemporaryFile(prefix='upload_')
+        self.uploaded_file = HashedFileTarget(self.uploaded_file_tmp.name)
+        self.streaming_parser.register('rpz_file', self.uploaded_file)
+
+        self.rpz_url = ValueTarget()
+        self.streaming_parser.register('rpz_url', self.rpz_url)
+
+        self.not_permanent = ValueTarget()
+        self.streaming_parser.register('not_permanent', self.not_permanent)
+
     @PROM_REQUESTS.async_('upload')
     async def post(self):
+        super(Upload, self).post()
+
         # If a URL was provided, not a file
-        rpz_url = self.get_body_argument('rpz_url', None)
+        rpz_url = self.rpz_url.value.decode('utf-8', 'replace')
         if rpz_url:
             # Redirect to reproduce_repo view
             try:
-                repo, repo_path = await parse_repository_url(
-                    self.get_body_argument('rpz_url')
-                )
+                repo, repo_path = await parse_repository_url(rpz_url)
             except RepositoryUnknown:
-                if not self.get_argument('not_permanent', None):
+                if not self.not_permanent.value:
                     return await self.render(
                         'repository_notfound.html',
                         rpz_url=rpz_url,
@@ -169,20 +162,27 @@ class Upload(BaseHandler):
             )
 
         # Get uploaded file
-        # FIXME: Don't hold the file in memory!
-        try:
-            uploaded_file = self.request.files['rpz_file'][0]
-        except (KeyError, IndexError):
+        filename = self.uploaded_file.filename
+        orig_filename = self.uploaded_file.multipart_filename
+        if (
+            not os.path.getsize(filename)
+            or not orig_filename
+        ):
             return await self.render(
                 'setup_badfile.html',
                 message="Missing file",
             )
+        filehash = self.uploaded_file.hasher.hexdigest()
+        logger.info("Incoming file: %r", orig_filename)
+        logger.info("Computed hash: %s", filehash)
 
         try:
             upload_short_id = await store_uploaded_rpz(
                 self.application.object_store,
                 self.db,
-                uploaded_file,
+                filename,
+                filehash,
+                orig_filename,
                 self.request.remote_ip,
             )
         except rpz_metadata.InvalidPackage as e:
@@ -493,8 +493,6 @@ class Results(BaseHandler):
             'results.html',
             run=run,
             log=run.get_log(0),
-            started=bool(run.started),
-            done=bool(run.done),
             experiment_url=self.url_for_upload(run.upload),
             get_port_url=get_port_url,
             output_link=output_link,

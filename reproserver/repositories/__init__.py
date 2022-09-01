@@ -35,7 +35,7 @@ def get_repository_name(repo):
     try:
         repo_obj = _map[repo]
     except KeyError:
-        raise RepositoryUnknown("No such repository %s" % repo)
+        raise RepositoryUnknown("No such repository %r" % repo)
     return repo_obj.NAME
 
 
@@ -46,7 +46,7 @@ def get_experiment_from_repository(db, object_store, remote_addr,
     try:
         repo_obj = _map[repo]
     except KeyError:
-        raise RepositoryUnknown("No such repository %s" % repo)
+        raise RepositoryUnknown("No such repository %r" % repo)
     return repo_obj.get_experiment(
         db, object_store, remote_addr,
         repo, repo_path,
@@ -59,7 +59,7 @@ def get_repository_page_url(repo, repo_path):
     try:
         repo_obj = _map[repo]
     except KeyError:
-        raise RepositoryUnknown("No such repository %s" % repo)
+        raise RepositoryUnknown("No such repository %r" % repo)
     return repo_obj.get_page_url(repo, repo_path)
 
 

@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from reprounzip.pack_info import get_package_info
@@ -14,11 +15,7 @@ class InvalidPackage(ValueError):
     """
 
 
-def make_experiment(filehash, filename):
-    # Insert it in database
-    experiment = database.Experiment(hash=filehash)
-
-    # Extract metadata
+def get_metadata(filename):
     try:
         info = get_package_info(filename)
     except Exception as e:
@@ -27,10 +24,22 @@ def make_experiment(filehash, filename):
         ) from e
     logger.info("Got metadata, %d runs", len(info['runs']))
 
-    # Store whole output
-    experiment.info = json.dumps(
+    compact_json = json.dumps(
         info,
         sort_keys=True, separators=(',', ':'),
+    )
+
+    return info, compact_json
+
+
+async def make_experiment(filehash, filename):
+    # Insert it in database
+    experiment = database.Experiment(hash=filehash)
+
+    # Extract metadata
+    info, experiment.info = await asyncio.get_event_loop().run_in_executor(
+        None,
+        lambda: get_metadata(filename),
     )
 
     # Add parameters

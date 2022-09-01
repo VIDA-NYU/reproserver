@@ -1,3 +1,7 @@
+{% set current_page = 'webcapture_index' %}
+
+{% set current_page = 'web' %}
+
 {% extends "base.html" %}
 
 {% block content %}
@@ -8,11 +12,11 @@
 
 <form method="POST" action="{{ reverse_url('webcapture_upload') }}" enctype="multipart/form-data">
   {{ xsrf_form_html() }}
-  <div class="form-group">
-    <label for="rpz_file">Upload a file to get started</label>
-    <input type="file" class="form-control-file" id="rpz_file" name="rpz_file" placeholder="experiment.rpz">
+  <div class="mb-3">
+    <label for="rpz_file" class="form-label">Upload a file to get started</label>
+    <input type="file" class="form-control" id="rpz_file" name="rpz_file" placeholder="experiment.rpz">
   </div>
-  <button type="submit" class="btn btn-default">Upload</button>
+  <button type="submit" class="btn btn-primary">Upload</button>
 </form>
 
 {% endblock content %}

@@ -653,6 +653,14 @@ pymysql = ["pymysql (<1)", "pymysql"]
 sqlcipher = ["sqlcipher3-binary"]
 
 [[package]]
+name = "streaming-form-data"
+version = "1.10.2"
+description = "Streaming parser for multipart/form-data"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[[package]]
 name = "tornado"
 version = "6.1"
 description = "Tornado is a Python web framework and asynchronous networking library, originally developed at FriendFeed."
@@ -737,7 +745,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "d3abd78f0fcf1381d37382318f38556e0de7564b8ec08a30433bff643d2f22b4"
+content-hash = "02888adad1ed4122e29351c986dc6c4c413d3f909615d29557682bef02cd90c9"
 
 [metadata.files]
 aiohttp = [
@@ -1426,6 +1434,30 @@ sqlalchemy = [
     {file = "SQLAlchemy-1.4.29-cp39-cp39-win32.whl", hash = "sha256:37b46bfc4af3dc226acb6fa28ecd2e1fd223433dc5e15a2bad62bf0a0cbb4e8b"},
     {file = "SQLAlchemy-1.4.29-cp39-cp39-win_amd64.whl", hash = "sha256:08cfd35eecaba79be930c9bfd2e1f0c67a7e1314355d83a378f9a512b1cf7587"},
     {file = "SQLAlchemy-1.4.29.tar.gz", hash = "sha256:fa2bad14e1474ba649cfc969c1d2ec915dd3e79677f346bbfe08e93ef9020b39"},
+]
+streaming-form-data = [
+    {file = "streaming-form-data-1.10.2.tar.gz", hash = "sha256:532c7f70697fcc8a9a37b56495dcf36df11feefe42f626cff789beac11728f45"},
+    {file = "streaming_form_data-1.10.2-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:6d82534633c24f00e0fb3c46b90de1c21b1e97cb1403c7d002665b99ddecb5bb"},
+    {file = "streaming_form_data-1.10.2-cp36-cp36m-manylinux1_i686.whl", hash = "sha256:ebb2c1d31b21f0fffade29785c27bbacb8882605b9c0e51a317529ae5ad305a7"},
+    {file = "streaming_form_data-1.10.2-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:8096fa9f229f4d32addff7a316f842f3f41ef05420a0661537802cd478613ec9"},
+    {file = "streaming_form_data-1.10.2-cp36-cp36m-manylinux2010_i686.whl", hash = "sha256:cec3a0a7662fb3b54236340e17d59fd70508a39b5f0d6bc000fe57fe1a3a6945"},
+    {file = "streaming_form_data-1.10.2-cp36-cp36m-manylinux2010_x86_64.whl", hash = "sha256:f030f857b27392a7400b9eafe054614295057fbc4c2e5972b563e43dd1e0b8de"},
+    {file = "streaming_form_data-1.10.2-cp36-cp36m-win32.whl", hash = "sha256:86aa5dabbd7d15a3dc8300d7c148b82715b6ced8b852e83ef52edab00c31777f"},
+    {file = "streaming_form_data-1.10.2-cp36-cp36m-win_amd64.whl", hash = "sha256:3c4932a6ce2c0b518bac5e024ff1452f4ed9046ca80e79bfdfd9dff883949a60"},
+    {file = "streaming_form_data-1.10.2-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:b6b334c9c664a39d546955a125502023ae26de8e40606a456a8c59e3cdb6f5a3"},
+    {file = "streaming_form_data-1.10.2-cp37-cp37m-manylinux1_i686.whl", hash = "sha256:b236fcae398ade3af975da6fc519488e74fdef7d7c1c8d0b2015378de6ccd885"},
+    {file = "streaming_form_data-1.10.2-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:95cfa5306346a4ff0be74fb25e596ce2d068d928c5a3d35da03c08551174c932"},
+    {file = "streaming_form_data-1.10.2-cp37-cp37m-manylinux2010_i686.whl", hash = "sha256:3c0a8a1a13e05de9c236aca6c3a3a0df13968fc7f1bda1869a8e4858ce0d4fdf"},
+    {file = "streaming_form_data-1.10.2-cp37-cp37m-manylinux2010_x86_64.whl", hash = "sha256:4b90e1020e94df2e7071899da3d8ab759e93252147f4353b929a7b731aec3135"},
+    {file = "streaming_form_data-1.10.2-cp37-cp37m-win32.whl", hash = "sha256:20f619b674b5d5b1e1629b4dc60400f7dd4ed17eeebc27725664e45fe1cb68c1"},
+    {file = "streaming_form_data-1.10.2-cp37-cp37m-win_amd64.whl", hash = "sha256:51cd8db8c6f65b0f17a05e021269a797d266aeb455e49cac2b125598fbac1518"},
+    {file = "streaming_form_data-1.10.2-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:f6f3adf6b334c90d0f4e3dfeddf5790f3299af7d4bed37824bfd471b17869a0c"},
+    {file = "streaming_form_data-1.10.2-cp38-cp38-manylinux1_i686.whl", hash = "sha256:1bfbe6fa880fa35d73db187d5d52fda9b79c8f57944a078696714a24c3f9c3f9"},
+    {file = "streaming_form_data-1.10.2-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:989a8e2961c67707e04ce2d4f41daad9df8d52eebbfdeb6b3ed8ea1e431cb536"},
+    {file = "streaming_form_data-1.10.2-cp38-cp38-manylinux2010_i686.whl", hash = "sha256:7ce1b8ce3bbe393d244e3ef6bde79c52cbf7a23f54e65c11a88d4bce9714db5f"},
+    {file = "streaming_form_data-1.10.2-cp38-cp38-manylinux2010_x86_64.whl", hash = "sha256:e39645a1fcb09d7ed43960482f0d0d9747ec57c47115238347c249ec663d28fc"},
+    {file = "streaming_form_data-1.10.2-cp38-cp38-win32.whl", hash = "sha256:b31fb147fe981cee0215e1f811f99d94dfcc1bdd1a717b4d5e4896b06db454fa"},
+    {file = "streaming_form_data-1.10.2-cp38-cp38-win_amd64.whl", hash = "sha256:d1fef64b966f6ff13f279131705696f4a04b29514afe288c24fb50802fe394b6"},
 ]
 tornado = [
     {file = "tornado-6.1-cp35-cp35m-macosx_10_9_x86_64.whl", hash = "sha256:d371e811d6b156d82aa5f9a4e08b58debf97c302a35714f6f45e35139c332e32"},
