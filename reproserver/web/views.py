@@ -1,4 +1,3 @@
-import hmac
 from datetime import datetime
 from hashlib import sha256
 import logging
@@ -6,11 +5,8 @@ import mimetypes
 import os
 import prometheus_client
 from sqlalchemy.orm import joinedload
-from streaming_form_data import StreamingFormDataParser
 from streaming_form_data.targets import ValueTarget
 import tempfile
-from tornado.escape import utf8
-from tornado.web import HTTPError, stream_request_body
 
 from .. import database
 from ..repositories import RepositoryError, RepositoryUnknown, \
@@ -18,7 +14,7 @@ from ..repositories import RepositoryError, RepositoryUnknown, \
     get_repository_page_url, parse_repository_url
 from .. import rpz_metadata
 from ..utils import PromMeasureRequest, background_future
-from .base import BaseHandler, HashedFileTarget
+from .base import BaseHandler, HashedFileTarget, StreamedRequestHandler
 
 
 logger = logging.getLogger(__name__)
@@ -50,16 +46,12 @@ class Index(BaseHandler):
         return self.finish()
 
 
-@stream_request_body
-class Upload(BaseHandler):
+class Upload(StreamedRequestHandler):
     """Target of the landing page.
 
     An experiment has been provided, store it and extract metadata.
     """
-    def prepare(self):
-        self.request.connection.set_max_body_size(10_000_000_000)
-        self.streaming_parser = StreamingFormDataParser(self.request.headers)
-
+    def register_streaming_targets(self):
         self.uploaded_file_tmp = tempfile.NamedTemporaryFile(prefix='upload_')
         self.uploaded_file = HashedFileTarget(self.uploaded_file_tmp.name)
         self.streaming_parser.register('rpz_file', self.uploaded_file)
@@ -70,29 +62,9 @@ class Upload(BaseHandler):
         self.not_permanent = ValueTarget()
         self.streaming_parser.register('not_permanent', self.not_permanent)
 
-        self.sent_xsrf_token = ValueTarget()
-        self.streaming_parser.register('_xsrf', self.sent_xsrf_token)
-
-    def data_received(self, chunk):
-        self.streaming_parser.data_received(chunk)
-
-    def check_xsrf_cookie(self):
-        pass  # Skip built-in XSRF cookie checking, wait for body
-
-    def check_xsrf_cookie_with_body(self):
-        token = self.sent_xsrf_token.value.decode('utf-8', 'replace')
-        if not token:
-            raise HTTPError(403, "'_xsrf' argument missing from POST")
-        _, token, _ = self._decode_xsrf_token(token)
-        _, expected_token, _ = self._get_raw_xsrf_token()
-        if not token:
-            raise HTTPError(403, "'_xsrf' argument has invalid format")
-        if not hmac.compare_digest(utf8(token), utf8(expected_token)):
-            raise HTTPError(403, "XSRF cookie does not match POST argument")
-
     @PROM_REQUESTS.async_('upload')
     async def post(self):
-        self.check_xsrf_cookie_with_body()
+        super(Upload, self).post()
 
         # If a URL was provided, not a file
         rpz_url = self.rpz_url.value.decode('utf-8', 'replace')

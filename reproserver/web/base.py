@@ -1,4 +1,5 @@
 from hashlib import sha256
+import hmac
 import importlib
 import jinja2
 import json
@@ -6,7 +7,9 @@ import logging
 import os
 import pkg_resources
 import signal
-from streaming_form_data.targets import FileTarget
+from streaming_form_data import StreamingFormDataParser
+from streaming_form_data.targets import FileTarget, ValueTarget
+from tornado.escape import utf8
 import tornado.ioloop
 import tornado.web
 
@@ -171,6 +174,58 @@ class BaseHandler(tornado.web.RequestHandler):
     def send_error_json(self, status, message, reason=None):
         self.set_status(status, reason)
         return self.send_json({'error': message})
+
+
+@tornado.web.stream_request_body
+class StreamedRequestHandler(BaseHandler):
+    warn_xsrf_not_called = True
+
+    def prepare(self):
+        self.request.connection.set_max_body_size(10_000_000_000)
+        self.streaming_parser = StreamingFormDataParser(self.request.headers)
+
+        self.sent_xsrf_token = ValueTarget()
+        self.streaming_parser.register('_xsrf', self.sent_xsrf_token)
+
+        self.register_streaming_targets()
+
+    def register_streaming_targets(self):
+        raise NotImplementedError
+
+    def data_received(self, chunk):
+        self.streaming_parser.data_received(chunk)
+
+    def check_xsrf_cookie(self):
+        pass  # Skip built-in XSRF cookie checking, wait for body
+
+    def check_xsrf_cookie_with_body(self):
+        self.warn_xsrf_not_called = False
+
+        token = self.sent_xsrf_token.value.decode('utf-8', 'replace')
+        if not token:
+            raise tornado.web.HTTPError(
+                403,
+                "'_xsrf' argument missing from POST",
+            )
+        _, token, _ = self._decode_xsrf_token(token)
+        _, expected_token, _ = self._get_raw_xsrf_token()
+        if not token:
+            raise tornado.web.HTTPError(
+                403,
+                "'_xsrf' argument has invalid format",
+            )
+        if not hmac.compare_digest(utf8(token), utf8(expected_token)):
+            raise tornado.web.HTTPError(
+                403,
+                "XSRF cookie does not match POST argument",
+            )
+
+    def post(self):
+        self.check_xsrf_cookie_with_body()
+
+    def on_finish(self):
+        if self.warn_xsrf_not_called:
+            logger.warning("check_xsrf_cookie_with_body() not called")
 
 
 class HashedFileTarget(FileTarget):
