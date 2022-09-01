@@ -12,11 +12,13 @@
   {{ xsrf_form_html() }}
   <input type="hidden" name="rpz_url" value="{{ rpz_url }}">
   <input type="hidden" name="not_permanent" value="1">
-  <div class="form-group">
-    <label for="rpz_file">Direct RPZ URL</label>
-    <input type="text" class="form-control" id="rpz_file" value="{{ rpz_url }}" disabled>
+  <div class="mb-3 d-flex">
+    <label for="rpz_file" class="col-form-label me-2">Direct RPZ URL:</label>
+    <div class=" flex-sm-grow-1 me-2">
+      <input type="text" class="form-control" id="rpz_file" value="{{ rpz_url }}" disabled>
+    </div>
+    <button type="submit" class="btn btn-primary">Upload</button>
   </div>
-  <button type="submit" class="btn btn-default">Upload</button>
 </form>
 
 <p>Currently, this system recognizes the following URLs:</p>

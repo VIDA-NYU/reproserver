@@ -1,3 +1,5 @@
+{% set current_page = 'results' %}
+
 {% extends "base.html" %}
 
 {% block content %}
@@ -6,17 +8,16 @@
 
 {% if run.done %}
 
-<div class="panel panel-success" id="panel1">
-  <div class="panel-heading">
-    <h4 class="panel-title">
-      <a data-toggle="collapse" data-target="#runlog"
-         href="#runlog" class="collapsed">
-        Run log
-      </a>
-    </h4>
-  </div>
-  <div id="runlog" class="panel-collapse collapse">
-    <div class="panel-body">
+<div class="card my-3">
+  <a href="#" data-bs-toggle="collapse" data-bs-target="#runlog" aria-expanded="false" aria-controls="runlog" class="card-header text-decoration-none" style="text-decoration: none; color: var(--bs-link-color);">
+    Run log
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-double-down" viewBox="0 0 16 16">
+      <path fill-rule="evenodd" d="M1.646 6.646a.5.5 0 0 1 .708 0L8 12.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+      <path fill-rule="evenodd" d="M1.646 2.646a.5.5 0 0 1 .708 0L8 8.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+    </svg>
+  </a>
+  <div id="runlog" class="collapse">
+    <div class="card-body">
       <pre>{% for line in log %}{{ line }}
 {% endfor %}</pre>
     </div>

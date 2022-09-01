@@ -9,50 +9,45 @@
     <link rel="stylesheet" href="{{ static_url('css/custom.css') }}">
 
     <title>ReproServer</title>
+    <meta name="description" content="Reproduce ReproZip packages in the cloud">
   </head>
   <body>
 
     <div class="container" id="content" role="main">
 
       <!-- Menubar -->
-      <nav class="navbar navbar-inverse">
+      <nav class="navbar navbar-expand-md navbar-dark bg-primary">
         <div class="container-fluid">
-          <div class="navbar-header">
-            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-2">
-              <span class="sr-only">Toggle navigation</span>
-              <span class="icon-bar"></span>
-              <span class="icon-bar"></span>
-              <span class="icon-bar"></span>
-            </button>
-            <a class="navbar-brand" href="#">ReproServer</a>
-          </div>
-
-          <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-2">
-            <ul class="nav navbar-nav">
-              <li><a href="{{ reverse_url('index') }}">Upload</a></li>
+          <a class="navbar-brand" href="#">ReproServer</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarContent">
+            <ul class="navbar-nav mb-2 mb-md-0 flex-md-grow-1">
+              <li class="nav-item"><a class="nav-link{% if current_page == 'index' %} active{% endif %}"{% if current_page == 'index' %} aria-current="page"{% endif %} href="{{ reverse_url('index') }}">Upload</a></li>
 {% if experiment_url %}
-              <li><a href="{{ experiment_url }}">Reproduce</a></li>
+              <li class="nav-item"><a class="nav-link{% if current_page == 'reproduce' %} active{% endif %}"{% if current_page == 'reproduce' %} aria-current="page"{% endif %} href="{{ experiment_url }}">Reproduce</a></li>
 {% endif %}
 {% if run_id %}
-              <li><a href="">View run</a></li>
+              <li class="nav-item"><a class="nav-link{% if current_page == 'results' %} active{% endif %}"{% if current_page == 'results' %} aria-current="page"{% endif %} href="#">View run</a></li>
 {% endif %}
-            </ul>
-            <ul class="nav navbar-nav navbar-right">
-              <li><a href="{{ reverse_url('about') }}">About</a></li>
+              <li class="nav-item ms-md-auto"><a class="nav-link{% if current_page == 'about' %} active{% endif %}"{% if current_page == 'about' %} aria-current="page"{% endif %} href="{{ reverse_url('about') }}">About</a></li>
               <!--dropdown-->
-              <li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Links<span class="caret"></span></a>
-                <ul class="dropdown-menu">
-                  <li><a href="https://github.com/VIDA-NYU/reproserver">GitHub Repository</a></li>
-                  <li><a href="https://www.reprozip.org/">ReproZip Website</a></li>
+              <li class="nav-item dropdown">
+                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">Links<span class="caret"></span></a>
+                <ul class="dropdown-menu dropdown-menu-md-end">
+                  <li><a class="dropdown-item" href="https://github.com/VIDA-NYU/reproserver">GitHub Repository</a></li>
+                  <li><a class="dropdown-item" href="https://www.reprozip.org/">ReproZip Website</a></li>
                 </ul>
-              </li><!--end dropdown-->
+              </li>
+              <!--end dropdown-->
             </ul>
 
           </div><!-- /.navbar-collapse -->
         </div><!-- /.container -->
-      </nav><!-- End of Menubar -->
+      </nav><!-- /.navbar -->
 
-      <div class="body-content"> <!--Body content-->
+      <div class="container mt-3"> <!--Body content-->
 
 {% block content %}
 {% endblock content %}
@@ -70,8 +65,7 @@
     </footer>
     <!-- end footer -->
 
-    <script src="{{ static_url('js/jquery.min.js') }}"></script>
-    <script src="{{ static_url('js/bootstrap.min.js') }}"></script>
+    <script src="{{ static_url('js/bootstrap.bundle.min.js') }}"></script>
 
   </body>
 </html>
