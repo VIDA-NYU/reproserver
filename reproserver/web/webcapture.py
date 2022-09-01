@@ -496,9 +496,20 @@ class CrawlStatus(BaseHandler):
 class UploadWacz(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_upload_wacz')
     async def get(self, upload_short_id):
+        hostname = self.get_query_argument('hostname')
+        port_number = self.get_query_argument('port_number')
+        try:
+            port_number = int(port_number, 10)
+            if not (1 <= port_number <= 65535):
+                raise OverflowError
+        except (ValueError, OverflowError):
+            raise HTTPError(400, "Wrong port number")
+
         return await self.render(
             'webcapture/upload_wacz.html',
             upload_short_id=upload_short_id,
+            hostname=hostname,
+            port_number=port_number,
         )
 
     @PROM_REQUESTS.sync('webcapture_upload_wacz')

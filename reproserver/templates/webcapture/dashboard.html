@@ -36,7 +36,7 @@
   <div class="mb-3">
     <input type="submit" formaction="{{ reverse_url('webcapture_start_record', upload_short_id) }}" class="btn btn-primary" value="Record from browser">
     <input type="submit" formaction="{{ reverse_url('webcapture_start_crawl', upload_short_id) }}" class="btn btn-primary" value="Start automated crawl">
-    <a href="{{ reverse_url('webcapture_upload_wacz', upload_short_id) }}" class="btn btn-secondary">Upload existing file</a>
+    <input type="submit" formaction="{{ reverse_url('webcapture_upload_wacz', upload_short_id) }}" class="btn btn-secondary" formmethod="GET" value="Upload existing file">
   </div>
   {% if wacz %}
   <div class="mb-3">
