@@ -19,6 +19,22 @@
   <button type="submit" class="btn btn-primary">Upload</button>
 </form>
 
+<script>
+var fileInput = document.getElementById('rpz_file');
+var urlInput = document.getElementById('rpz_url');
+var submitButton = fileInput.closest('form').querySelector('button[type="submit"]');
+function updateUploadForm() {
+  if(fileInput.value || urlInput.value) {
+    submitButton.removeAttribute('disabled');
+  } else {
+    submitButton.setAttribute('disabled', true);
+  }
+}
+fileInput.addEventListener('change', updateUploadForm);
+urlInput.addEventListener('input', updateUploadForm);
+updateUploadForm();
+</script>
+
 <hr/>
 
 <h2>How to Use This Site</h2>
