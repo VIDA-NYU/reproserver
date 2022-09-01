@@ -18,10 +18,10 @@ jobs:
           python-version: "3.8"
       - name: Install Poetry
         run: |
-          curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python - --version 1.1.12
-          $HOME/.poetry/bin/poetry config virtualenvs.create false
+          curl -sSL https://install.python-poetry.org | python3 -
+          $HOME/.local/bin/poetry config virtualenvs.create false
       - name: Install dependencies
-        run: $HOME/.poetry/bin/poetry install --no-interaction
+        run: $HOME/.local/bin/poetry install --no-interaction
       - name: flake8
         run: flake8 --ignore=E731,W503,W504 reproserver tests
       - name: Unit tests
@@ -52,10 +52,10 @@ jobs:
           python-version: "3.8"
       - name: Install Poetry
         run: |
-          curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python - --version 1.1.12
-          $HOME/.poetry/bin/poetry config virtualenvs.create false
+          curl -sSL https://install.python-poetry.org | python3 -
+          $HOME/.local/bin/poetry config virtualenvs.create false
       - name: Install dependencies
-        run: $HOME/.poetry/bin/poetry install --no-interaction
+        run: $HOME/.local/bin/poetry install --no-interaction
       - name: Install kind
         run: |
           sudo mkdir -p /usr/local/bin
