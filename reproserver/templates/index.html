@@ -4,6 +4,19 @@
 
 {% block content %}
 
+<h1>How to Use This Site</h1>
+<p>This site allows you to run reproducible research packaged with <a href="https://www.reprozip.org/">ReproZip</a> directly from your browser. Upload your own <code>.rpz</code> file and click the "Upload" button!</p>
+
+<p>From there, you can set parameters and (optionally) upload your own inputs, and then reproduce the work by clicking the "Run" button. You can then see the log and output files from the research, which you can view or download to your machine. You can also share the link for other people to reproduce your research.</p>
+
+<p>You can also choose one of the examples below to test it out!</p>
+
+<h1>Examples</h1>
+
+<p><a href="{{ reverse_url('reproduce_repo', 'osf.io', 'r2ptb') }}">bechdel.rpz</a>: Attempt to replicate the findings from a FiveThirtyEight article examining gender bias in the movie business</p>
+<p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ztp2') }}">digits_sklearn_opencv.rpz</a>: Recognizing the value of hand-written digits using OpenCV and scikit-learn</p>
+<p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ke97') }}">bash-count.rpz</a>: Simple bash script counting the lines in a file</p>
+
 <h1>Select a package to upload</h1>
 
 <form method="POST" action="{{ reverse_url('upload') }}" enctype="multipart/form-data">
@@ -34,20 +47,5 @@ fileInput.addEventListener('change', updateUploadForm);
 urlInput.addEventListener('input', updateUploadForm);
 updateUploadForm();
 </script>
-
-<hr/>
-
-<h2>How to Use This Site</h2>
-<p>This site allows you to run reproducible research packaged with <a href="https://www.reprozip.org/">ReproZip</a> directly from your browser. Upload your own <code>.rpz</code> file and click the "Upload" button!</p>
-
-<p>From there, you can set parameters and (optionally) upload your own inputs, and then reproduce the work by clicking the "Run" button. You can then see the log and output files from the research, which you can view or download to your machine. You can also share the link for other people to reproduce your research.</p>
-
-<p>You can also choose one of the examples below to test it out!</p>
-
-<h2>Examples</h2>
-
-<p><a href="{{ reverse_url('reproduce_repo', 'osf.io', 'r2ptb') }}">bechdel.rpz</a>: Attempt to replicate the findings from a FiveThirtyEight article examining gender bias in the movie business</p>
-<p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ztp2') }}">digits_sklearn_opencv.rpz</a>: Recognizing the value of hand-written digits using OpenCV and scikit-learn</p>
-<p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ke97') }}">bash-count.rpz</a>: Simple bash script counting the lines in a file</p>
 
 {% endblock content %}
