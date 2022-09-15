@@ -7,7 +7,6 @@ services:
     env_file:
       - ".env"
     environment:
-      REPROZIP_USAGE_STATS: "off"
       DOCKER_HOST: tcp://docker:2375
       REGISTRY: registry:5000
       RUNNER_TYPE: docker

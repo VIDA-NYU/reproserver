@@ -69,8 +69,6 @@ data:
             value: tcp://127.0.0.1:2375
           - name: REGISTRY
             value: registry:5000
-          - name: REPROZIP_USAGE_STATS
-            value: "off"
         ports:
           - name: proxy
             containerPort: 5597
@@ -152,8 +150,6 @@ spec:
                 secretKeyRef:
                   name: reproserver-secret
                   key: connection_token
-            - name: REPROZIP_USAGE_STATS
-              value: "off"
             - name: RUNNER_TYPE
               value: k8s
             - name: K8S_CONFIG_DIR
