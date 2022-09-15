@@ -34,7 +34,7 @@ spec:
                   name: reproserver-secret
                   key: postgres_password
           ports:
-            - name: proxy
+            - name: postgres
               containerPort: 5432
           volumeMounts:
             - mountPath: /var/lib/postgresql/data
