@@ -1,0 +1,65 @@
+image:
+  repository: reproserver_web
+  tag: latest
+
+proxyUrl: "http://{short_id}-{port}.web.localhost:8000/"
+
+s3:
+  clientUrl: http://files.localhost:8000
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: localhost
+      paths:
+        - path: /
+          pathType: Prefix
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "1200"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "1200"
+    nginx.ingress.kubernetes.io/proxy-body-size: 4096M
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+
+proxyIngress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: "*.web.localhost"
+      paths:
+        - path: /
+          pathType: Prefix
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "1200"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "1200"
+    nginx.ingress.kubernetes.io/proxy-body-size: 4096M
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+
+minio:
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: files.localhost
+        paths:
+          - path: /
+            pathType: Prefix
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "1200"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "1200"
+      nginx.ingress.kubernetes.io/proxy-body-size: 4096M
+      nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+      nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+
+  storage:
+    storageClass: standard
+
+registry:
+  storage:
+    storageClass: standard
+
+postgres:
+  storage:
+    storageClass: standard
