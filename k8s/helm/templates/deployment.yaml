@@ -77,6 +77,11 @@ spec:
                 secretKeyRef:
                   name: "{{ .Values.secret.name | default (include "reproserver.fullname" .) }}"
                   key: connectionToken
+            - name: REPROSERVER_DEBUG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.secret.name | default (include "reproserver.fullname" .) }}"
+                  key: debugPassword
             - name: RUNNER_TYPE
               value: k8s
             - name: K8S_CONFIG_DIR
