@@ -33,7 +33,7 @@ docker_build_sub(
 )
 
 # Run Helm chart
-yaml = helm('k8s/helm', name='reproserver', values=['k8s/minikube.values.yml'], set=['debugMode=true'])
+yaml = helm('k8s/helm', name='reproserver', values=['k8s/minikube.values.yml'], set=['debugMode=true', 'debugPassword=debug'])
 k8s_yaml(yaml)
 
 # Add links

@@ -57,6 +57,8 @@ secret:
   create: true
   # Override the secret's name whose default value is the release name
   name: ""
+  # Override the debug password (useful for debugging), default is random
+  debugPassword: ""
 
 proxyService:
   type: ClusterIP
