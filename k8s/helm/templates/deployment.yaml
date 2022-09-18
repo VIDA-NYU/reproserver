@@ -36,6 +36,10 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
+            {{- if .Values.debugMode }}
+            - name: REPROSERVER_DEBUG
+              value: "1"
+            {{- end }}
             - name: WEB_PROXY_URL
               value: {{ .Values.proxyUrl }}
             - name: S3_KEY

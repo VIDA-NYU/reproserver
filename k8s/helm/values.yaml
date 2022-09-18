@@ -21,6 +21,8 @@ dockerInDocker:
   affinity: {}
   tolerations: {}
 
+debugMode: false
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
