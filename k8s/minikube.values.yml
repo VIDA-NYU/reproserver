@@ -15,6 +15,12 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "1200"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "1200"
+    nginx.ingress.kubernetes.io/proxy-body-size: 4096M
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
 
 proxyIngress:
   enabled: true
@@ -24,6 +30,12 @@ proxyIngress:
       paths:
         - path: /
           pathType: Prefix
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "1200"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "1200"
+    nginx.ingress.kubernetes.io/proxy-body-size: 4096M
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
 
 minio:
   ingress:
@@ -34,6 +46,12 @@ minio:
         paths:
           - path: /
             pathType: Prefix
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "1200"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "1200"
+      nginx.ingress.kubernetes.io/proxy-body-size: 4096M
+      nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+      nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
 
   storage:
     storageClass: standard
