@@ -32,32 +32,16 @@ docker_build_sub(
     match_in_env_vars=True,
 )
 
-k8s_yaml([
-    'k8s/volumes.yml',
-    'k8s/sa.yml',
-    'k8s/secrets.yml',
-    'k8s/ingress.yml',
-    'k8s/minio.yml',
-    'k8s/postgres.yml',
-    'k8s/registry.yml',
-])
-
-# Turn on debug mode
-web_pod, rest =  filter_yaml('k8s/reproserver.yml', kind='Deployment', name='web')
-web_pod = decode_yaml(web_pod)
-web_pod['spec']['template']['spec']['containers'][0]['env'].append({
-    'name': 'REPROSERVER_DEBUG',
-    'value': '1',
-})
-k8s_yaml(encode_yaml(web_pod))
-k8s_yaml(rest)
+# Run Helm chart
+yaml = helm('k8s/helm', name='reproserver', values=['k8s/minikube.values.yml'], set=['debugMode=true'])
+k8s_yaml(yaml)
 
 # Add links
 k8s_resource(
-    'minio',
+    'reproserver-minio',
     links=[link('http://files.localhost:8000/minio/', 'Minio Browser')],
 )
 k8s_resource(
-    'web',
+    'reproserver',
     links=[link('http://localhost:8000/', 'Frontend')],
 )
