@@ -33,7 +33,24 @@ docker_build_sub(
 )
 
 # Run Helm chart
-yaml = helm('k8s/helm', name='reproserver', values=['k8s/minikube.values.yml'], set=['debugMode=true', 'debugPassword=debug'])
+yaml = helm('k8s/helm', name='reproserver', values=['k8s/minikube.values.yml'], set=['debugMode=true', 'secret.debugPassword=debug'])
+
+# Override passwords
+postgres_secret, yaml = filter_yaml(yaml, kind='Secret', name='reproserver-postgres')
+postgres_secret = decode_yaml(postgres_secret)
+postgres_secret['data']['postgres_password'] = 'cGdwYXNzd29yZA==' # pgpassword
+k8s_yaml(encode_yaml(postgres_secret))
+
+minio_secret, yaml = filter_yaml(yaml, kind='Secret', name='reproserver-minio')
+minio_secret = decode_yaml(minio_secret)
+minio_secret['data']['s3_secret'] = 'bWluaW9zZWNyZXRrZXk=' # miniosecretkey
+k8s_yaml(encode_yaml(minio_secret))
+
+reproserver_secret, yaml = filter_yaml(yaml, kind='Secret', name='reproserver')
+reproserver_secret = decode_yaml(reproserver_secret)
+reproserver_secret['data']['connectionToken'] = 'cmVwcm9zZXJ2ZXJ0b2tlbg==' # reproservertoken
+k8s_yaml(encode_yaml(reproserver_secret))
+
 k8s_yaml(yaml)
 
 # Add links
