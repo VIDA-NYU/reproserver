@@ -1,0 +1,36 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "reproserver.fullname" . }}
+  labels:
+    {{- include "reproserver.labels" . | nindent 4 }}
+    server.reprozip.org/component: web
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "reproserver.selectorLabels" . | nindent 4 }}
+    server.reprozip.org/component: web
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "reproserver.fullname" . }}-proxy
+  labels:
+    {{- include "reproserver.labels" . | nindent 4 }}
+    server.reprozip.org/component: proxy
+spec:
+  type: {{ .Values.proxyService.type }}
+  ports:
+    - port: {{ .Values.proxyService.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "reproserver.selectorLabels" . | nindent 4 }}
+    server.reprozip.org/component: proxy

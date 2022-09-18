@@ -1,0 +1,235 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "reproserver.fullname" . }}
+  labels:
+    {{- include "reproserver.labels" . | nindent 4 }}
+    server.reprozip.org/component: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "reproserver.selectorLabels" . | nindent 6 }}
+      server.reprozip.org/component: web
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "reproserver.selectorLabels" . | nindent 8 }}
+        server.reprozip.org/component: web
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "reproserver.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: WEB_PROXY_URL
+              value: {{ .Values.proxyUrl }}
+            - name: S3_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.minio.secret.name | default (include "minio.fullname" .Subcharts.minio) }}"
+                  key: s3_key
+            - name: S3_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.minio.secret.name | default (include "minio.fullname" .Subcharts.minio) }}"
+                  key: s3_secret
+            - name: S3_URL
+              value: "{{ .Values.s3.url | default (printf "http://%s:9000" (include "minio.fullname" .Subcharts.minio)) }}"
+            - name: S3_BUCKET_PREFIX
+              value: "{{ .Values.s3.bucketPrefix }}"
+            - name: S3_CLIENT_URL
+              value: {{ .Values.s3.clientUrl }}
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.postgres.secret.name | default (include "postgres.fullname" .Subcharts.postgres) }}"
+                  key: postgres_user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.postgres.secret.name | default (include "postgres.fullname" .Subcharts.postgres) }}"
+                  key: postgres_password
+            - name: POSTGRES_HOST
+              value: {{ include "postgres.fullname" .Subcharts.postgres }}
+            - name: POSTGRES_DB
+              value: postgres
+            - name: CONNECTION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.secret.name | default (include "reproserver.fullname" .) }}"
+                  key: connectionToken
+            - name: RUNNER_TYPE
+              value: k8s
+            - name: K8S_CONFIG_DIR
+              value: /etc/reproserver-k8s
+            {{- if .Values.zenodoTokenSecret }}
+            - name: ZENODO_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.zenodoTokenSecret }}
+                  key: zenodo_token
+            {{- end }}
+            - name: OVERRIDE_RUNNER_IMAGE
+              value: "{{ .Values.runner_image_override | default (printf "%s:%s" .Values.image.repository (.Values.image.tag | default .Chart.AppVersion)) }}"
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+            - name: prometheus
+              containerPort: 8090
+              protocol: TCP
+          volumeMounts:
+            - name: k8s-config
+              mountPath: /etc/reproserver-k8s
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+              httpHeaders:
+                - name: X-Kubernetes-Probe
+                  value: readiness
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 1
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+              httpHeaders:
+                - name: X-Kubernetes-Probe
+                  value: liveness
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: k8s-config
+          configMap:
+            name: {{ include "reproserver.fullname" . }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "reproserver.fullname" . }}-proxy
+  labels:
+    {{- include "reproserver.labels" . | nindent 4 }}
+    server.reprozip.org/component: proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "reproserver.selectorLabels" . | nindent 6 }}
+      server.reprozip.org/component: proxy
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "reproserver.selectorLabels" . | nindent 8 }}
+        server.reprozip.org/component: proxy
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}-proxy
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.postgres.secret.name | default (include "postgres.fullname" .Subcharts.postgres) }}"
+                  key: postgres_user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.postgres.secret.name | default (include "postgres.fullname" .Subcharts.postgres) }}"
+                  key: postgres_password
+            - name: POSTGRES_HOST
+              value: {{ include "postgres.fullname" .Subcharts.postgres }}
+            - name: POSTGRES_DB
+              value: postgres
+            - name: CONNECTION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.secret.name | default (include "reproserver.fullname" .) }}"
+                  key: connectionToken
+          command:
+            - "reproserver-k8s-proxy"
+          ports:
+            - name: http
+              containerPort: 8001
+              protocol: TCP
+            - name: prometheus
+              containerPort: 8090
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+              httpHeaders:
+                - name: X-Kubernetes-Probe
+                  value: readiness
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 1
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+              httpHeaders:
+                - name: X-Kubernetes-Probe
+                  value: liveness
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
