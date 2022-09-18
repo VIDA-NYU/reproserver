@@ -23,7 +23,7 @@ data:
           - "--host=tcp://127.0.0.1:2375"
           - "--storage-driver={{ .Values.dockerInDocker.storageDriver }}"
           - "--userns-remap=default"
-          - "--insecure-registry={{ include "registry.fullname" .Subcharts.registry }}:5000"
+          - "--insecure-registry={{ include "reproserver.registryServiceName" . }}:5000"
         resources:
           {{- toYaml .Values.dockerInDocker.resources | nindent 10 }}
       - name: runner
@@ -34,15 +34,15 @@ data:
           - name: S3_KEY
             valueFrom:
               secretKeyRef:
-                name: "{{ .Values.minio.secret.name | default (include "minio.fullname" .Subcharts.minio) }}"
+                name: "{{ include "reproserver.minioSecretName" . }}"
                 key: s3_key
           - name: S3_SECRET
             valueFrom:
               secretKeyRef:
-                name: "{{ .Values.minio.secret.name | default (include "minio.fullname" .Subcharts.minio) }}"
+                name: "{{ include "reproserver.minioSecretName" . }}"
                 key: s3_secret
           - name: S3_URL
-            value: "{{ .Values.s3.url | default (printf "http://%s:9000" (include "minio.fullname" .Subcharts.minio)) }}"
+            value: "{{ .Values.s3.url | default (printf "http://%s:9000" (include "reproserver.minioServiceName" .)) }}"
           - name: S3_BUCKET_PREFIX
             value: "{{ .Values.s3.bucketPrefix }}"
           - name: S3_CLIENT_URL
@@ -57,7 +57,7 @@ data:
           - name: DOCKER_HOST
             value: tcp://127.0.0.1:2375
           - name: REGISTRY
-            value: {{ include "registry.fullname" .Subcharts.registry }}:5000
+            value: {{ include "reproserver.registryServiceName" . }}:5000
         ports:
           - name: proxy
             containerPort: 5597

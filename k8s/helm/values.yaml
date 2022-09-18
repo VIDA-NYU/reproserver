@@ -119,3 +119,12 @@ tolerations: []
 affinity: {}
 
 zenodoTokenSecret: ""
+
+minio:
+  enabled: true
+
+postgres:
+  enabled: true
+
+registry:
+  enabled: true

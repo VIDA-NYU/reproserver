@@ -41,15 +41,15 @@ spec:
             - name: S3_KEY
               valueFrom:
                 secretKeyRef:
-                  name: "{{ .Values.minio.secret.name | default (include "minio.fullname" .Subcharts.minio) }}"
+                  name: "{{ include "reproserver.minioSecretName" . }}"
                   key: s3_key
             - name: S3_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: "{{ .Values.minio.secret.name | default (include "minio.fullname" .Subcharts.minio) }}"
+                  name: "{{ include "reproserver.minioSecretName" . }}"
                   key: s3_secret
             - name: S3_URL
-              value: "{{ .Values.s3.url | default (printf "http://%s:9000" (include "minio.fullname" .Subcharts.minio)) }}"
+              value: "{{ .Values.s3.url | default (printf "http://%s:9000" (include "reproserver.minioServiceName" .)) }}"
             - name: S3_BUCKET_PREFIX
               value: "{{ .Values.s3.bucketPrefix }}"
             - name: S3_CLIENT_URL
@@ -57,15 +57,15 @@ spec:
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
-                  name: "{{ .Values.postgres.secret.name | default (include "postgres.fullname" .Subcharts.postgres) }}"
+                  name: "{{ include "reproserver.postgresSecretName" . }}"
                   key: postgres_user
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: "{{ .Values.postgres.secret.name | default (include "postgres.fullname" .Subcharts.postgres) }}"
+                  name: "{{ include "reproserver.postgresSecretName" . }}"
                   key: postgres_password
             - name: POSTGRES_HOST
-              value: {{ include "postgres.fullname" .Subcharts.postgres }}
+              value: {{ include "reproserver.postgresServiceName" . }}
             - name: POSTGRES_DB
               value: postgres
             - name: CONNECTION_TOKEN
@@ -174,15 +174,15 @@ spec:
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
-                  name: "{{ .Values.postgres.secret.name | default (include "postgres.fullname" .Subcharts.postgres) }}"
+                  name: "{{ include "reproserver.postgresSecretName" . }}"
                   key: postgres_user
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: "{{ .Values.postgres.secret.name | default (include "postgres.fullname" .Subcharts.postgres) }}"
+                  name: "{{ include "reproserver.postgresSecretName" . }}"
                   key: postgres_password
             - name: POSTGRES_HOST
-              value: {{ include "postgres.fullname" .Subcharts.postgres }}
+              value: {{ include "reproserver.postgresServiceName" . }}
             - name: POSTGRES_DB
               value: postgres
             - name: CONNECTION_TOKEN

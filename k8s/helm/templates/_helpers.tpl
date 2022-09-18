@@ -71,3 +71,68 @@ Create the name of the role to create for the service account
 {{- default "default" .Values.serviceAccount.roleName }}
 {{- end }}
 {{- end }}
+
+{{/*
+The name of the minio secret
+*/}}
+{{- define "reproserver.minioSecretName" -}}
+{{- $minioSecretName := get (.Values.minio.secret | default dict) "name" -}}
+{{- if not (empty $minioSecretName) -}}
+  {{- $minioSecretName -}}
+{{- else -}}
+  {{- if .Values.minio.enabled -}}
+    {{- include "minio.fullname" .Subcharts.minio -}}
+  {{- else -}}
+    {{- include "reproserver.fullname" . -}}-minio
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The name of the postgres secret
+*/}}
+{{- define "reproserver.postgresSecretName" -}}
+{{- $postgresSecretName := get (.Values.postgres.secret | default dict) "name" -}}
+{{- if not (empty $postgresSecretName) -}}
+  {{- $postgresSecretName -}}
+{{- else -}}
+  {{- if .Values.postgres.enabled -}}
+    {{- include "postgres.fullname" .Subcharts.postgres -}}
+  {{- else -}}
+    {{- include "reproserver.fullname" . -}}-postgres
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The name of the minio service
+*/}}
+{{- define "reproserver.minioServiceName" -}}
+{{- if .Values.minio.enabled -}}
+{{- include "minio.fullname" .Subcharts.minio -}}
+{{- else -}}
+{{- .Values.minio.serviceName -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The name of the postgres service
+*/}}
+{{- define "reproserver.postgresServiceName" -}}
+{{- if .Values.postgres.enabled -}}
+{{- include "postgres.fullname" .Subcharts.postgres -}}
+{{- else -}}
+{{- .Values.postgres.serviceName -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The name of the registry service
+*/}}
+{{- define "reproserver.registryServiceName" -}}
+{{- if .Values.registry.enabled -}}
+{{- include "registry.fullname" .Subcharts.registry -}}
+{{- else -}}
+{{- .Values.registry.serviceName -}}
+{{- end -}}
+{{- end -}}
