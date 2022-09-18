@@ -1,0 +1,47 @@
+image:
+  repository: reproserver_web
+  tag: latest
+
+proxyUrl: "http://{short_id}-{port}.web.localhost:8000/"
+
+s3:
+  clientUrl: http://files.localhost:8000
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: localhost
+      paths:
+        - path: /
+          pathType: Prefix
+
+proxyIngress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: "*.web.localhost"
+      paths:
+        - path: /
+          pathType: Prefix
+
+minio:
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - host: files.localhost
+        paths:
+          - path: /
+            pathType: Prefix
+
+  storage:
+    storageClass: standard
+
+registry:
+  storage:
+    storageClass: standard
+
+postgres:
+  storage:
+    storageClass: standard
