@@ -59,10 +59,7 @@ spec:
             - name: S3_CLIENT_URL
               value: {{ .Values.s3.clientUrl }}
             - name: POSTGRES_USER
-              valueFrom:
-                secretKeyRef:
-                  name: "{{ include "reproserver.postgresSecretName" . }}"
-                  key: postgres_user
+              value: "{{ .Values.postgres.user }}"
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -181,10 +178,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: POSTGRES_USER
-              valueFrom:
-                secretKeyRef:
-                  name: "{{ include "reproserver.postgresSecretName" . }}"
-                  key: postgres_user
+              value: "{{ .Values.postgres.user }}"
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
