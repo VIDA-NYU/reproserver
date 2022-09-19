@@ -206,7 +206,7 @@ class ProxyHandler(WebSocketHandler):
                 name, value = line.split(":", 1)
                 self.set_header(name, value.strip())
 
-    def on_ws_connection_close(self, close_code, close_reason):
+    def on_ws_connection_close(self, close_code=None, close_reason=None):
         self.upstream_ws.close(close_code, close_reason)
 
     def on_message(self, message):
