@@ -31,6 +31,8 @@ service:
   type: ClusterIP
   port: 5432
 
+user: "pguser"
+
 secret:
   create: true
   # Override the secret's name whose default is the release name
