@@ -7,7 +7,6 @@ from hashlib import sha256
 from reprozip_web.combine import combine
 from sqlalchemy.orm import joinedload
 import tempfile
-import textwrap
 from tornado.web import HTTPError
 from tornado.websocket import WebSocketHandler, websocket_connect
 from urllib.parse import urlencode
@@ -168,7 +167,7 @@ class Preview(BaseHandler):
 
         wacz_hash = self.get_query_argument('wacz')
 
-        hostname = self.get_body_argument('hostname')
+        self.get_body_argument('hostname')
         port_number = self.get_body_argument('port_number')
         try:
             port_number = int(port_number, 10)
@@ -320,6 +319,50 @@ class Record(BaseHandler):
         )
 
 
+BROWSERTRIX_SCRIPT = r'''
+SLEPT=0
+CURL_STATUS="$(curl -s -o /dev/null -w "%{http_code}" \
+    --connect-timeout 5 "__URL))")"
+while ! printf '%s\n' "$CURL_STATUS" | grep '^[23]' > /dev/null; do
+    printf "waiting for web server (curl: $CURL_STATUS)\n" >&2
+    sleep 5
+    SLEPT=$((SLEPT + 5))
+    if [ $SLEPT -gt 300 ]; then
+        printf "web server didn't come online\n" >&2
+        exit 1
+    fi
+    CURL_STATUS="$(curl -s -o /dev/null -w "%{http_code}" \
+        --connect-timeout 5 "__URL__")"
+done
+printf 'web server ready (curl: %s)\n' "$CURL_STATUS"
+if ! crawl \
+    --url "__URL__" \
+    --screencastPort 9223 \
+    --workers 2 \
+    --generateWACZ
+then
+    printf "crawl failed\n" >&2
+    exit 1
+fi
+WACZ_PATH=$(ls -1 /crawls/collections/*/*.wacz | head -n 1)
+if [ ! -e "$WACZ_PATH" ]; then
+    printf "can't find WACZ\n" >&2
+    exit 1
+fi
+ls -l $WACZ_PATH
+CURL_STATUS="$(curl -s -o /dev/null \
+    -w "%{http_code}" \
+    -F "wacz_file=@$WACZ_PATH" \
+    -F "hostname=__HOSTNAME__" \
+    -F "port_number=__PORT_NUMBER__" \
+    http://web:8000/web/__UPLOAD_SHORT_ID__/upload-wacz?run=__RUN_ID__)"
+if [ "$CURL_STATUS" != 303 ]; then
+    printf "upload failed (status %s)\n" "$CURL_STATUS" >&2
+    exit 1
+fi
+'''
+
+
 class StartCrawl(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_start_crawl')
     def post(self, upload_short_id):
@@ -377,43 +420,7 @@ class StartCrawl(BaseHandler):
         ))
 
         # Add browsertrix container
-        script = textwrap.dedent(r'''
-        SLEPT=0
-        CURL_STATUS="$(curl -s -o /dev/null -w "%{http_code}" \
-            --connect-timeout 5 "__URL))")"
-        while ! printf '%s\n' "$CURL_STATUS" | grep '^[23]' > /dev/null; do
-            printf "waiting for web server (curl: $CURL_STATUS)\n" >&2
-            sleep 5
-            SLEPT=$((SLEPT + 5))
-            if [ $SLEPT -gt 300 ]; then
-                printf "web server didn't come online\n" >&2
-                exit 1
-            fi
-            CURL_STATUS="$(curl -s -o /dev/null -w "%{http_code}" \
-                --connect-timeout 5 "__URL__")"
-        done
-        printf 'web server ready (curl: %s)\n' "$CURL_STATUS"
-        if ! crawl --url "__URL__" --screencastPort 9223 --workers 2 --generateWACZ; then
-            printf "crawl failed\n" >&2
-            exit 1
-        fi
-        WACZ_PATH=$(ls -1 /crawls/collections/*/*.wacz | head -n 1)
-        if [ ! -e "$WACZ_PATH" ]; then
-            printf "can't find WACZ\n" >&2
-            exit 1
-        fi
-        ls -l $WACZ_PATH
-        CURL_STATUS="$(curl -s -o /dev/null \
-            -w "%{http_code}" \
-            -F "wacz_file=@$WACZ_PATH" \
-            -F "hostname=__HOSTNAME__" \
-            -F "port_number=__PORT_NUMBER__" \
-            http://web:8000/web/__UPLOAD_SHORT_ID__/upload-wacz?run=__RUN_ID__)"
-        if [ "$CURL_STATUS" != 303 ]; then
-            printf "upload failed (status %s)\n" "$CURL_STATUS" >&2
-            exit 1
-        fi
-        ''')
+        script = BROWSERTRIX_SCRIPT
         for k, v in {
             '__URL__': seed_url,
             '__UPLOAD_SHORT_ID__': upload_short_id,
@@ -523,7 +530,10 @@ class CrawlStatusWebsocket(WebSocketHandler, BaseHandler):
             self.set_status(404)
             return self.finish("Not found")
 
-        return super(CrawlStatusWebsocket, self).get(upload_short_id, run_short_id)
+        return super(CrawlStatusWebsocket, self).get(
+            upload_short_id,
+            run_short_id,
+        )
 
     async def open(self, upload_short_id, run_short_id):
         self.upstream_ws = await websocket_connect(
@@ -655,7 +665,7 @@ class Download(BaseHandler):
         wacz_hash = self.get_query_argument('wacz')
 
         # TODO: Those go into the RPZ file somewhere
-        hostname = self.get_body_argument('hostname')
+        self.get_body_argument('hostname')
         port_number = self.get_body_argument('port_number')
         try:
             port_number = int(port_number, 10)
