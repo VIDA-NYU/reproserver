@@ -121,11 +121,23 @@ class BaseConnector(object):
 
             # If we have read a line, add it to the list and read again
             if read_op.done():
-                line = await read_op
+                eof = False
+                try:
+                    line = await read_op
+                except asyncio.IncompleteReadError as e:
+                    if e.partial:
+                        # Handle this last part before exiting
+                        line = e.partial
+                        eof = True
+                    else:
+                        # We're done
+                        break
                 line = line.decode('utf-8', 'replace')
                 line = line.rstrip()
                 logger.info("> %s", line)
                 lines.append(line)
+                if eof:
+                    break
                 read_op = asyncio.create_task(proc.stdout.readuntil(b'\n'))
 
             # If we have completed the insertion and we have lines to send,
