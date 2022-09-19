@@ -28,6 +28,7 @@ RUN curl -Lo /tmp/docker.tgz https://download.docker.com/linux/static/stable/x86
 COPY reproserver /usr/src/app/reproserver
 COPY README.md LICENSE.txt /usr/src/app/
 RUN /root/.local/bin/poetry install --no-interaction --only main
+ENV REPROZIP_USAGE_STATS=off
 
 # Set up user
 RUN mkdir /usr/src/app/home && \

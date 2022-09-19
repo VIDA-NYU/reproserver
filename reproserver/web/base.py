@@ -1,3 +1,4 @@
+import base64
 from hashlib import sha256
 import hmac
 import importlib
@@ -181,6 +182,22 @@ class BaseHandler(tornado.web.RequestHandler):
     def send_error_json(self, status, message, reason=None):
         self.set_status(status, reason)
         return self.send_json({'error': message})
+
+    def basic_auth(self, user, password):
+        auth_header = self.request.headers.get('Authorization')
+        if auth_header is None or not auth_header.startswith('Basic '):
+            self.set_status(401)
+            self.set_header('WWW-Authenticate', 'Basic realm=reproserver')
+            self.finish()
+            raise tornado.web.HTTPError(401)
+        auth = base64.b64decode(auth_header[6:]).decode('utf-8')
+        if auth.split(':', 1) == [user, password]:
+            pass
+        else:
+            self.set_status(401)
+            self.set_header('WWW-Authenticate', 'Basic realm=reproserver')
+            self.finish()
+            raise tornado.web.HTTPError(401)
 
 
 @tornado.web.stream_request_body

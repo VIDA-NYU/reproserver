@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "reproserver.fullname" . }}
+  labels:
+    {{- include "reproserver.labels" . | nindent 4 }}
+data:
+  runner.namespace: {{ .Release.Namespace }}
+  runner.pod_spec: |
+    restartPolicy: Never
+    {{- with .Values.dockerInDocker.imagePullSecrets }}
+    imagePullSecrets:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    enableServiceLinks: false
+    containers:
+      - name: docker
+        image: "{{ .Values.dockerInDocker.repository }}:{{ .Values.dockerInDocker.tag }}"
+        imagePullPolicy: {{ .Values.dockerInDocker.pullPolicy }}
+        securityContext:
+          privileged: true
+        args:
+          - "dockerd"
+          - "--host=tcp://127.0.0.1:2375"
+          - "--storage-driver={{ .Values.dockerInDocker.storageDriver }}"
+          - "--userns-remap=default"
+          - "--insecure-registry={{ include "reproserver.registryServiceName" . }}:5000"
+        resources:
+          {{- toYaml .Values.dockerInDocker.resources | nindent 10 }}
+      - name: runner
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        args: ["python3", "-c", "import sys; from reproserver.run.k8s import _run_in_pod; _run_in_pod(sys.argv[1])"]
+        env:
+          - name: S3_KEY
+            valueFrom:
+              secretKeyRef:
+                name: "{{ include "reproserver.minioSecretName" . }}"
+                key: s3_key
+          - name: S3_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: "{{ include "reproserver.minioSecretName" . }}"
+                key: s3_secret
+          - name: S3_URL
+            value: "{{ .Values.s3.url | default (printf "http://%s:9000" (include "reproserver.minioServiceName" .)) }}"
+          - name: S3_BUCKET_PREFIX
+            value: "{{ .Values.s3.bucketPrefix }}"
+          - name: S3_CLIENT_URL
+            value: {{ .Values.s3.clientUrl }}
+          - name: API_ENDPOINT
+            value: http://{{ include "reproserver.fullname" . }}:{{ .Values.service.port }}
+          - name: CONNECTION_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: "{{ .Values.secret.name | default (include "reproserver.fullname" .) }}"
+                key: connectionToken
+          - name: DOCKER_HOST
+            value: tcp://127.0.0.1:2375
+          - name: REGISTRY
+            value: {{ include "reproserver.registryServiceName" . }}:5000
+        ports:
+          - name: proxy
+            containerPort: 5597
+        resources:
+          {{- toYaml .Values.runnerResources | nindent 10 }}
+    {{- with .Values.nodeSelector }}
+    nodeSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+    affinity:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}

@@ -32,32 +32,33 @@ docker_build_sub(
     match_in_env_vars=True,
 )
 
-k8s_yaml([
-    'k8s/volumes.yml',
-    'k8s/sa.yml',
-    'k8s/secrets.yml',
-    'k8s/ingress.yml',
-    'k8s/minio.yml',
-    'k8s/postgres.yml',
-    'k8s/registry.yml',
-])
+# Run Helm chart
+yaml = helm('k8s/helm', name='reproserver', values=['k8s/minikube.values.yml'], set=['debugMode=true', 'secret.debugPassword=debug'])
 
-# Turn on debug mode
-web_pod, rest =  filter_yaml('k8s/reproserver.yml', kind='Deployment', name='web')
-web_pod = decode_yaml(web_pod)
-web_pod['spec']['template']['spec']['containers'][0]['env'].append({
-    'name': 'REPROSERVER_DEBUG',
-    'value': '1',
-})
-k8s_yaml(encode_yaml(web_pod))
-k8s_yaml(rest)
+# Override passwords
+postgres_secret, yaml = filter_yaml(yaml, kind='Secret', name='reproserver-postgres')
+postgres_secret = decode_yaml(postgres_secret)
+postgres_secret['data']['postgres_password'] = 'cGdwYXNzd29yZA==' # pgpassword
+k8s_yaml(encode_yaml(postgres_secret))
+
+minio_secret, yaml = filter_yaml(yaml, kind='Secret', name='reproserver-minio')
+minio_secret = decode_yaml(minio_secret)
+minio_secret['data']['s3_secret'] = 'bWluaW9zZWNyZXRrZXk=' # miniosecretkey
+k8s_yaml(encode_yaml(minio_secret))
+
+reproserver_secret, yaml = filter_yaml(yaml, kind='Secret', name='reproserver')
+reproserver_secret = decode_yaml(reproserver_secret)
+reproserver_secret['data']['connectionToken'] = 'cmVwcm9zZXJ2ZXJ0b2tlbg==' # reproservertoken
+k8s_yaml(encode_yaml(reproserver_secret))
+
+k8s_yaml(yaml)
 
 # Add links
 k8s_resource(
-    'minio',
+    'reproserver-minio',
     links=[link('http://files.localhost:8000/minio/', 'Minio Browser')],
 )
 k8s_resource(
-    'web',
+    'reproserver',
     links=[link('http://localhost:8000/', 'Frontend')],
 )

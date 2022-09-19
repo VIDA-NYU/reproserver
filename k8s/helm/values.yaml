@@ -1,0 +1,137 @@
+# Default values for reproserver.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/vida-nyu/reproserver/web
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+dockerInDocker:
+  repository: docker
+  tag: "20.10.7-dind"
+  pullPolicy: IfNotPresent
+  storageDriver: overlay2
+  resources: {}
+  runnerResources: {}
+  nodeSelector: {}
+  affinity: {}
+  tolerations: {}
+
+debugMode: false
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+
+secret:
+  create: true
+  # Override the secret's name whose default value is the release name
+  name: ""
+  # Override the debug password (useful for debugging), default is random
+  debugPassword: ""
+
+proxyService:
+  type: ClusterIP
+  port: 80
+
+proxyUrl: "http://{short_id}-{port}.web.localhost:8000/"
+
+s3:
+  # Defaults to using minio
+  url: ""
+  bucketPrefix: ""
+  clientUrl: http://files.localhost:8000
+
+browsertrix:
+  image: webrecorder/browsertrix-crawler@sha256:b9822b7bd699748903e8f6663775442292263599e62f00d6e402e0eac145211c
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+proxyIngress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: "*.web.chart-example.local"
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-proxy-example-tls
+  #    hosts:
+  #      - "*.web.chart-example.local"
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+zenodoTokenSecret: ""
+
+minio:
+  enabled: true
+
+postgres:
+  enabled: true
+
+registry:
+  enabled: true

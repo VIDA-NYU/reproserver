@@ -540,6 +540,7 @@ class Data(BaseHandler):
     """
     @PROM_REQUESTS.sync('data')
     def get(self):
+        self.basic_auth('debug', os.environ['REPROSERVER_DEBUG_PASSWORD'])
         return self.render(
             'data.html',
             experiments=self.db.query(database.Experiment).all(),
