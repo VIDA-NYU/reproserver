@@ -12,6 +12,8 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+database: postgres
+
 podAnnotations: {}
 
 podSecurityContext: {}
