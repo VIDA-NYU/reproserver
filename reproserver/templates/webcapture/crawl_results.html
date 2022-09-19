@@ -38,6 +38,8 @@
 <pre id="log" style="max-height: 200px">{% for line in log %}{{ line }}
 {% endfor %}</pre>
 
+<div id="browsertrix"></div>
+
 <script>
 var log_lines = {{ log | length }};
 function update_page() {
@@ -61,6 +63,62 @@ function update_page() {
 }
 
 setTimeout(update_page, 3000);
+</script>
+
+<script>
+const ws = new WebSocket(window.location.href.replace("http", "ws") + "/ws");
+ws.addEventListener("message", (event) => handleMessage(event.data));
+
+const unusedElems = [];
+
+function handleMessage(resp) {
+  resp = JSON.parse(resp);
+
+  switch (resp.msg) {
+    case "screencast":
+      img = createImage(resp.id);
+      if (resp.data) {
+        setImageData(img, resp.data);
+      }
+      break;
+
+    case "close":
+      img = unuseImage(resp.id);
+      break;
+  }
+}
+
+function setImageData(img, data) {
+  //img.style.display = "";
+  img.src = "data:image/png;base64," + data;
+}
+
+function createImage(id) {
+  let elem = document.getElementById(id);
+  if (elem) {
+    return elem;
+  }
+
+  if (unusedElems.length) {
+    elem = unusedElems.shift();
+    elem.setAttribute("id", id);
+    return elem;
+  }
+
+  elem = document.createElement("img");
+  elem.setAttribute("id", id);
+  document.getElementById("browsertrix").appendChild(elem);
+  return elem;
+}
+
+function unuseImage(id) {
+  const elem = document.getElementById(id);
+  if (!elem) {
+    return;
+  }
+  //elem.style.display = "none";
+  unusedElems.push(elem);
+}
 </script>
 
 {% endif %}

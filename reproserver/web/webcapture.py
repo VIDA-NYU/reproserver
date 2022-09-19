@@ -9,6 +9,7 @@ from sqlalchemy.orm import joinedload
 import tempfile
 import textwrap
 from tornado.web import HTTPError
+from tornado.websocket import WebSocketHandler, websocket_connect
 from urllib.parse import urlencode
 
 from .base import BaseHandler, HashedFileTarget, StreamedRequestHandler
@@ -430,6 +431,13 @@ class StartCrawl(BaseHandler):
                         'args': ['sh', '-c', script],
                     },
                 ],
+                'ports': [
+                    {
+                        'name': 'browsertrix',
+                        'protocol': 'TCP',
+                        'port': 9223,
+                    },
+                ],
             },
         })
 
@@ -491,6 +499,49 @@ class CrawlStatus(BaseHandler):
             hostname=hostname,
             port_number=port_number,
         )
+
+
+class CrawlStatusWebsocket(WebSocketHandler, BaseHandler):
+    def get(self, upload_short_id, run_short_id):
+        # Decode info from URL
+        try:
+            run_id = database.Run.decode_id(run_short_id)
+        except ValueError:
+            self.set_status(404)
+            return self.finish("Not found")
+        try:
+            upload_id = database.Upload.decode_id(upload_short_id)
+        except ValueError:
+            self.set_status(404)
+            return self.finish("Not found")
+
+        # Look up the run in the database
+        self.run = (
+            self.db.query(database.Run)
+        ).get(run_id)
+        if self.run is None or self.run.upload_id != upload_id:
+            self.set_status(404)
+            return self.finish("Not found")
+
+        return super(CrawlStatusWebsocket, self).get(upload_short_id, run_short_id)
+
+    async def open(self, upload_short_id, run_short_id):
+        self.upstream_ws = await websocket_connect(
+            'ws://run-%d:9223/ws' % self.run.id,
+            on_message_callback=self.on_upstream_message,
+        )
+
+    def on_message(self, message):
+        return self.upstream_ws.write_message(message)
+
+    def on_upstream_message(self, message):
+        if message is None:
+            self.close()
+        else:
+            return self.write_message(message, isinstance(message, bytes))
+
+    def on_ws_connection_close(self, close_code=None, close_reason=None):
+        self.upstream_ws.close(close_code, close_reason)
 
 
 class UploadWacz(BaseHandler):

@@ -73,9 +73,14 @@ class K8sRunner(BaseRunner):
 
         # Load extra configuration
         extra_containers = None
+        extra_ports = None
         if extra_config is not None:
             try:
                 extra_containers = extra_config['required'].pop('containers')
+            except KeyError:
+                pass
+            try:
+                extra_ports = extra_config['required'].pop('ports')
             except KeyError:
                 pass
 
@@ -150,10 +155,11 @@ class K8sRunner(BaseRunner):
                     },
                     ports=[
                         k8s_client.V1ServicePort(
+                            name='proxy',
                             protocol='TCP',
                             port=5597,
                         ),
-                    ],
+                    ] + (extra_ports if extra_ports else []),
                 ),
             )
             await v1.create_namespaced_service(
@@ -351,11 +357,13 @@ def _run_in_pod(run_id):
         runner.connector.init_run_get_info(run_id),
     )
 
-    # Remove extra_config.required.containers setting, we handled it
+    # Remove extra_config settings we handled
     extra_config = run_info.get('extra_config')
     if extra_config is not None:
         if 'containers' in extra_config.get('required', ()):
             del extra_config['required']['containers']
+        if 'ports' in extra_config.get('required', ()):
+            del extra_config['required']['ports']
 
     # Run
     fut = runner._docker_run(
