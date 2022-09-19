@@ -12,7 +12,6 @@ from tornado.httpclient import AsyncHTTPClient, HTTPClient
 import urllib.parse
 
 from .. import database
-from ..utils import background_future
 
 
 logger = logging.getLogger(__name__)
@@ -21,6 +20,8 @@ logger = logging.getLogger(__name__)
 class BaseConnector(object):
     """Provides a connection to the run in the database.
     """
+    RUN_CMD_LOG_INTERVAL = 1
+
     def init_run_get_info(self, run_id):  # async
         """Get information for a run, mark it as starting.
         """
@@ -82,10 +83,65 @@ class BaseConnector(object):
         for line in lines:
             await self.log(run_id, '%s', line)
 
-    def run_cmd_and_log(self, run_id, cmd):  # async
+    async def run_cmd_and_log(self, run_id, cmd):  # async
         """Run a command, adding each line of output to the run's log.
         """
-        raise NotImplementedError
+        async def log_and_wait(lines):
+            await self.log_multiple(run_id, lines)
+            # Don't send requests too fast
+            await asyncio.sleep(self.RUN_CMD_LOG_INTERVAL)
+
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+
+        log_op = asyncio.Future()
+        log_op.set_result(None)
+
+        read_op = asyncio.create_task(proc.stdout.readuntil(b'\n'))
+
+        proc_end = asyncio.create_task(proc.wait())
+
+        lines = []
+
+        while proc.returncode is None:
+            # If we have lines to send, wait for either the next line or for
+            # the current insertion to complete.
+            # If we don't have anything to send, only wait for lines.
+            wait_for_futures = [read_op, proc_end]
+            if lines:
+                wait_for_futures.append(log_op)
+            await asyncio.wait(
+                wait_for_futures,
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+
+            # If we have read a line, add it to the list and read again
+            if read_op.done():
+                line = await read_op
+                line = line.decode('utf-8', 'replace')
+                line = line.rstrip()
+                logger.info("> %s", line)
+                lines.append(line)
+                read_op = asyncio.create_task(proc.stdout.readuntil(b'\n'))
+
+            # If we have completed the insertion and we have lines to send,
+            # send them
+            if lines and log_op.done():
+                await log_op
+                log_op = asyncio.create_task(log_and_wait(lines))
+                lines = []
+
+        # Send remaining lines, if any
+        if lines:
+            await log_op
+            log_op = asyncio.create_task(self.log_multiple(run_id, lines))
+
+        await log_op
+        return await proc_end
 
 
 class DirectConnector(BaseConnector):
@@ -322,29 +378,6 @@ class DirectConnector(BaseConnector):
             db.add(database.RunLogLine(run_id=run_id, line=line))
         db.commit()
 
-    def _run_cmd_and_log(self, run_id, cmd):
-        db = self.DBSession()
-        proc = subprocess.Popen(cmd,
-                                stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
-        proc.stdin.close()
-        for line in iter(proc.stdout.readline, b''):
-            line = line.decode('utf-8', 'replace')
-            line = line.rstrip()
-            logger.info("> %s", line)
-            db.add(database.RunLogLine(run_id=run_id, line=line))
-            db.commit()
-        return proc.wait()
-
-    def run_cmd_and_log(self, run_id, cmd):
-        return asyncio.get_event_loop().run_in_executor(  # FIXME async
-            None,
-            lambda: self._run_cmd_and_log(
-                run_id, cmd,
-            ),
-        )
-
 
 MAX_FILE_SIZE = 5_000_000_000  # 5 GB
 
@@ -379,6 +412,8 @@ def file_body_producer(file):
 class HttpConnector(BaseConnector):
     """Connects to the API endpoint.
     """
+    RUN_CMD_LOG_INTERVAL = 3
+
     def __init__(self, api_endpoint):
         self.api_endpoint = api_endpoint
         self.loop = asyncio.get_event_loop()
@@ -534,29 +569,4 @@ class HttpConnector(BaseConnector):
                 ],
             }),
             headers={'Content-Type': 'application/json; charset=utf-8'},
-        )
-
-    def _run_cmd_and_log(self, run_id, cmd):
-        proc = subprocess.Popen(cmd,
-                                stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
-        proc.stdin.close()
-        for line in iter(proc.stdout.readline, b''):
-            line = line.decode('utf-8', 'replace')
-            line = line.rstrip()
-            logger.info("> %s", line)
-            self.loop.call_soon_threadsafe(
-                lambda l=line: background_future(self.loop.create_task(
-                    self.log(run_id, "%s", l),
-                )),
-            )
-        return proc.wait()
-
-    def run_cmd_and_log(self, run_id, cmd):
-        return asyncio.get_event_loop().run_in_executor(  # FIXME async
-            None,
-            lambda: self._run_cmd_and_log(
-                run_id, cmd,
-            ),
         )
