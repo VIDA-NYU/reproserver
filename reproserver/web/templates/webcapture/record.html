@@ -24,12 +24,13 @@ function update_page() {
   var req = new XMLHttpRequest();
   req.addEventListener("load", function(e) {
     if(this.status == 200) {
-      if(this.response.done) {
-        window.location.reload();
-      } else if(this.response.log.length > 0) {
+      if(this.response.log.length > 0) {
         log_lines += this.response.log.length;
         var dom_log = document.getElementById("log");
         dom_log.textContent += this.response.log.join("\n") + "\n";
+      }
+      if(this.response.done) {
+        return;
       }
     }
     setTimeout(update_page, 3000);
