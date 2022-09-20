@@ -215,7 +215,7 @@ class DirectConnector(BaseConnector):
                                  input_file.name)
             inputs.append({
                 'name': input_file.name,
-                'input_hash': input_file.hash,
+                'hash': input_file.hash,
                 'path': paths[input_file.name],
                 'size': input_file.size,
             })
