@@ -4,7 +4,15 @@
 
 {% block content %}
 
-<h1>Package <a href="{{ experiment_url }}">{{ run.upload.filename | truncate(60) }}</a>, run {{ run.short_id }}</h1>
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{{ experiment_url }}">Package {{ run.upload.filename | truncate(60) }}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Run results</li>
+  </ol>
+</nav>
+
+<h1>Run results</h1>
 
 {% if run.done %}
 

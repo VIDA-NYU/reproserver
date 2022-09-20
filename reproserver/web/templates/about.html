@@ -4,6 +4,13 @@
 
 {% block content %}
 
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
+    <li class="breadcrumb-item active" aria-current="page">About</li>
+  </ol>
+</nav>
+
 <h1>About ReproServer</h1>
 
 <p>As research has become increasingly reliant on digital tools, the challenges in reproducibility have become more poignant. Releasing code and data are key to open research, but not necessarily enough for reproducibility. There are dependencies that aren't easily captured, and effect the reproducibility of research. In response to these challenges, we created ReproZip, an open source tool (see <a href="https://github.com/VIDA-NYU/reprozip">GitHub repo</a>) that bundles everything necessary to reproduce your work -- down to the operating system level!</p>
