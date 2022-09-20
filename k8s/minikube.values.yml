@@ -7,6 +7,8 @@ proxyUrl: "http://{short_id}-{port}.web.localhost:8000/"
 s3:
   clientUrl: http://files.localhost:8000
 
+shutdownTime: 0
+
 ingress:
   enabled: true
   className: nginx

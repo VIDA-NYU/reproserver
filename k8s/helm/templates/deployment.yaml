@@ -42,6 +42,8 @@ spec:
             {{- end }}
             - name: WEB_PROXY_URL
               value: {{ .Values.proxyUrl }}
+            - name: TORNADO_SHUTDOWN_TIME
+              value: {{ .Values.shutdownTime | quote }}
             - name: S3_KEY
               valueFrom:
                 secretKeyRef:
@@ -177,6 +179,8 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
+            - name: TORNADO_SHUTDOWN_TIME
+              value: {{ .Values.shutdownTime | quote }}
             - name: POSTGRES_USER
               value: "{{ .Values.postgres.user }}"
             - name: POSTGRES_PASSWORD
