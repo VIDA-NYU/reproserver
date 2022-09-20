@@ -4,6 +4,15 @@
 
 {% block content %}
 
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{{ reverse_url('webcapture_index') }}">Web capture</a></li>
+    <li class="breadcrumb-item"><a href="{{ reverse_url('webcapture_dashboard', run.upload.short_id) }}">Package {{ run.upload.filename | truncate(60) }}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Live record</li>
+  </ol>
+</nav>
+
 <h1>Live recording here (from browser)</h1>
 
 <div class="card my-3">

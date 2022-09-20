@@ -578,7 +578,10 @@ class UploadWacz(BaseHandler):
         try:
             uploaded_file = self.request.files['wacz_file'][0]
         except (KeyError, IndexError):
-            return await self.render('webcapture/upload_wacz_bad.html')
+            return await self.render(
+                'webcapture/upload_wacz_bad.html',
+                upload_short_id=upload_short_id,
+            )
 
         logger.info(
             "Incoming WACZ: %r %d bytes",

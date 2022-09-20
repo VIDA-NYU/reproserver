@@ -4,6 +4,14 @@
 
 {% block content %}
 
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{{ reverse_url('webcapture_index') }}">Web capture</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Upload package</li>
+  </ol>
+</nav>
+
 <h1>Error reading file</h1>
 
 {% if message %}

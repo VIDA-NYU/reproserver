@@ -4,7 +4,16 @@
 
 {% block content %}
 
-<h1>Package <a href="{{ reverse_url('webcapture_dashboard', run.upload.short_id) }}">{{ run.upload.filename | truncate(60) }}</a>, run {{ run.short_id }}</h1>
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{{ reverse_url('webcapture_index') }}">Web capture</a></li>
+    <li class="breadcrumb-item"><a href="{{ reverse_url('webcapture_dashboard', run.upload.short_id) }}">Package {{ run.upload.filename | truncate(60) }}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Automated crawl</li>
+  </ol>
+</nav>
+
+<h1>Automated crawl</h1>
 
 {% if run.done %}
 

@@ -4,6 +4,15 @@
 
 {% block content %}
 
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{{ reverse_url('webcapture_index') }}">Web capture</a></li>
+    <li class="breadcrumb-item"><a href="{{ reverse_url('webcapture_dashboard', run.upload.short_id) }}">Package {{ run.upload.filename | truncate(60) }}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Upload a WACZ file</li>
+  </ol>
+</nav>
+
 <h1>Upload a WACZ file</h1>
 
 <p>This page lets you lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec ullamcorper lorem vitae porta malesuada. Sed dictum turpis non consequat porttitor. Sed tellus arcu, tempus non diam in, rutrum pharetra sapien. Pellentesque hendrerit libero sit amet mattis finibus. In in tortor non tellus commodo vestibulum sit amet elementum magna. Praesent vestibulum mollis enim, eu mollis erat venenatis nec. Duis nulla libero, sagittis non maximus ac, venenatis vulputate risus.</p>
