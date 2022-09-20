@@ -326,7 +326,10 @@ def _run_in_pod(run_id):
 
     # Get a runner from environment
     runner = DockerRunner(
-        HttpConnector(os.environ['API_ENDPOINT']),
+        HttpConnector(
+            os.environ['API_ENDPOINT'],
+            os.environ['CONNECTION_TOKEN'],
+        ),
     )
 
     # Load run information

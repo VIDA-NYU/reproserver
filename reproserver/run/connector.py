@@ -426,10 +426,11 @@ class HttpConnector(BaseConnector):
     """
     RUN_CMD_LOG_INTERVAL = 3
 
-    def __init__(self, api_endpoint):
+    def __init__(self, api_endpoint, connection_token):
         self.api_endpoint = api_endpoint
         self.loop = asyncio.get_event_loop()
         self.http_client = AsyncHTTPClient()
+        self.connection_token = connection_token
 
     async def init_run_get_info(self, run_id):
         response = await self.http_client.fetch(
@@ -439,7 +440,10 @@ class HttpConnector(BaseConnector):
             ),
             method='POST',
             body=b'{}',
-            headers={'Content-Type': 'application/json; charset=utf-8'},
+            headers={
+                'Content-Type': 'application/json; charset=utf-8',
+                'X-Reproserver-Authenticate': self.connection_token,
+            },
         )
         return json.loads(response.body.decode('utf-8'))
 
@@ -451,7 +455,10 @@ class HttpConnector(BaseConnector):
             ),
             method='POST',
             body=b'{}',
-            headers={'Content-Type': 'application/json; charset=utf-8'},
+            headers={
+                'Content-Type': 'application/json; charset=utf-8',
+                'X-Reproserver-Authenticate': self.connection_token,
+            },
         )
 
     async def run_done(self, run_id):
@@ -462,7 +469,10 @@ class HttpConnector(BaseConnector):
             ),
             method='POST',
             body=b'{}',
-            headers={'Content-Type': 'application/json; charset=utf-8'},
+            headers={
+                'Content-Type': 'application/json; charset=utf-8',
+                'X-Reproserver-Authenticate': self.connection_token,
+            },
         )
 
     async def run_failed(self, run_id, error):
@@ -473,7 +483,10 @@ class HttpConnector(BaseConnector):
             ),
             method='POST',
             body=json.dumps({'error': error}).encode('utf-8'),
-            headers={'Content-Type': 'application/json; charset=utf-8'}
+            headers={
+                'Content-Type': 'application/json; charset=utf-8',
+                'X-Reproserver-Authenticate': self.connection_token,
+            }
         )
 
     def get_input_links(self, run_info):
@@ -541,22 +554,22 @@ class HttpConnector(BaseConnector):
                     urllib.parse.quote_plus(name),
                 ),
                 method='PUT',
-                body_producer=file_body_producer(file)
+                body_producer=file_body_producer(file),
+                headers={'X-Reproserver-Authenticate': self.connection_token},
             )
 
     async def upload_output_file(
-        self, run_id, name, file, *, digest=None, http_client=None,
+        self, run_id, name, file, *, digest=None,
     ):
-        if http_client is None:
-            http_client = AsyncHTTPClient()
-        await http_client.fetch(
+        await self.http_client.fetch(
             '{0}/runners/run/{1}/output/{2}'.format(
                 self.api_endpoint,
                 run_id,
                 urllib.parse.quote_plus(name),
             ),
             method='PUT',
-            body_producer=file_body_producer(file)
+            body_producer=file_body_producer(file),
+            headers={'X-Reproserver-Authenticate': self.connection_token},
         )
 
     def log(self, run_id, msg, *args):
@@ -580,5 +593,8 @@ class HttpConnector(BaseConnector):
                     for line in lines
                 ],
             }),
-            headers={'Content-Type': 'application/json; charset=utf-8'},
+            headers={
+                'Content-Type': 'application/json; charset=utf-8',
+                'X-Reproserver-Authenticate': self.connection_token,
+            },
         )

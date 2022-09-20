@@ -1,17 +1,29 @@
 import asyncio
 from datetime import datetime
 import hashlib
+import logging
 import tempfile
-from tornado.web import stream_request_body
+from tornado.web import HTTPError, stream_request_body
 
 from .base import BaseHandler
 from .. import database
 from ..run.connector import DirectConnector
 
 
+logger = logging.getLogger(__name__)
+
+
 class BaseApiHandler(BaseHandler):
     def check_xsrf_cookie(self):
         pass
+
+    def prepare(self):
+        token = self.request.headers.pop('X-Reproserver-Authenticate', None)
+        if token != self.application.settings['connection_token']:
+            self.set_status(403)
+            logger.info("Unauthenticated connector request")
+            self.finish("Unauthenticated connector request")
+            raise HTTPError(403)
 
     @property
     def connector(self):
