@@ -34,9 +34,17 @@
 
 <p>Run in progress, please wait...</p>
 
-<p>Run log:</p>
-<pre id="log" style="max-height: 200px">{% for line in log %}{{ line }}
+<div class="card my-3">
+  <p class="card-header">
+    Run log
+  </p>
+  <div>
+    <div class="card-body">
+      <pre id="log" style="max-height: 200px">{% for line in log %}{{ line }}
 {% endfor %}</pre>
+    </div>
+  </div>
+</div>
 
 <div id="browsertrix"></div>
 

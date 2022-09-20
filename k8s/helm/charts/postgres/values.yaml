@@ -12,6 +12,8 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+database: postgres
+
 podAnnotations: {}
 
 podSecurityContext: {}
@@ -28,6 +30,8 @@ securityContext: {}
 service:
   type: ClusterIP
   port: 5432
+
+user: "pguser"
 
 secret:
   create: true

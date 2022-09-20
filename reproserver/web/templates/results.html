@@ -18,7 +18,7 @@
   </a>
   <div id="runlog" class="collapse">
     <div class="card-body">
-      <pre>{% for line in log %}{{ line }}
+      <pre style="max-height: 200px">{% for line in log %}{{ line }}
 {% endfor %}</pre>
     </div>
   </div>
@@ -57,9 +57,17 @@
 </p>
 {% endif %}
 
-<p>Run log:</p>
-<pre id="log" style="max-height: 200px">{% for line in log %}{{ line }}
+<div class="card my-3">
+  <p class="card-header">
+    Run log
+  </p>
+  <div id="log">
+    <div class="card-body">
+      <pre style="max-height: 200px">{% for line in log %}{{ line }}
 {% endfor %}</pre>
+    </div>
+  </div>
+</div>
 
 <script>
 var log_lines = {{ log | length }};

@@ -72,6 +72,9 @@ s3:
   bucketPrefix: ""
   clientUrl: http://files.localhost:8000
 
+# Graceful shutdown time, to give time for ingress to de-register
+shutdownTime: 30
+
 browsertrix:
   image: webrecorder/browsertrix-crawler@sha256:b9822b7bd699748903e8f6663775442292263599e62f00d6e402e0eac145211c
 

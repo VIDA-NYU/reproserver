@@ -27,18 +27,6 @@ jobs:
       - name: Unit tests
         run: TESTS_DIR=tests/unit python tests
 
-  check-k8s:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install kubeconform
-        run: |
-          curl -Lo /tmp/kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.4.7/kubeconform-linux-amd64.tar.gz
-          tar -xf /tmp/kubeconform.tar.gz -C /usr/local/bin
-          rm /tmp/kubeconform.tar.gz
-      - name: Check k8s config files using kubeconform
-        run: kubeconform --kubernetes-version 1.20.7 --strict --summary $(find k8s -maxdepth 1 -name \*.yml -not -name \*.values.yml)
-
   test:
     runs-on: ubuntu-latest
     env:

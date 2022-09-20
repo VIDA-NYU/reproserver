@@ -96,7 +96,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
     template_env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(
-            [pkg_resources.resource_filename('reproserver', 'templates')]
+            [pkg_resources.resource_filename('reproserver', 'web/templates')]
         ),
         autoescape=jinja2.select_autoescape(['html']),
         extensions=['jinja2.ext.i18n'],
