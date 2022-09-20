@@ -39,7 +39,10 @@ def make_app(debug=False, xsrf_cookies=True, proxy=None):
             URLSpec('/runners/run/([^/]+)/output/(.+)', api.UploadOutput),
             URLSpec('/runners/run/([^/]+)/log', api.Log),
         ],
-        static_path=pkg_resources.resource_filename('reproserver', 'static'),
+        static_path=pkg_resources.resource_filename(
+            'reproserver',
+            'web/static',
+        ),
         xsrf_cookies=xsrf_cookies,
         debug=debug,
         connection_token=os.environ.get('CONNECTION_TOKEN', ''),
