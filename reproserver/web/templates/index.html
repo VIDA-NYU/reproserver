@@ -22,8 +22,8 @@
 <form method="POST" action="{{ reverse_url('upload') }}" enctype="multipart/form-data">
   {{ xsrf_form_html() }}
   <div class="mb-3">
-    <label for="rpz_file" class="form-label">Upload a file</label>
-    <input type="file" class="form-control" id="rpz_file" name="rpz_file" placeholder="experiment.rpz">
+    <label for="rpz_file" class="form-label">Upload a <code>.rpz</code> file</label>
+    <input type="file" class="form-control" id="rpz_file" name="rpz_file" placeholder="experiment.rpz" accept=".rpz">
   </div>
   <div class="mb-3">
     <label for="rpz_url" class="form-label">or provide a package's URL</label>
