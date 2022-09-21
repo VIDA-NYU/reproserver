@@ -13,8 +13,8 @@
 <form method="POST" action="{{ reverse_url('webcapture_upload') }}" enctype="multipart/form-data">
   {{ xsrf_form_html() }}
   <div class="mb-3">
-    <label for="rpz_file" class="form-label">Upload a file to get started</label>
-    <input type="file" class="form-control" id="rpz_file" name="rpz_file" placeholder="experiment.rpz">
+    <label for="rpz_file" class="form-label">Upload a <code>.rpz</code> file to get started</label>
+    <input type="file" class="form-control" id="rpz_file" name="rpz_file" placeholder="experiment.rpz" accept=".rpz">
   </div>
   <button type="submit" class="btn btn-primary">Upload</button>
 </form>
