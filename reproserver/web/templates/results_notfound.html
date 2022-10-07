@@ -2,6 +2,14 @@
 
 {% block content %}
 
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
+    <li class="breadcrumb-item">Unknown package</li>
+    <li class="breadcrumb-item active" aria-current="page">Run results</li>
+  </ol>
+</nav>
+
 <h1>Results not found</h1>
 
 <p>Those results do not exist.</p>

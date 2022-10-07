@@ -1,8 +1,15 @@
-{% set current_page = 'about' %}
+{% set current_nav = 'about' %}
 
 {% extends "base.html" %}
 
 {% block content %}
+
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
+    <li class="breadcrumb-item active" aria-current="page">About</li>
+  </ol>
+</nav>
 
 <h1>About ReproServer</h1>
 

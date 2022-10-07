@@ -2,6 +2,13 @@
 
 {% block content %}
 
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Upload from URL</li>
+  </ol>
+</nav>
+
 <h1>Unrecognized URL</h1>
 
 {% if message %}

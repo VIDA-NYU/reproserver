@@ -2,6 +2,13 @@
 
 {% block content %}
 
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Upload from URL</li>
+  </ol>
+</nav>
+
 <h1>Unrecognized permanent URL</h1>
 
 <p>ReproServer recognizes links to some data repositories. If you provide one, you will get a permanent URL which will be back by the repository and does not depend on ReproServer's database integrity.</p>
