@@ -1,8 +1,15 @@
-{% set current_page = 'reproduce' %}
+{% set current_nav = 'reproduce' %}
 
 {% extends "base.html" %}
 
 {% block content %}
+
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Package {{ filename | truncate(60) }}</li>
+  </ol>
+</nav>
 
 <h1>Package {{ filename | truncate(60) }}</h1>
 

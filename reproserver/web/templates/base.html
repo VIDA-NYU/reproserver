@@ -24,14 +24,9 @@
           </button>
           <div class="collapse navbar-collapse" id="navbarContent">
             <ul class="navbar-nav mb-2 mb-md-0 flex-md-grow-1">
-              <li class="nav-item"><a class="nav-link{% if current_page == 'index' %} active{% endif %}"{% if current_page == 'index' %} aria-current="page"{% endif %} href="{{ reverse_url('index') }}">Upload</a></li>
-{% if experiment_url %}
-              <li class="nav-item"><a class="nav-link{% if current_page == 'reproduce' %} active{% endif %}"{% if current_page == 'reproduce' %} aria-current="page"{% endif %} href="{{ experiment_url }}">Reproduce</a></li>
-{% endif %}
-{% if run_id %}
-              <li class="nav-item"><a class="nav-link{% if current_page == 'results' %} active{% endif %}"{% if current_page == 'results' %} aria-current="page"{% endif %} href="#">View run</a></li>
-{% endif %}
-              <li class="nav-item ms-md-auto"><a class="nav-link{% if current_page == 'about' %} active{% endif %}"{% if current_page == 'about' %} aria-current="page"{% endif %} href="{{ reverse_url('about') }}">About</a></li>
+              <li class="nav-item"><a class="nav-link{% if current_nav == 'reproduce' %} active{% endif %}"{% if current_nav == 'reproduce' %} aria-current="true"{% endif %} href="{{ reverse_url('index') }}">Reproduce</a></li>
+              <li class="nav-item"><a class="nav-link{% if current_nav == 'webcapture' %} active{% endif %}"{% if current_nav == 'webcapture' %} aria-current="true"{% endif %} href="{{ reverse_url('webcapture_index') }}">Web capture</a></li>
+              <li class="nav-item ms-md-auto"><a class="nav-link{% if current_nav == 'about' %} active{% endif %}"{% if current_nav == 'about' %} aria-current="page"{% endif %} href="{{ reverse_url('about') }}">About</a></li>
               <!--dropdown-->
               <li class="nav-item dropdown">
                 <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">Links<span class="caret"></span></a>
