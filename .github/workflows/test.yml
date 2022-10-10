@@ -44,22 +44,21 @@ jobs:
           $HOME/.local/bin/poetry config virtualenvs.create false
       - name: Install dependencies
         run: $HOME/.local/bin/poetry install --no-interaction
-      - name: Install kind
+      - name: Install minikube
         run: |
           sudo mkdir -p /usr/local/bin
-          sudo curl -Lo /usr/local/bin/kind https://github.com/kubernetes-sigs/kind/releases/download/v0.11.1/kind-linux-amd64
-          sudo chmod +x /usr/local/bin/kind
+          sudo curl -Lo /usr/local/bin/minikube https://github.com/kubernetes/minikube/releases/download/v1.27.1/minikube-linux-amd64
+          sudo chmod +x /usr/local/bin/minikube
           sudo curl -Lo /usr/local/bin/kubectl https://dl.k8s.io/release/v1.22.15/bin/linux/amd64/kubectl
           sudo chmod +x /usr/local/bin/kubectl
-      - name: Start Kubernetes-in-Docker cluster
+      - name: Start Kubernetes cluster
         run: |
-          kind create cluster --config=kind.yml
+          minikube start --kubernetes-version=1.22.15 --driver=docker --nodes=1 --container-runtime=docker --ports=8000:30808
           kubectl describe node
           kubectl apply -f k8s/ingress-nginx.yml
       - name: Build image
         run: |
-          docker build -t reproserver_web .
-          kind load docker-image reproserver_web
+          (eval $(minikube docker-env); docker build -t reproserver_web .)
       - name: Start reproserver on Kubernetes
         run: |
           helm install reproserver k8s/helm --namespace default -f k8s/minikube.values.yml
