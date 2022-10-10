@@ -55,7 +55,7 @@ jobs:
         run: |
           kind create cluster --config=kind.yml
           kubectl describe node
-          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.45.0/deploy/static/provider/kind/deploy.yaml
+          kubectl apply -f k8s/ingress-nginx.yml
       - name: Build image
         run: |
           docker build -t reproserver_web .
