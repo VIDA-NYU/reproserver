@@ -1,51 +1,117 @@
-{% set current_nav = 'reproduce' %}
+<!-- {% set current_nav = 'reproduce' %} -->
 
 {% extends "base.html" %}
 
 {% block content %}
 
-<h1>How to Use This Site</h1>
-<p>This site allows you to run reproducible research packaged with <a href="https://www.reprozip.org/">ReproZip</a> directly from your browser. Upload your own <code>.rpz</code> file and click the "Upload" button!</p>
-
-<p>From there, you can set parameters and (optionally) upload your own inputs, and then reproduce the work by clicking the "Run" button. You can then see the log and output files from the research, which you can view or download to your machine. You can also share the link for other people to reproduce your research.</p>
-
-<p>You can also choose one of the examples below to test it out!</p>
-
-<h1>Examples</h1>
-
-<p><a href="{{ reverse_url('reproduce_repo', 'osf.io', 'r2ptb') }}">bechdel.rpz</a>: Attempt to replicate the findings from a FiveThirtyEight article examining gender bias in the movie business</p>
-<p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ztp2') }}">digits_sklearn_opencv.rpz</a>: Recognizing the value of hand-written digits using OpenCV and scikit-learn</p>
-<p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ke97') }}">bash-count.rpz</a>: Simple bash script counting the lines in a file</p>
-
-<h1>Select a package to upload</h1>
-
-<form method="POST" action="{{ reverse_url('upload') }}" enctype="multipart/form-data">
-  {{ xsrf_form_html() }}
-  <div class="mb-3">
-    <label for="rpz_file" class="form-label">Upload a <code>.rpz</code> file</label>
-    <input type="file" class="form-control" id="rpz_file" name="rpz_file" placeholder="experiment.rpz" accept=".rpz">
+<div class="container-fluid shadow p-5 mb-4 bg-light rounded-3">
+  <h1> Share reproducible work </h1>
+  <p>Reprozip allows you to automatically pack your web application along with necessary libraries, configuration
+    files and environment variables</p>
+  <p>Anyone can re run the packed web application on a new machine without tracking and installing the dependencies
+    manually</p>
+  <p>This application is still in progess, Currently It enables you reproduce Reprozip packages from web browser,
+    without having to install reprounzip on your computer</p>
+  <a href="/">Learn More</a>
+  <div class="container mt-3">
+    <div class="row">
+      <div class="col">
+        <div class="circle-icon rounded-circle" style="height: 10em; width:10em; opacity: 25%;">
+          <h3 class="rounded-circle pt-5">Trace</h3>
+        </div>
+        <p>Trace your web application in the terminal</p>
+      </div>
+      <div class="col-md-1 text-center mt-5">
+        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right"
+          viewBox="0 0 16 16">
+          <path fill-rule="evenodd"
+            d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z">
+          </path>
+        </svg>
+      </div>
+      <div class="col">
+        <div class="circle-icon rounded-circle" style="height: 10em; width:10em; opacity: 50%;">
+          <h3 class="rounded-circle pt-5">Pack</h3>
+        </div>
+        <p> Generate a reprozip bundle with server side elements</p>
+      </div>
+      <div class="col-md-1 text-center mt-5">
+        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right"
+          viewBox="0 0 16 16">
+          <path fill-rule="evenodd"
+            d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z">
+          </path>
+        </svg>
+      </div>
+      <div class="col">
+        <div class="circle-icon rounded-circle" style="height: 10em; width:10em; opacity: 75%;">
+          <h3 class="rounded-circle pt-5">Record</h3>
+        </div>
+        <p>Archive client side assets into your reprozip bundle</p>
+      </div>
+      <div class="col-md-1 text-center mt-5">
+        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right"
+          viewBox="0 0 16 16">
+          <path fill-rule="evenodd"
+            d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z">
+          </path>
+        </svg>
+      </div>
+      <div class="col">
+        <div class="circle-icon rounded-circle" style="height: 10em; width:10em; opacity: 90%;">
+          <h3 class="rounded-circle pt-5">Replay</h3>
+        </div>
+        <p>Replay and preview your web application</p>
+      </div>
+    </div>
   </div>
-  <div class="mb-3">
-    <label for="rpz_url" class="form-label">or provide a package's URL</label>
-    <input type="text" class="form-control" id="rpz_url" name="rpz_url" placeholder="http://experiment.rpz">
+</div>
+<div class="container">
+  <div class="row m-5">
+    <div class="col-md-6">
+      <div class="custom-card card bg-light flex-md-row mb-4 shadow-sm h-md-250">
+        <div class="card-header text-center" id="record-link">
+          <a href="/record">
+            <h1 class="display-5">Record</h1>
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-record-btn"
+              viewBox="0 0 16 16">
+              <path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"></path>
+              <path
+                d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm15 0a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z">
+              </path>
+            </svg>
+
+          </a>
+        </div>
+
+        <div class="card-body">
+          <p> Upload your .rpz file</p>
+          <p> Record from Browser or Automated Crawl</p>
+          <p> Archive client-side assets</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="custom-card card bg-light flex-md-row mb-4 shadow-sm h-md-250">
+        <div class="card-header text-center" id="replay-link">
+          <a href="/web">
+            <h1 class="display-5">Replay</h1>
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-play-btn"
+              viewBox="0 0 16 16">
+              <path d="M6.79 5.093A.5.5 0 0 0 6 5.5v5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814l-3.5-2.5z"></path>
+              <path
+                d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm15 0a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z">
+              </path>
+            </svg>
+          </a>
+        </div>
+        <div class="card-body">
+          <p>Upload your .rpz file</p>
+          <p>Preview your app</p>
+          <p>Replay and Reproduce</p>
+        </div>
+      </div>
+    </div>
   </div>
-  <button type="submit" class="btn btn-primary">Upload</button>
-</form>
-
-<script>
-var fileInput = document.getElementById('rpz_file');
-var urlInput = document.getElementById('rpz_url');
-var submitButton = fileInput.closest('form').querySelector('button[type="submit"]');
-function updateUploadForm() {
-  if(fileInput.value || urlInput.value) {
-    submitButton.removeAttribute('disabled');
-  } else {
-    submitButton.setAttribute('disabled', true);
-  }
-}
-fileInput.addEventListener('change', updateUploadForm);
-urlInput.addEventListener('input', updateUploadForm);
-updateUploadForm();
-</script>
-
+</div>
 {% endblock content %}

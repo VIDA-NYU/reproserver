@@ -5,3 +5,30 @@
   font-weight: 400;
   src: url(/static/fonts/montserrat.ttf) format('truetype');
 }
+
+.circle-icon {
+  text-align: center;
+  color: white;
+  background-image: url("data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mMMZ+t5CwADfQHY7YGjAgAAAABJRU5ErkJggg==");
+}
+
+.custom-card {
+  min-height: 12em;
+}
+
+#record-link a {
+  text-decoration: none;
+}
+
+#record-link a:hover {
+  color: #dc3545;
+}
+
+#replay-link a {
+  text-decoration: none;
+}
+
+#replay-link a:hover {
+  color: #198754;
+
+}

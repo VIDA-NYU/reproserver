@@ -1,0 +1,44 @@
+
+{% set current_nav = 'reproduce' %}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Select a package to upload</h1>
+
+<form method="POST" action="{{ reverse_url('upload') }}" enctype="multipart/form-data">
+  {{ xsrf_form_html() }}
+  <div class="mb-3">
+    <label for="rpz_file" class="form-label">Upload a <code>.rpz</code> file</label>
+    <input type="file" class="form-control" id="rpz_file" name="rpz_file" placeholder="experiment.rpz" accept=".rpz">
+  </div>
+  <div class="mb-3">
+    <label for="rpz_url" class="form-label">or provide a package's URL</label>
+    <input type="text" class="form-control" id="rpz_url" name="rpz_url" placeholder="http://experiment.rpz">
+  </div>
+  <button type="submit" class="btn btn-primary">Upload</button>
+</form>
+
+
+<p><a href="{{ reverse_url('reproduce_repo', 'osf.io', 'r2ptb') }}">bechdel.rpz</a>: Attempt to replicate the findings from a FiveThirtyEight article examining gender bias in the movie business</p>
+<p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ztp2') }}">digits_sklearn_opencv.rpz</a>: Recognizing the value of hand-written digits using OpenCV and scikit-learn</p>
+<p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ke97') }}">bash-count.rpz</a>: Simple bash script counting the lines in a file</p>
+
+<script>
+var fileInput = document.getElementById('rpz_file');
+var urlInput = document.getElementById('rpz_url');
+var submitButton = fileInput.closest('form').querySelector('button[type="submit"]');
+function updateUploadForm() {
+  if(fileInput.value || urlInput.value) {
+    submitButton.removeAttribute('disabled');
+  } else {
+    submitButton.setAttribute('disabled', true);
+  }
+}
+fileInput.addEventListener('change', updateUploadForm);
+urlInput.addEventListener('input', updateUploadForm);
+updateUploadForm();
+</script>
+
+{% endblock content %}
