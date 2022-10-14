@@ -527,10 +527,13 @@ class ResultsJson(BaseHandler):
             'done': bool(run.done),
             'log': run.get_log(log_from),
         })
+
+
 class Record(BaseHandler):
     @PROM_REQUESTS.sync('record')
     def get(self):
         return self.render('record.html')
+
 
 class About(BaseHandler):
     @PROM_REQUESTS.sync('about')
