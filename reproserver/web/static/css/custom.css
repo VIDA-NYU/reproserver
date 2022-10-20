@@ -7,8 +7,13 @@
 }
 
 .circle-icon {
+  height: 10em; 
+  width:10em; 
   text-align: center;
+  vertical-align: middle;
+  display: table-cell;
   color: white;
+  border-radius: 50%;
   background-image: url("data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mMMZ+t5CwADfQHY7YGjAgAAAABJRU5ErkJggg==");
 }
 
