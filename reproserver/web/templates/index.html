@@ -15,39 +15,93 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <form method="POST" action="{{ reverse_url('upload') }}" enctype="multipart/form-data">
+          <form method="POST" enctype="multipart/form-data">
             {{ xsrf_form_html() }}
             <div class="mb-3">
               <label for="rpz_file" class="form-label">Upload a <code>.rpz</code> file</label>
-              <input type="file" class="form-control" id="rpz_file" name="rpz_file" placeholder="experiment.rpz" accept=".rpz">
+              <input type="file" class="form-control" id="rpz_file" name="rpz_file" placeholder="experiment.rpz"
+                accept=".rpz">
+
             </div>
             <div class="mb-3">
               <label for="rpz_url" class="form-label">or provide a package's URL</label>
               <input type="text" class="form-control" id="rpz_url" name="rpz_url" placeholder="http://experiment.rpz">
             </div>
-            <!-- <button type="submit" class="btn btn-primary">Upload</button> -->
-            <button class="btn btn-primary" type="submit">Replay</button>
-            <button class="btn btn-primary" formaction="{{ reverse_url('webcapture_upload') }}" type="submit">Record</button>
-          </form>    
+
+            <div class="progress mb-3">
+              <div id="progress_bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
+                aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
+              </div>
+            </div>
+            <h3 id="status"></h3>
+            <button class="btn btn-primary" onclick=uploadFile() disabled>Replay</button>
+            <button class="btn btn-primary" onclick=uploadFile() disabled>Record</button>
+          </form>
           <br>
-          <p><a href="{{ reverse_url('reproduce_repo', 'osf.io', 'r2ptb') }}">bechdel.rpz</a>: Attempt to replicate the findings from a FiveThirtyEight article examining gender bias in the movie business</p>
-          <p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ztp2') }}">digits_sklearn_opencv.rpz</a>: Recognizing the value of hand-written digits using OpenCV and scikit-learn</p>
-          <p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ke97') }}">bash-count.rpz</a>: Simple bash script counting the lines in a file</p>
-          
+          <p><a href="{{ reverse_url('reproduce_repo', 'osf.io', 'r2ptb') }}">bechdel.rpz</a>: Attempt to replicate the
+            findings from a FiveThirtyEight article examining gender bias in the movie business</p>
+          <p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ztp2') }}">digits_sklearn_opencv.rpz</a>: Recognizing
+            the value of hand-written digits using OpenCV and scikit-learn</p>
+          <p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ke97') }}">bash-count.rpz</a>: Simple bash script
+            counting the lines in a file</p>
+
           <script>
-          var fileInput = document.getElementById('rpz_file');
-          var urlInput = document.getElementById('rpz_url');
-          var submitButtons = fileInput.closest('form').querySelectorAll('button[type="submit"]');
-          function updateUploadForm() {
-            if(fileInput.value || urlInput.value) {
-              submitButtons.forEach(submitButton=> submitButton.removeAttribute('disabled'));
-            } else {
-              submitButtons.forEach(submitButton=> submitButton.setAttribute('disabled', true));
+            var fileInput = document.getElementById('rpz_file');
+            var urlInput = document.getElementById('rpz_url');
+            var submitButtons = fileInput.closest('form').querySelectorAll('button');
+            function updateUploadForm() {
+              if (fileInput.value || urlInput.value) {
+                submitButtons.forEach(submitButton => submitButton.removeAttribute('disabled'));
+              } else {
+                submitButtons.forEach(submitButton => submitButton.setAttribute('disabled', true));
+              }
             }
-          }
-          fileInput.addEventListener('change', updateUploadForm);
-          urlInput.addEventListener('input', updateUploadForm);
-          updateUploadForm();
+
+            fileInput.addEventListener('change', updateUploadForm);
+            urlInput.addEventListener('input', updateUploadForm);
+
+            function _(el) {
+              return document.getElementById(el);
+            }
+
+            function uploadFile() {
+              const formElement = document.querySelector("form");
+              var formdata = new FormData(formElement);
+
+              var xhr = new XMLHttpRequest();
+              xhr.upload.addEventListener("progress", updateProgress);
+              xhr.upload.addEventListener("load", transferComplete);
+              xhr.upload.addEventListener("error", transferFailed);
+              xhr.upload.addEventListener("abort", transferCanceled);
+
+              xhr.open("POST", "{{ reverse_url('upload') }}");
+              xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+              xhr.send(formdata);
+              xhr.onreadystatechange = function () {
+                if (xhr.readyState == 4 && xhr.status == 200) {
+                  window.location.href = xhr.responseURL;
+                }
+              }
+            }
+
+            function updateProgress(event) {
+              var percent = (event.loaded / event.total) * 100;
+              _("progress_bar").setAttribute('aria-valuenow', Math.round(percent));
+              _("progress_bar").style.width = Math.round(percent) + "%";
+              _("status").innerHTML = Math.round(percent) + "% uploaded... please wait";
+            }
+
+            function transferComplete(event) {
+              _("status").innerHTML = "Upload completed";
+            }
+
+            function transferFailed(event) {
+              _("status").innerHTML = "Upload Failed";
+            }
+
+            function transferCanceled(event) {
+              _("status").innerHTML = "Upload Aborted";
+            }
           </script>
         </div>
         <div class="modal-footer">
@@ -124,16 +178,16 @@
     <div class="col-md-6">
       <div class="custom-card card bg-light flex-md-row mb-4 shadow-sm h-md-250">
         <div class="card-header text-center" id="record-link">
-          <a href="#"><span data-bs-toggle="modal" data-bs-target="#exampleModal"> 
-            <h1 class="display-5">Record</h1>
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-record-btn"
-              viewBox="0 0 16 16">
-              <path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"></path>
-              <path
-                d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm15 0a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z">
-              </path>
-            </svg>
-          </span>
+          <a href="#"><span data-bs-toggle="modal" data-bs-target="#exampleModal">
+              <h1 class="display-5">Record</h1>
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor"
+                class="bi bi-record-btn" viewBox="0 0 16 16">
+                <path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"></path>
+                <path
+                  d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm15 0a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z">
+                </path>
+              </svg>
+            </span>
           </a>
         </div>
 
@@ -147,15 +201,15 @@
     <div class="col-md-6">
       <div class="custom-card card bg-light flex-md-row mb-4 shadow-sm h-md-250">
         <div class="card-header text-center" id="replay-link">
-          <a href="#"><span data-bs-toggle="modal" data-bs-target="#exampleModal"> 
-            <h1 class="display-5">Replay</h1>
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-play-btn"
-              viewBox="0 0 16 16">
-              <path d="M6.79 5.093A.5.5 0 0 0 6 5.5v5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814l-3.5-2.5z"></path>
-              <path
-                d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm15 0a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z">
-              </path>
-            </svg>
+          <a href="#"><span data-bs-toggle="modal" data-bs-target="#exampleModal">
+              <h1 class="display-5">Replay</h1>
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-play-btn"
+                viewBox="0 0 16 16">
+                <path d="M6.79 5.093A.5.5 0 0 0 6 5.5v5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814l-3.5-2.5z"></path>
+                <path
+                  d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm15 0a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z">
+                </path>
+              </svg>
             </span>
           </a>
         </div>
