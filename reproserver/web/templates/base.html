@@ -30,9 +30,6 @@
             <li class="nav-item"><a class="nav-link{% if current_nav == 'about' %} active{% endif %}" {% if
                 current_nav=='about' %} aria-current="page" {% endif %} href="{{ reverse_url('about') }}">About</a></li>
             <!--dropdown-->
-            <li class="nav-item">
-              <a class="nav-link" href="#"><span data-bs-toggle="modal" data-bs-target="#exampleModal"> Upload </span></a>
-            </li>
             <li class="nav-item dropdown">
               <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"
                 aria-expanded="false">Links<span class="caret"></span></a>
@@ -46,7 +43,7 @@
         </div><!-- /.navbar-collapse -->
       </div><!-- /.container -->
     </nav><!-- /.navbar -->
-    <div class="container mt-3">
+    <div class="container mt-3 p-5">
       {% block content %}
       {% endblock content %}
 
