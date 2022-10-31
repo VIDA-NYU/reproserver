@@ -557,6 +557,12 @@ class CrawlStatusWebsocket(WebSocketHandler, BaseHandler):
 class UploadWacz(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_upload_wacz')
     async def get(self, upload_short_id):
+        # Decode info from URL
+        try:
+            upload_id = database.Upload.decode_id(upload_short_id)
+        except ValueError:
+            self.set_status(404)
+            return await self.render('webcapture/notfound.html')
         hostname = self.get_query_argument('hostname')
         port_number = self.get_query_argument('port_number')
         try:
@@ -566,9 +572,17 @@ class UploadWacz(BaseHandler):
         except (ValueError, OverflowError):
             raise HTTPError(400, "Wrong port number")
 
+        upload = (
+            self.db.query(database.Upload)
+            .get(upload_id)
+        )
+        if upload is None:
+            self.set_status(404)
+            return await self.render('webcapture/notfound.html')
+
         return await self.render(
             'webcapture/upload_wacz.html',
-            upload_short_id=upload_short_id,
+            upload=upload,
             hostname=hostname,
             port_number=port_number,
         )
