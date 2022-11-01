@@ -7,15 +7,21 @@
 }
 
 .circle-icon {
-  height: 10em; 
-  width:10em; 
+  height: 9rem; 
+  width: 9rem; 
+  min-width: 9rem;
+  min-height: 9rem;
   text-align: center;
   vertical-align: middle;
   display: table-cell;
   color: white;
-  border-radius: 50%;
   background-image: url("data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mMMZ+t5CwADfQHY7YGjAgAAAABJRU5ErkJggg==");
 }
+
+.arrow-icon{
+  text-align: center;
+  display: table-cell;
+  }
 
 .custom-card {
   min-height: 12em;

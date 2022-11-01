@@ -14,50 +14,41 @@
 <a href="/">Learn More</a>
 <div class="container my-5">
   <div class="row">
-    <div class="col">
-      <div class="circle-icon text-wrap" style="opacity: 25%;">
+    <div class="col-lg">
+      <div class="circle-icon rounded-circle" style="opacity: 40%;">
         <h3>Trace</h3>
       </div>
       <p class="text-center">Trace your web application in the terminal</p>
     </div>
-    <div class="col-md-1 text-center mt-5">
-      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right"
-        viewBox="0 0 16 16">
-        <path fill-rule="evenodd"
-          d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z">
-        </path>
+    <div class="col-lg arrow-icon mt-5 d-none d-lg-block">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">
+        <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"></path>
       </svg>
     </div>
-    <div class="col">
-      <div class="circle-icon rounded-circle" style="opacity: 50%;">
+    <div class="col-lg ">
+      <div class="circle-icon rounded-circle" style="opacity: 60%;">
         <h3>Pack</h3>
       </div>
       <p class="text-center">Generate a reprozip bundle with server side elements</p>
     </div>
-    <div class="col-md-1 text-center mt-5">
-      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right"
-        viewBox="0 0 16 16">
-        <path fill-rule="evenodd"
-          d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z">
-        </path>
+    <div class="col-lg arrow-icon mt-5 d-none d-lg-block">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">
+        <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"></path>
       </svg>
     </div>
-    <div class="col">
-      <div class="circle-icon rounded-circle" style="opacity: 75%;">
+    <div class="col-lg">
+      <div class="circle-icon rounded-circle" style="opacity: 80%;">
         <h3>Record</h3>
       </div>
       <p class="text-center">Archive client side assets into your reprozip bundle</p>
     </div>
-    <div class="col-md-1 text-center mt-5">
-      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right"
-        viewBox="0 0 16 16">
-        <path fill-rule="evenodd"
-          d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z">
-        </path>
+    <div class="col-lg arrow-icon mt-5 d-none d-lg-block">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">
+        <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"></path>
       </svg>
     </div>
-    <div class="col">
-      <div class="circle-icon rounded-circle" style="opacity: 90%;">
+    <div class="col-lg">
+      <div class="circle-icon rounded-circle" style="opacity: 100%;">
         <h3>Replay</h3>
       </div>
       <p class="text-center">Replay and preview your web application</p>
@@ -66,7 +57,7 @@
 </div>
 <hr />
 <div class="container mt-5">
-  <form method="POST" enctype="multipart/form-data">
+  <form method="POST" action="{{ reverse_url('upload') }}" enctype="multipart/form-data">
     {{ xsrf_form_html() }}
     <div class="mb-3">
       <label for="rpz_file" class="form-label">Upload a <code>.rpz</code> file</label>
@@ -78,13 +69,8 @@
       <input type="text" class="form-control" id="rpz_url" name="rpz_url" placeholder="http://experiment.rpz">
     </div>
 
-    <div class="progress mb-3">
-      <div id="progress_bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
-        aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
-      </div>
-    </div>
     <h3 id="status"></h3>
-    <button class="btn btn-primary" onclick=uploadFile() disabled>Upload</button>
+    <button class="btn btn-primary" type="submit" disabled>Upload</button>
     <!-- <button class="btn btn-primary" onclick=uploadFile() disabled>Record</button> -->
   </form>
 </div>
@@ -111,48 +97,5 @@
 
   fileInput.addEventListener('change', updateUploadForm);
   urlInput.addEventListener('input', updateUploadForm);
-
-  function _(el) {
-    return document.getElementById(el);
-  }
-
-  function uploadFile() {
-    const formElement = document.querySelector("form");
-    var formdata = new FormData(formElement);
-
-    var xhr = new XMLHttpRequest();
-    xhr.upload.addEventListener("progress", updateProgress);
-    xhr.upload.addEventListener("load", transferComplete);
-    xhr.upload.addEventListener("error", transferFailed);
-    xhr.upload.addEventListener("abort", transferCanceled);
-
-    xhr.open("POST", "{{ reverse_url('upload') }}");
-    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-    xhr.send(formdata);
-    xhr.onreadystatechange = function () {
-      if (xhr.readyState == 4 && xhr.status == 200) {
-        window.location.href = xhr.responseURL;
-      }
-    }
-  }
-
-  function updateProgress(event) {
-    var percent = (event.loaded / event.total) * 100;
-    _("progress_bar").setAttribute('aria-valuenow', Math.round(percent));
-    _("progress_bar").style.width = Math.round(percent) + "%";
-    _("status").innerHTML = Math.round(percent) + "% uploaded... please wait";
-  }
-
-  function transferComplete(event) {
-    _("status").innerHTML = "Upload completed";
-  }
-
-  function transferFailed(event) {
-    _("status").innerHTML = "Upload Failed";
-  }
-
-  function transferCanceled(event) {
-    _("status").innerHTML = "Upload Aborted";
-  }
 </script>
 {% endblock content %}
