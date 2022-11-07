@@ -66,6 +66,9 @@ proxyService:
 
 proxyUrl: "http://{short_id}-{port}.web.localhost:8000/"
 
+# Uncomment to enable web proxying at /results/<run>/port/<number>/
+# proxyClass: "reproserver.proxy:K8sSubdirProxyHandler"
+
 s3:
   # Defaults to using minio
   url: ""

@@ -42,6 +42,10 @@ spec:
             {{- end }}
             - name: WEB_PROXY_URL
               value: {{ .Values.proxyUrl }}
+            {{- if .Values.proxyClass }}
+            - name: WEB_PROXY_CLASS
+              value: {{ .Values.proxyClass | quote }}
+            {{- end }}
             - name: TORNADO_SHUTDOWN_TIME
               value: {{ .Values.shutdownTime | quote }}
             - name: S3_KEY
