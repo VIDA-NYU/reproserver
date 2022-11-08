@@ -113,6 +113,12 @@ class ProxyHandler(WebSocketHandler):
     def set_default_headers(self):
         self.set_header('Server', 'ReproServer/%s' % __version__)
 
+    def check_etag_header(self):
+        return False
+
+    def set_etag_header(self):
+        pass
+
     def select_destination(self):
         raise NotImplementedError
 
@@ -151,6 +157,10 @@ class ProxyHandler(WebSocketHandler):
             PROM_PROXY_REQUESTS.labels('ws', 'success').inc()
             return await WebSocketHandler.get(self)
         else:
+            def write(chunk):
+                self.write(chunk)
+                self.flush()
+
             headers = dict(self.request.headers)
             headers.pop('Host', None)
             request = httpclient.HTTPRequest(
@@ -160,7 +170,7 @@ class ProxyHandler(WebSocketHandler):
                 follow_redirects=False,
                 body=self.request.body or None,
                 header_callback=self.got_header,
-                streaming_callback=self.write,
+                streaming_callback=write,
             )
             self.alter_request(request)
             logger.info("Forwarding HTTP connection, url=%r, headers=%r",
@@ -205,6 +215,7 @@ class ProxyHandler(WebSocketHandler):
             for line in self.headers[1:]:
                 name, value = line.split(":", 1)
                 self.set_header(name, value.strip())
+        self.flush()
 
     def on_ws_connection_close(self, close_code=None, close_reason=None):
         self.upstream_ws.close(close_code, close_reason)
