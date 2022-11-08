@@ -91,6 +91,12 @@ class ProxyHandler(WebSocketHandler):
     def set_default_headers(self):
         self.set_header('Server', 'ReproServer/%s' % __version__)
 
+    def check_etag_header(self):
+        return False
+
+    def set_etag_header(self):
+        pass
+
     def select_destination(self):
         raise NotImplementedError
 
