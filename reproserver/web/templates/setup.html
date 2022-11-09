@@ -8,6 +8,7 @@
   <ol class="breadcrumb">
     <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
     <li class="breadcrumb-item active" aria-current="page">Package {{ filename | truncate(60) }}</li>
+    <li class="ms-auto"><a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}">Web Capture</a></li>
   </ol>
 </nav>
 
@@ -56,8 +57,6 @@
 
   <button type="submit" class="btn btn-primary"
     formaction="{{ reverse_url('start_run', upload_short_id) }}">Reproduce</button>
-  <button type="submit" class="btn btn-primary"
-    formaction="{{ reverse_url('webcapture_dashboard', upload_short_id) }}">Replay</button>
 </form>
 
 {% endblock content %}
