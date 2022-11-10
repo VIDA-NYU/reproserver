@@ -7,6 +7,11 @@ metadata:
     server.reprozip.org/component: web
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 25%
   selector:
     matchLabels:
       {{- include "reproserver.selectorLabels" . | nindent 6 }}
