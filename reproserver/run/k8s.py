@@ -208,6 +208,9 @@ class K8sWatcher(object):
         self.connector = connector
         self.loop = asyncio.get_event_loop()
         self.config_dir = os.environ['K8S_CONFIG_DIR']
+        self.running = set()
+        with open(os.path.join(self.config_dir, 'runner.namespace')) as fp:
+            self.namespace = fp.read().strip()
 
     async def watch(self):
         DBSession = self.connector.DBSession
@@ -216,25 +219,13 @@ class K8sWatcher(object):
 
         async with k8s_client.ApiClient() as api:
             v1 = k8s_client.CoreV1Api(api)
-            with open(os.path.join(self.config_dir, 'runner.namespace')) as fp:
-                namespace = fp.read().strip()
 
-            # Find existing run pods
-            pods = await v1.list_namespaced_pod(
-                namespace=namespace,
-                label_selector='app=run',
-            )
-            PROM_RUNS.set(0)
-            for pod in pods.items:
-                run_id = int(pod.metadata.labels['run'], 10)
-                logger.info("Found run pod for %d", run_id)
-                PROM_RUNS.inc()
-                await self._check_pod(api, run_id, pod)
+            await self._full_sync(api)
 
             # Watch changes
             watch = k8s_watch.Watch()
             f, kwargs = v1.list_namespaced_pod, dict(
-                namespace=namespace,
+                namespace=self.namespace,
                 label_selector='app=run',
             )
             while True:
@@ -243,6 +234,39 @@ class K8sWatcher(object):
                         await self._handle_watch_event(api, DBSession, event)
                 except k8s_client.ApiException as e:
                     if e.status != 410:
+                        raise
+
+    async def _full_sync(self, api):
+        v1 = k8s_client.CoreV1Api(api)
+
+        # Find existing run pods
+        pods = await v1.list_namespaced_pod(
+            namespace=self.namespace,
+            label_selector='app=run',
+        )
+        for pod in pods.items:
+            run_id = int(pod.metadata.labels['run'], 10)
+            self.running.add(run_id)
+            logger.info("Found run pod for %d", run_id)
+            await self._check_pod(api, run_id, pod)
+        PROM_RUNS.set(len(self.running))
+
+        # Find existing services
+        services = await v1.list_namespaced_service(
+            namespace=self.namespace,
+            label_selector='app=run',
+        )
+        for service in services.items:
+            run_id = int(service.metadata.labels['run'], 10)
+            if run_id not in self.running:
+                # Delete service with no matching pod
+                try:
+                    await v1.delete_namespaced_service(
+                        name=service.metadata.name,
+                        namespace=self.namespace,
+                    )
+                except k8s_client.ApiException as e:
+                    if e.status != 404:
                         raise
 
     async def _handle_watch_event(self, api, DBSession, event):
@@ -271,27 +295,34 @@ class K8sWatcher(object):
             return
 
         if event['type'] == 'DELETED':
+            self.running.discard(run_id)
+            PROM_RUNS.set(len(self.running))
+
             logger.info("Run pod for %d deleted", run_id)
             if run.done is None:
-                logger.warning(
-                    "Run pod deleted but run wasn't set as done!",
+                logger.warning("Run pod deleted but run wasn't set as done!")
+                await self.connector.run_failed(run_id, "Internal error")
+            try:
+                await k8s_client.CoreV1Api(api).delete_namespaced_service(
+                    name='run-%d' % run_id,
+                    namespace=self.namespace,
                 )
-                await self.connector.run_failed(
-                    run_id,
-                    "Internal error",
-                )
+            except k8s_client.ApiException as e:
+                if e.status != 404:
+                    raise
         else:
             await self._check_pod(api, run_id, pod)
 
     async def _check_pod(self, api, run_id, pod):
         v1 = k8s_client.CoreV1Api(api)
-        namespace = pod.metadata.namespace
 
-        async def delete_pod_async(name):
+        async def wait_then_delete_pod(name):
+            await asyncio.sleep(60)
+
             try:
                 await v1.delete_namespaced_pod(
                     name=name,
-                    namespace=namespace,
+                    namespace=self.namespace,
                 )
             except k8s_client.ApiException as e:
                 if e.status != 404:
@@ -299,25 +330,18 @@ class K8sWatcher(object):
             try:
                 await v1.delete_namespaced_service(
                     name=name,
-                    namespace=namespace,
+                    namespace=self.namespace,
                 )
             except k8s_client.ApiException as e:
                 if e.status != 404:
                     raise
 
-        def wait_then_delete_pod(name):
-            self.loop.call_later(
-                60,
-                lambda: background_future(asyncio.ensure_future(
-                    delete_pod_async(name),
-                )),
-            )
-
         if (
             pod.status.container_statuses
             and any(c.state.terminated for c in pod.status.container_statuses)
         ):
-            PROM_RUNS.dec()
+            self.running.discard(run_id)
+            PROM_RUNS.set(len(self.running))
 
             # Check the status of all containers
             success = False
@@ -333,7 +357,7 @@ class K8sWatcher(object):
                         # runner if code is not zero
                         log = await v1.read_namespaced_pod_log(
                             pod.metadata.name,
-                            namespace,
+                            self.namespace,
                             container=container.name,
                             tail_lines=300,
                         )
@@ -350,13 +374,13 @@ class K8sWatcher(object):
                         )
 
             if not success:
-                await self.connector.run_failed(
-                    run_id,
-                    "Internal error",
-                )
+                await self.connector.run_failed(run_id, "Internal error")
 
             # Schedule deletion in 1 minute
-            wait_then_delete_pod(pod.metadata.name)
+            background_future(wait_then_delete_pod(pod.metadata.name))
+        else:
+            self.running.add(run_id)
+            PROM_RUNS.set(len(self.running))
 
 
 def watch():
