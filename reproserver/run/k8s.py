@@ -9,7 +9,7 @@ import sys
 import time
 import yaml
 
-from .connector import HttpConnector
+from .connector import DirectConnector, HttpConnector
 from .. import database
 from ..proxy import ProxyHandler
 from ..utils import background_future, setup
@@ -61,8 +61,6 @@ class K8sRunner(BaseRunner):
 
         self.config_dir = os.environ['K8S_CONFIG_DIR']
 
-        background_future(self._watch(), should_never_exit=True)
-
     def _pod_name(self, run_id):
         return 'run-{0}'.format(run_id)
 
@@ -113,7 +111,6 @@ class K8sRunner(BaseRunner):
                 body=pod,
             )
             logger.info("Pod created: %s", name)
-            PROM_RUNS.inc()
 
             # Create a service for proxy connections
             svc = k8s_client.V1Service(
@@ -145,7 +142,74 @@ class K8sRunner(BaseRunner):
             )
             logger.info("Service created: %s", name)
 
-    async def _watch(self):
+
+Runner = K8sRunner
+
+
+def _run_in_pod(run_id):
+    """Entry point in the runner pod.
+
+    This function is called on the runner pod that is scheduled by
+    K8sRunner, and will run the rest of the logic.
+    """
+    setup(enable_prometheus=False)
+
+    # Wait for Docker to be available
+    for _ in range(30):
+        ret = subprocess.call(
+            ['docker', 'info'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if ret == 0:
+            break
+        time.sleep(2)
+    else:
+        logger.critical("Docker did not come online")
+        sys.exit(1)
+
+    # Get a runner from environment
+    runner = DockerRunner(
+        HttpConnector(
+            os.environ['API_ENDPOINT'],
+            os.environ['CONNECTION_TOKEN'],
+        ),
+    )
+
+    # Load run information
+    run_info = asyncio.get_event_loop().run_until_complete(
+        runner.connector.init_run_get_info(run_id),
+    )
+
+    # Run
+    fut = runner._docker_run(
+        run_info,
+        '127.0.0.1',  # Only accept local connections, from the runner pod
+    )
+
+    # Also set up a proxy
+    proxy = InternalProxyHandler.make_app(
+        reproserver_run=run_info,
+        connection_token=os.environ['CONNECTION_TOKEN'],
+    )
+    proxy.listen(5597, address='0.0.0.0')
+
+    try:
+        asyncio.get_event_loop().run_until_complete(fut)
+    except Exception:
+        logger.exception("Kubernetes runner pod error")
+        raise
+    else:
+        logger.info("Kubernetes runner pod complete")
+
+
+class K8sWatcher(object):
+    def __init__(self, connector):
+        self.connector = connector
+        self.loop = asyncio.get_event_loop()
+        self.config_dir = os.environ['K8S_CONFIG_DIR']
+
+    async def watch(self):
         DBSession = self.connector.DBSession
 
         k8s_config.load_incluster_config()
@@ -295,61 +359,11 @@ class K8sRunner(BaseRunner):
             wait_then_delete_pod(pod.metadata.name)
 
 
-Runner = K8sRunner
+def watch():
+    setup()
 
-
-def _run_in_pod(run_id):
-    """Entry point in the runner pod.
-
-    This function is called on the runner pod that is scheduled by
-    K8sRunner, and will run the rest of the logic.
-    """
-    setup(enable_prometheus=False)
-
-    # Wait for Docker to be available
-    for _ in range(30):
-        ret = subprocess.call(
-            ['docker', 'info'],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        if ret == 0:
-            break
-        time.sleep(2)
-    else:
-        logger.critical("Docker did not come online")
-        sys.exit(1)
-
-    # Get a runner from environment
-    runner = DockerRunner(
-        HttpConnector(
-            os.environ['API_ENDPOINT'],
-            os.environ['CONNECTION_TOKEN'],
-        ),
-    )
-
-    # Load run information
-    run_info = asyncio.get_event_loop().run_until_complete(
-        runner.connector.init_run_get_info(run_id),
-    )
-
-    # Run
-    fut = runner._docker_run(
-        run_info,
-        '127.0.0.1',  # Only accept local connections, from the runner pod
-    )
-
-    # Also set up a proxy
-    proxy = InternalProxyHandler.make_app(
-        reproserver_run=run_info,
-        connection_token=os.environ['CONNECTION_TOKEN'],
-    )
-    proxy.listen(5597, address='0.0.0.0')
-
-    try:
-        asyncio.get_event_loop().run_until_complete(fut)
-    except Exception:
-        logger.exception("Kubernetes runner pod error")
-        raise
-    else:
-        logger.info("Kubernetes runner pod complete")
+    watcher = K8sWatcher(DirectConnector(
+        DBSession=database.connect(create=True),
+        object_store=None,
+    ))
+    asyncio.run(watcher.watch())

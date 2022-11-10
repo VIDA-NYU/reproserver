@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "reproserver.fullname" . }}-watcher
+  labels:
+    {{- include "reproserver.labels" . | nindent 4 }}
+    server.reprozip.org/component: watcher
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "reproserver.selectorLabels" . | nindent 6 }}
+      server.reprozip.org/component: watcher
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "reproserver.selectorLabels" . | nindent 8 }}
+        server.reprozip.org/component: watcher
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "reproserver.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}-watcher
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: POSTGRES_USER
+              value: "{{ .Values.postgres.user }}"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ include "reproserver.postgresSecretName" . }}"
+                  key: postgres_password
+            - name: POSTGRES_HOST
+              value: {{ include "reproserver.postgresServiceName" . }}
+            - name: POSTGRES_DB
+              value: postgres
+            - name: K8S_CONFIG_DIR
+              value: /etc/reproserver-k8s
+          ports:
+            - name: prometheus
+              containerPort: 8090
+              protocol: TCP
+          volumeMounts:
+            - name: k8s-config
+              mountPath: /etc/reproserver-k8s
+          command:
+            - "reproserver-k8s-watch"
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: k8s-config
+          configMap:
+            name: {{ include "reproserver.fullname" . }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
