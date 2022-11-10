@@ -212,6 +212,26 @@ class K8sWatcher(object):
         with open(os.path.join(self.config_dir, 'runner.namespace')) as fp:
             self.namespace = fp.read().strip()
 
+    def running_set_add(self, run_id):
+        if run_id in self.running:
+            return
+        self.running.add(run_id)
+        PROM_RUNS.set(len(self.running))
+        logger.info(
+            "Running: %s",
+            ', '.join('%d' % i for i in sorted(self.running)),
+        )
+
+    def running_set_discard(self, run_id):
+        if run_id not in self.running:
+            return
+        self.running.discard(run_id)
+        PROM_RUNS.set(len(self.running))
+        logger.info(
+            "Running: %s",
+            ', '.join('%d' % i for i in sorted(self.running)),
+        )
+
     async def watch(self):
         DBSession = self.connector.DBSession
 
@@ -237,6 +257,8 @@ class K8sWatcher(object):
                         raise
 
     async def _full_sync(self, api):
+        logger.info("Doing full sync")
+
         v1 = k8s_client.CoreV1Api(api)
 
         # Find existing run pods
@@ -260,6 +282,7 @@ class K8sWatcher(object):
             run_id = int(service.metadata.labels['run'], 10)
             if run_id not in self.running:
                 # Delete service with no matching pod
+                logger.info("Removing service %s", service.metadata.name)
                 try:
                     await v1.delete_namespaced_service(
                         name=service.metadata.name,
@@ -268,6 +291,12 @@ class K8sWatcher(object):
                 except k8s_client.ApiException as e:
                     if e.status != 404:
                         raise
+
+        logger.info(
+            "Full sync complete, %d pods: %s",
+            len(self.running),
+            ', '.join('%d' % i for i in sorted(self.running)),
+        )
 
     async def _handle_watch_event(self, api, DBSession, event):
         pod = event['object']
@@ -280,11 +309,14 @@ class K8sWatcher(object):
             )
             return
 
+        logger.info("Event: %s %s", event['type'], pod.metadata.name)
+
         if (
             event['type'] != 'DELETED'
             and pod.metadata.deletion_timestamp is not None
         ):
             # Ignore, pod is being deleted
+            logger.info("(ignore, pod is being deleted)")
             return
 
         # Get run
@@ -295,8 +327,7 @@ class K8sWatcher(object):
             return
 
         if event['type'] == 'DELETED':
-            self.running.discard(run_id)
-            PROM_RUNS.set(len(self.running))
+            self.running_set_discard(run_id)
 
             logger.info("Run pod for %d deleted", run_id)
             if run.done is None:
@@ -319,6 +350,7 @@ class K8sWatcher(object):
         async def wait_then_delete_pod(name):
             await asyncio.sleep(60)
 
+            logger.info("Cleaning up %s", name)
             try:
                 await v1.delete_namespaced_pod(
                     name=name,
@@ -340,8 +372,7 @@ class K8sWatcher(object):
             pod.status.container_statuses
             and any(c.state.terminated for c in pod.status.container_statuses)
         ):
-            self.running.discard(run_id)
-            PROM_RUNS.set(len(self.running))
+            self.running_set_discard(run_id)
 
             # Check the status of all containers
             success = False
@@ -379,8 +410,7 @@ class K8sWatcher(object):
             # Schedule deletion in 1 minute
             background_future(wait_then_delete_pod(pod.metadata.name))
         else:
-            self.running.add(run_id)
-            PROM_RUNS.set(len(self.running))
+            self.running_set_add(run_id)
 
 
 def watch():
