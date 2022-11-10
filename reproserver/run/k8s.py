@@ -12,7 +12,7 @@ import yaml
 from .connector import HttpConnector
 from .. import database
 from ..proxy import ProxyHandler
-from ..utils import background_future
+from ..utils import background_future, setup
 from .base import PROM_RUNS, BaseRunner
 from .docker import DockerRunner
 
@@ -304,11 +304,7 @@ def _run_in_pod(run_id):
     This function is called on the runner pod that is scheduled by
     K8sRunner, and will run the rest of the logic.
     """
-    logging.root.handlers.clear()
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
+    setup(enable_prometheus=False)
 
     # Wait for Docker to be available
     for _ in range(30):

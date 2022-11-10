@@ -3,12 +3,23 @@ import contextlib
 import logging
 import os
 from prometheus_async.aio import time as prom_async_time
+import prometheus_client
 import re
 import subprocess
 import sys
 
 
 logger = logging.getLogger(__name__)
+
+
+def setup(*, enable_prometheus=True):
+    logging.root.handlers.clear()
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+    if enable_prometheus:
+        prometheus_client.start_http_server(8090)
 
 
 @contextlib.contextmanager
