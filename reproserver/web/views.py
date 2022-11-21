@@ -101,6 +101,7 @@ class Upload(StreamedRequestHandler):
 
     An experiment has been provided, store it and extract metadata.
     """
+
     def register_streaming_targets(self):
         self.uploaded_file_tmp = tempfile.NamedTemporaryFile(prefix='upload_')
         self.uploaded_file = HashedFileTarget(self.uploaded_file_tmp.name)
@@ -200,16 +201,22 @@ class BaseReproduce(BaseHandler):
         experiment = upload.experiment
         filename = upload.filename
         experiment_url = self.url_for_upload(upload)
-
         input_files = (
             self.db.query(database.Path)
             .filter(database.Path.experiment_hash ==
                     experiment.hash)
             .filter(database.Path.is_input)).all()
+
+        # Check whether web archive file is present
+        extensions = [
+            extension.name for extension in upload.experiment.extensions]
+        wacz_present = True if "web1" in extensions else False
+
         return self.render(
             'setup.html',
             filename=filename,
             built=True, error=False,
+            wacz_present=wacz_present,
             params=experiment.parameters,
             input_files=input_files,
             upload_short_id=upload.short_id,
@@ -527,12 +534,6 @@ class ResultsJson(BaseHandler):
             'done': bool(run.done),
             'log': run.get_log(log_from),
         })
-
-
-class Record(BaseHandler):
-    @PROM_REQUESTS.sync('record')
-    def get(self):
-        return self.render('record.html')
 
 
 class About(BaseHandler):

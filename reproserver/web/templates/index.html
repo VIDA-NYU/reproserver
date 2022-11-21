@@ -3,17 +3,17 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div class="container grey-bg p-5">
+  <h1><strong>Share reproducible work</strong></h1>
+  <p>Reprozip allows you to automatically pack your web application along with necessary libraries, configuration
+    files and environment variables,</p>
+  <p>So you can rerun the packed web application on a new machine without tracking and installing the dependencies
+    manually</p>
+  <p>This application is still in progess, Currently It enables you reproduce Reprozip packages from web browser,
+    without having to install ReproUnzip on your computer</p>
+  <a href="/">Learn More</a>
 
-<h1> Share reproducible work </h1>
-<p>Reprozip allows you to automatically pack your web application along with necessary libraries, configuration
-  files and environment variables</p>
-<p>Anyone can re run the packed web application on a new machine without tracking and installing the dependencies
-  manually</p>
-<p>This application is still in progess, Currently It enables you reproduce Reprozip packages from web browser,
-  without having to install reprounzip on your computer</p>
-<a href="/">Learn More</a>
-<div class="container my-5">
-  <div class="row">
+  <div class="row mt-5 p-5">
     <div class="col-lg">
       <div class="circle-icon rounded-circle" style="opacity: 40%;">
         <h3>Trace</h3>
@@ -21,19 +21,25 @@
       <p class="text-center">Trace your web application in the terminal</p>
     </div>
     <div class="col-lg arrow-icon mt-5 d-none d-lg-block">
-      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">
-        <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"></path>
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right"
+        viewBox="0 0 16 16">
+        <path fill-rule="evenodd"
+          d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z">
+        </path>
       </svg>
     </div>
-    <div class="col-lg ">
+    <div class="col-lg">
       <div class="circle-icon rounded-circle" style="opacity: 60%;">
         <h3>Pack</h3>
       </div>
       <p class="text-center">Generate a reprozip bundle with server side elements</p>
     </div>
     <div class="col-lg arrow-icon mt-5 d-none d-lg-block">
-      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">
-        <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"></path>
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right"
+        viewBox="0 0 16 16">
+        <path fill-rule="evenodd"
+          d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z">
+        </path>
       </svg>
     </div>
     <div class="col-lg">
@@ -43,8 +49,11 @@
       <p class="text-center">Archive client side assets into your reprozip bundle</p>
     </div>
     <div class="col-lg arrow-icon mt-5 d-none d-lg-block">
-      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right" viewBox="0 0 16 16">
-        <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"></path>
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right"
+        viewBox="0 0 16 16">
+        <path fill-rule="evenodd"
+          d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z">
+        </path>
       </svg>
     </div>
     <div class="col-lg">
@@ -55,8 +64,9 @@
     </div>
   </div>
 </div>
-<hr />
-<div class="container mt-5">
+
+<div class="container mt-5 p-5">
+  <h1><strong>Select a package to upload</strong></h1>
   <form method="POST" action="{{ reverse_url('upload') }}" enctype="multipart/form-data">
     {{ xsrf_form_html() }}
     <div class="mb-3">
@@ -81,27 +91,29 @@
   </form>
 </div>
 <hr />
-<div class="container mt-5">
+<div class="container grey-bg mt-5 p-5">
 
-<h2 class="lead">Examples</h4>
-<p><a href="{{ reverse_url('reproduce_repo', 'osf.io', 'r2ptb') }}">bechdel.rpz</a>: Attempt to replicate the findings from a FiveThirtyEight article examining gender bias in the movie business</p>
-<p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ztp2') }}">digits_sklearn_opencv.rpz</a>: Recognizing the value of hand-written digits using OpenCV and scikit-learn</p>
-<p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ke97') }}">bash-count.rpz</a>: Simple bash script counting the lines in a file</p>
+  <h2 class="lead">Examples</h4>
+    <p><a href="{{ reverse_url('reproduce_repo', 'osf.io', 'r2ptb') }}">bechdel.rpz</a>: Attempt to replicate the
+      findings from a FiveThirtyEight article examining gender bias in the movie business</p>
+    <p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ztp2') }}">digits_sklearn_opencv.rpz</a>: Recognizing the
+      value of hand-written digits using OpenCV and scikit-learn</p>
+    <p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ke97') }}">bash-count.rpz</a>: Simple bash script
+      counting the lines in a file</p>
 
 </div>
 <script>
   var fileInput = document.getElementById('rpz_file');
   var urlInput = document.getElementById('rpz_url');
-  var submitButtons = fileInput.closest('form').querySelectorAll('button');
+  var submitButton = fileInput.closest('form').querySelector('button');
   var progressBar = document.getElementsByClassName('progress')[0];
-  var xhr = new XMLHttpRequest();
-
   function updateUploadForm() {
     if (fileInput.value || urlInput.value) {
-      submitButtons.forEach(submitButton => submitButton.removeAttribute('disabled'));
+      submitButton.hidden = false;
+      submitButton.removeAttribute('disabled');
     } else {
-      progressBar.hidden=true;
-      submitButtons.forEach(submitButton => submitButton.setAttribute('disabled', true));
+      progressBar.hidden = true;
+      submitButton.setAttribute('disabled', true);
     }
   }
 
@@ -110,7 +122,9 @@
   }
 
   function uploadFile() {
-    progressBar.hidden=false;   // make progressbar visible
+    let xhr = new XMLHttpRequest();
+    progressBar.hidden = false;   // make progressbar visible
+    submitButton.hidden = true;
     const formElement = document.querySelector("form");
     let formdata = new FormData(formElement);
     xhr.upload.addEventListener("progress", updateProgress);
@@ -121,6 +135,7 @@
     xhr.setRequestHeader("Cache-Control", "no-cache");
     xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
     xhr.send(formdata);
+    return xhr;
   }
   function transferComplete(event) {
     _("status").innerHTML = "Uploading completed... please wait";
@@ -128,7 +143,6 @@
 
   function transferFailed(event) {
     _("status").innerHTML = "Uploading Failed";
-    xhr.abort();
   }
 
   function transferCanceled(event) {
@@ -139,7 +153,7 @@
     var percent = (event.loaded / event.total) * 100;
     _("progress_bar").setAttribute('aria-valuenow', Math.round(percent));
     _("progress_bar").style.width = Math.round(percent) + "%";
-    _("status").innerHTML = Math.round(percent) + "% uploaded... please wait";
+    _("status").innerHTML = "Uploading..." + Math.round(percent) + "%";
   }
 
   fileInput.addEventListener('change', updateUploadForm);

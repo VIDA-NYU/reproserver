@@ -8,7 +8,6 @@
   <ol class="breadcrumb">
     <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
     <li class="breadcrumb-item active" aria-current="page">Package {{ filename | truncate(60) }}</li>
-    <li class="ms-auto"><a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}">Web Capture</a></li>
   </ol>
 </nav>
 
@@ -17,6 +16,13 @@
 {% if repo_url -%}
 <p>From <a href="{{ repo_url }}">{{ repo_name }}</a></p>
 {%- endif %}
+
+<h2>Web Capture</h2>
+{% if wacz_present %}
+  <p>WACZ file is present in the repository. you can replace existing WACZ by doing <a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}">Web Capture</a></p>
+{% else %}
+  <p>WACZ file is absent in the repository, perform <a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}">Web Capture</a> if you like to capture client-side assets(CSS, JS, etc)</p>
+{% endif %}
 
 <h2>Run the experiment</h2>
 

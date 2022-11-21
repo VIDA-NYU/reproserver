@@ -20,14 +20,6 @@ from .. import rpz_metadata, database
 logger = logging.getLogger(__name__)
 
 
-class Index(BaseHandler):
-    """Landing page to upload an RPZ.
-    """
-    @PROM_REQUESTS.sync('webcapture_index')
-    def get(self):
-        return self.render('webcapture/index.html')
-
-
 class Upload(StreamedRequestHandler):
     """Upload RPZ.
     """
@@ -89,7 +81,7 @@ class Dashboard(BaseHandler):
         wacz_hash = self.get_query_argument('wacz', None)
 
         hostname = self.get_query_argument('hostname', 'localhost')
-        port_number = self.get_query_argument('port_number', '3000')
+        port_number = self.get_query_argument('port_number', '8000')
         try:
             port_number = int(port_number, 10)
             if not (1 <= port_number <= 65535):
