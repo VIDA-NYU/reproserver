@@ -11,20 +11,20 @@
   </ol>
 </nav>
 
-<h1>Package {{ filename | truncate(60) }}</h1>
+<h2>Package {{ filename | truncate(60) }}</h2>
 
 {% if repo_url -%}
 <p>From <a href="{{ repo_url }}">{{ repo_name }}</a></p>
 {%- endif %}
 
-<h2>Web Capture</h2>
+<h3 class="my-2">Web Capture</h3>
 {% if wacz_present %}
   <p>WACZ file is present in the repository. you can replace existing WACZ by doing <a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}">Web Capture</a></p>
 {% else %}
   <p>WACZ file is absent in the repository, perform <a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}">Web Capture</a> if you like to capture client-side assets(CSS, JS, etc)</p>
 {% endif %}
 
-<h2>Run the experiment</h2>
+<p>Run the experiment</p>
 
 <form method="POST" enctype="multipart/form-data">
   {{ xsrf_form_html() }}
@@ -55,7 +55,7 @@
 
   {% for file in input_files %}
   <div class="mb-3">
-    <label for="inputfile_{{ file.name }}" class="form-label">{{ file.name }}</label>
+    <!-- <label for="inputfile_{{ file.name }}" class="form-label">{{ file.name }}</label> -->
     <input type="file" class="form-control" id="inputfile_{{ file.name }}" name="inputfile_{{ file.name }}">
   </div>
   {% endfor %}

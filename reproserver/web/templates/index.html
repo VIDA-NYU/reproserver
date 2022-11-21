@@ -18,7 +18,7 @@
       <div class="circle-icon rounded-circle" style="opacity: 40%;">
         <h3>Trace</h3>
       </div>
-      <p class="text-center">Trace your web application in the terminal</p>
+      <p class="text-center mt-3">Trace your web application in the terminal</p>
     </div>
     <div class="col-lg arrow-icon mt-5 d-none d-lg-block">
       <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right"
@@ -32,7 +32,7 @@
       <div class="circle-icon rounded-circle" style="opacity: 60%;">
         <h3>Pack</h3>
       </div>
-      <p class="text-center">Generate a reprozip bundle with server side elements</p>
+      <p class="text-center mt-3">Generate a reprozip bundle with server side elements</p>
     </div>
     <div class="col-lg arrow-icon mt-5 d-none d-lg-block">
       <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right"
@@ -46,7 +46,7 @@
       <div class="circle-icon rounded-circle" style="opacity: 80%;">
         <h3>Record</h3>
       </div>
-      <p class="text-center">Archive client side assets into your reprozip bundle</p>
+      <p class="text-center mt-3">Archive client side assets into your reprozip bundle</p>
     </div>
     <div class="col-lg arrow-icon mt-5 d-none d-lg-block">
       <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right"
@@ -60,7 +60,7 @@
       <div class="circle-icon rounded-circle" style="opacity: 100%;">
         <h3>Replay</h3>
       </div>
-      <p class="text-center">Replay and preview your web application</p>
+      <p class="text-center mt-3">Replay and preview your web application</p>
     </div>
   </div>
 </div>
@@ -79,14 +79,13 @@
       <input type="text" class="form-control" id="rpz_url" name="rpz_url" placeholder="http://experiment.rpz">
     </div>
 
-    <h3 id="status"></h3>
-
     <div class="progress mb-3" hidden>
       <div id="progress_bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
         aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
       </div>
     </div>
-
+    <h3 id="status"></h3>
+    
     <button class="btn btn-primary" onclick=uploadFile() disabled>Upload</button>
   </form>
 </div>

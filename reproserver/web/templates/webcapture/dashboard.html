@@ -44,13 +44,13 @@
   <div class="mb-3">
     <p>Click "Record from browser" if you want to have more control and manually crawl.</p>
     <p>Click "Start automated crawl" if you prefer to crawl automatically.</p>
-    <p><strong>After the crawl is complete, you will be redirected to this page. From there, download the new RPZ file (It has a WACZ file in it)."</strong></p>
+    <p><strong>After the crawl is complete, you will be redirected to this page. From there, download the new RPZ file (It has a WACZ file in it)</strong></p>
     <input type="submit" formaction="{{ reverse_url('webcapture_start_record', upload_short_id) }}"
-      class="btn btn-primary m-2 float-right" value="Record from browser">
+      class="btn btn-primary" value="Record from browser">
     <input type="submit" formaction="{{ reverse_url('webcapture_start_crawl', upload_short_id) }}"
-      class="btn btn-primary m-2" value="Start automated crawl">
+      class="btn btn-primary mx-4" value="Start automated crawl">
     <input type="submit" formaction="{{ reverse_url('webcapture_upload_wacz', upload_short_id) }}"
-      class="btn btn-secondary m-2" formmethod="GET" value="Upload existing file">
+      class="btn btn-secondary" formmethod="GET" value="Upload existing file">
   </div>
   {% if wacz %}
   <div class="mb-3">
