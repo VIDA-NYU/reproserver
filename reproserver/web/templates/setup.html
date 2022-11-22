@@ -4,65 +4,95 @@
 
 {% block content %}
 
-<nav aria-label="breadcrumb">
-  <ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
-    <li class="breadcrumb-item active" aria-current="page">Package {{ filename | truncate(60) }}</li>
-  </ol>
-</nav>
+<div class="col-md-8 offset-md-2 my-3">
 
-<h2>Package {{ filename | truncate(60) }}</h2>
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Package {{ filename | truncate(60) }}</li>
+    </ol>
+  </nav>
 
-{% if repo_url -%}
-<p>From <a href="{{ repo_url }}">{{ repo_name }}</a></p>
-{%- endif %}
+  <h2>Package {{ filename | truncate(60) }}</h2>
 
-<h3 class="my-2">Web Capture</h3>
-{% if wacz_present %}
-  <p>WACZ file is present in the repository. you can replace existing WACZ by doing <a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}">Web Capture</a></p>
-{% else %}
-  <p>WACZ file is absent in the repository, perform <a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}">Web Capture</a> if you like to capture client-side assets(CSS, JS, etc)</p>
-{% endif %}
+  {% if repo_url -%}
+  <p>From <a href="{{ repo_url }}">{{ repo_name }}</a></p>
+  {%- endif %}
 
-<p>Run the experiment</p>
+  <div id="main-content">
+    <div class="card my-3">
+      <div class="card-header">
 
-<form method="POST" enctype="multipart/form-data">
-  {{ xsrf_form_html() }}
-  <h3>Parameters</h3>
 
-  {% if params %}
+        <a class="btn btn-link" data-bs-toggle="collapse" data-bs-target="#collapseWeb" aria-expanded="true"
+          aria-controls="collapseWeb" aria-label="Web Capture">
+          <h3>Web Capture</h3>
+        </a>
+        <span> applicable only for web based applications</span>
 
-  {% for param in params %}
-  <div class="mb-3">
-    <label for="param_{{ param.name }}" class="form-label">{{ param.description }}</label>
-    <input type="text" class="form-control" id="param_{{ param.name }}" name="param_{{ param.name }}"
-      value="{{ param.default }}" placeholder="value">
+
+      </div>
+      <div id="collapseWeb" class="collapse" data-parent="#main-content">
+        <div class="card-body">
+          {% if wacz_present %}
+          <p class="card-text">WACZ file is already present in the repository. you can replace existing WACZ by clicking
+            on the webcapture </p>
+          {% else %}
+          <p>WACZ file is not present in the repository, If you like to capture client-side assets(CSS, JS, etc).
+            Perform a Web capture by clicking on the webcapture</p>
+          {% endif %}
+          <a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}" class="btn btn-primary">Web Capture</a>
+        </div>
+      </div>
+    </div>
   </div>
-  {% endfor %}
+  <div class="card my-3">
+    <div class="card-header">
+      <h3>Run The experiment</h3>
+    </div>
+    <div class="card-body">
+      <form method="POST" enctype="multipart/form-data">
+        {{ xsrf_form_html() }}
+        <h3>Parameters</h3>
 
-  {% else %}
-  <p>No parameters</p>
-  {% endif %}
+        {% if params %}
 
-  <h3>Expose ports</h3>
-  <div class="mb-3">
-    <label for="ports" class="form-label">Space-separated list of ports to expose:</label>
-    <input type="text" class="form-control" id="ports" name="ports" value="">
+        {% for param in params %}
+        <div class="mb-3">
+          <label for="param_{{ param.name }}" class="form-label">{{ param.description }}</label>
+          <input type="text" class="form-control" id="param_{{ param.name }}" name="param_{{ param.name }}"
+            value="{{ param.default }}" placeholder="value">
+        </div>
+        {% endfor %}
+
+        {% else %}
+        <p>No parameters</p>
+        {% endif %}
+
+        <h3>Expose ports</h3>
+        <div class="mb-3">
+          <label for="ports" class="form-label">Space-separated list of ports to expose:</label>
+          <input type="text" class="form-control" id="ports" name="ports" value="">
+        </div>
+
+        {% if input_files %}
+        <h3>Input files</h3>
+
+        {% for file in input_files %}
+        <div class="mb-3">
+          <label for="inputfile_{{ file.name }}" class="form-label">{{ file.name }}</label>
+          <input type="file" class="form-control" id="inputfile_{{ file.name }}" name="inputfile_{{ file.name }}">
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <button type="submit" class="btn btn-primary"
+          formaction="{{ reverse_url('start_run', upload_short_id) }}">Reproduce</button>
+      </form>
+
+      {% endblock content %}
+    </div>
   </div>
 
-  {% if input_files %}
-  <h3>Input files</h3>
-
-  {% for file in input_files %}
-  <div class="mb-3">
-    <!-- <label for="inputfile_{{ file.name }}" class="form-label">{{ file.name }}</label> -->
-    <input type="file" class="form-control" id="inputfile_{{ file.name }}" name="inputfile_{{ file.name }}">
-  </div>
-  {% endfor %}
-  {% endif %}
-
-  <button type="submit" class="btn btn-primary"
-    formaction="{{ reverse_url('start_run', upload_short_id) }}">Reproduce</button>
-</form>
-
-{% endblock content %}
+</div>
+</div>

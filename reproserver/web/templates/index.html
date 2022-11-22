@@ -65,7 +65,7 @@
   </div>
 </div>
 
-<div class="container mt-5 p-5">
+<div class="container col-md-10 my-5 p-5">
   <h1><strong>Select a package to upload</strong></h1>
   <form method="POST" action="{{ reverse_url('upload') }}" enctype="multipart/form-data">
     {{ xsrf_form_html() }}
@@ -89,9 +89,8 @@
     <button class="btn btn-primary" onclick=uploadFile() disabled>Upload</button>
   </form>
 </div>
-<hr />
-<div class="container grey-bg mt-5 p-5">
 
+<div class="container grey-bg p-5">
   <h2 class="lead">Examples</h4>
     <p><a href="{{ reverse_url('reproduce_repo', 'osf.io', 'r2ptb') }}">bechdel.rpz</a>: Attempt to replicate the
       findings from a FiveThirtyEight article examining gender bias in the movie business</p>

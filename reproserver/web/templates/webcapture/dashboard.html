@@ -3,8 +3,8 @@
 {% extends "base.html" %}
 
 {% block content %}
-
-<nav aria-label="breadcrumb">
+<div class="container col-md-8 my-5">
+  <nav aria-label="breadcrumb">
   <ol class="breadcrumb">
     <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
     <li class="breadcrumb-item"><a href="{{ reverse_url('reproduce_local', upload_short_id)}}">Reproduce</a></li>
@@ -63,5 +63,7 @@
   </div>
   {% endif %}
 </form>
+
+</div>
 
 {% endblock content %}
