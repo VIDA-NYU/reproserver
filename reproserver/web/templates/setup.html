@@ -4,7 +4,7 @@
 
 {% block content %}
 
-<div class="col-md-8 offset-md-2 my-3">
+<div class="col-md-8 offset-md-2 mb-3">
 
   <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
@@ -89,10 +89,7 @@
         <button type="submit" class="btn btn-primary"
           formaction="{{ reverse_url('start_run', upload_short_id) }}">Reproduce</button>
       </form>
-
-      {% endblock content %}
     </div>
   </div>
-
-</div>
-</div>
+</div>      
+{% endblock content %}

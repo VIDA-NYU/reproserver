@@ -67,10 +67,6 @@ class Upload(StreamedRequestHandler):
 class Dashboard(BaseHandler):
     @PROM_REQUESTS.sync('webcapture_dashboard')
     def get(self, upload_short_id):
-        self.post(upload_short_id=upload_short_id)
-
-    @PROM_REQUESTS.sync('webcapture_dashboard')
-    def post(self, upload_short_id):
         # Decode info from URL
         try:
             upload_id = database.Upload.decode_id(upload_short_id)
