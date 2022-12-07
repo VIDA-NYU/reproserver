@@ -51,7 +51,7 @@
       <h3>Run The experiment</h3>
     </div>
     <div class="card-body">
-      <form method="POST" enctype="multipart/form-data">
+      <form method="POST" action="{{ reverse_url('start_run', upload_short_id) }}" enctype="multipart/form-data">
         {{ xsrf_form_html() }}
         <h3>Parameters</h3>
 
@@ -86,8 +86,7 @@
         {% endfor %}
         {% endif %}
 
-        <button type="submit" class="btn btn-primary"
-          formaction="{{ reverse_url('start_run', upload_short_id) }}">Reproduce</button>
+        <button type="submit" class="btn btn-primary">Reproduce</button>
       </form>
     </div>
   </div>

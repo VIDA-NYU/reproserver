@@ -67,7 +67,7 @@
 
 <div class="container col-md-10 my-5 p-5">
   <h1><strong>Select a package to upload</strong></h1>
-  <form method="POST" action="{{ reverse_url('upload') }}" enctype="multipart/form-data">
+  <form method="POST" action="{{ reverse_url('upload') }}" enctype="multipart/form-data" name="rpz_upload">
     {{ xsrf_form_html() }}
     <div class="mb-3">
       <label for="rpz_file" class="form-label">Upload a <code>.rpz</code> file</label>
@@ -86,7 +86,7 @@
     </div>
     <h3 id="status"></h3>
     
-    <button class="btn btn-primary" onclick=uploadFile() disabled>Upload</button>
+    <button class="btn btn-primary" disabled>Upload</button>
   </form>
 </div>
 
@@ -119,22 +119,6 @@
     return document.getElementById(el);
   }
 
-  function uploadFile() {
-    let xhr = new XMLHttpRequest();
-    progressBar.hidden = false;   // make progressbar visible
-    submitButton.hidden = true;
-    const formElement = document.querySelector("form");
-    let formdata = new FormData(formElement);
-    xhr.upload.addEventListener("progress", updateProgress);
-    xhr.upload.addEventListener("load", transferComplete);
-    xhr.upload.addEventListener("error", transferFailed);
-    xhr.upload.addEventListener("abort", transferCanceled);
-    xhr.open("POST", "{{ reverse_url('upload') }}");
-    xhr.setRequestHeader("Cache-Control", "no-cache");
-    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-    xhr.send(formdata);
-    return xhr;
-  }
   function transferComplete(event) {
     _("status").innerHTML = "Uploading completed... please wait";
   }
@@ -154,6 +138,34 @@
     _("status").innerHTML = "Uploading..." + Math.round(percent) + "%";
   }
 
+  const form = document.forms.namedItem("rpz_upload");
+  form.addEventListener("submit",
+    (event) => {
+      progressBar.hidden = false;   // make progressbar visible
+      submitButton.hidden = true;   // hide submit button
+      const formData = new FormData(form);
+      const request = new XMLHttpRequest();
+      request.upload.addEventListener("progress", updateProgress);
+      request.upload.addEventListener("error", transferFailed);
+      request.upload.addEventListener("abort", transferCanceled);
+    
+      request.open("POST", "{{ reverse_url('upload') }}", true);
+
+      request.onload = (progress) => {
+        if(request.status === 200){
+          _("status").innerHTML = "Uploading completed... please wait";
+          window.location.href = request.responseURL;
+        }
+        else{
+          console.error(`Error ${request.status} occurred when trying to upload your file`);
+        }
+      };
+      request.send(formData);
+      event.preventDefault();
+    },
+    false
+  );
+    
   fileInput.addEventListener('change', updateUploadForm);
   urlInput.addEventListener('input', updateUploadForm);
 </script>
