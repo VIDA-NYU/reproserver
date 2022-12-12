@@ -21,6 +21,8 @@ def make_app(debug=False, xsrf_cookies=True, proxy=None):
         [
             URLSpec('/', views.Index, name='index'),
             URLSpec('/upload', views.Upload, name='upload'),
+            URLSpec('/upload_direct_url', views.UploadDirectUrl,
+                    name='upload_direct_url'),
             URLSpec('/reproduce/([^/]+)/(.+)', views.ReproduceRepo,
                     name='reproduce_repo'),
             URLSpec('/reproduce/([^/]+)', views.ReproduceLocal,

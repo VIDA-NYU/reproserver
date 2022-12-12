@@ -103,22 +103,24 @@
   var statusText = document.getElementById('rpz_status');
 
   function transferFailed(event) {
-    statusText.innerHTML = 'Uploading failed';
+    statusText.innerText = 'Uploading failed';
     uploading = false;
     updateUploadForm();
   }
 
   function transferCanceled(event) {
-    statusText.innerHTML = 'Uploading aborted';
+    statusText.innerText = 'Uploading aborted';
     uploading = false;
     updateUploadForm();
   }
 
   function updateProgress(event) {
-    var percent = (event.loaded / event.total) * 100;
-    progressBar.setAttribute('aria-valuenow', Math.round(percent));
-    progressBar.style.width = Math.round(percent) + '%';
-    statusText.innerHTML = 'Uploading...' + Math.round(percent) + '%';
+    if(uploading) {
+      var percent = (event.loaded / event.total) * 100;
+      progressBar.setAttribute('aria-valuenow', Math.round(percent));
+      progressBar.style.width = Math.round(percent) + '%';
+      statusText.innerText = 'Uploading...' + Math.round(percent) + '%';
+    }
   }
 
   const form = document.getElementById('rpz_form');
@@ -133,16 +135,38 @@
       request.upload.addEventListener('error', transferFailed);
       request.upload.addEventListener('abort', transferCanceled);
 
-      request.open('POST', '{{ reverse_url('upload') }}', true);
+      request.open('POST', '{{ reverse_url('upload') }}?json=1', true);
 
       request.onload = (progress) => {
-        if(request.status === 200){
-          statusText.innerHTML = 'Uploading completed... please wait';
-          window.location.href = request.responseURL;
+        if(request.status === 200) {
+          statusText.innerText = 'Uploading completed... please wait';
+          try {
+            var jsonObj = JSON.parse(request.responseText);
+            if(jsonObj && jsonObj.redirectURL) {
+              window.location.href = jsonObj.redirectURL;
+            }
+            return;
+          } catch(e) {
+          }
         }
-        else{
-          console.error(`Error ${request.status} occurred when trying to upload the file`);
+
+        var message = `Error ${request.status} when occurred when trying to upload the file`;
+        // Try to load an error message from JSON body
+        if(request.responseText) {
+          try {
+            var jsonObj = JSON.parse(request.responseText);
+            if(jsonObj && jsonObj.error) {
+              message = jsonObj.error;
+            }
+          } catch(e) {
+          }
         }
+        console.error(message);
+        statusText.innerText = message;
+        progressWrapper.hidden = true;
+        uploading = false;
+        updateUploadForm();
+        alert(message);
       };
       request.send(formData);
 
