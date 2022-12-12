@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block content %}
+{% block fullcontent %}
 
 <div class="container grey-bg p-5">
   <h1><strong>Share reproducible work</strong></h1>
@@ -59,7 +59,7 @@
 </div>
 
 <div class="container col-md-10 my-5 p-5">
-  <h1><strong>Select a package to upload</strong></h1>
+  <h1>Select a package to upload</h1>
   <form method="POST" action="{{ reverse_url('upload') }}" enctype="multipart/form-data" id="rpz_form">
     {{ xsrf_form_html() }}
     <div class="mb-3">
@@ -168,4 +168,4 @@
   updateUploadForm();
 </script>
 
-{% endblock content %}
+{% endblock fullcontent %}
