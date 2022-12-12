@@ -11,57 +11,13 @@ from tornado.web import HTTPError
 from tornado.websocket import WebSocketHandler, websocket_connect
 from urllib.parse import urlencode
 
-from .base import BaseHandler, HashedFileTarget, StreamedRequestHandler
-from .views import PROM_REQUESTS, store_uploaded_rpz
+from .base import BaseHandler
+from .views import PROM_REQUESTS
 from ..utils import background_future
-from .. import rpz_metadata, database
+from .. import database
 
 
 logger = logging.getLogger(__name__)
-
-
-class Upload(StreamedRequestHandler):
-    """Upload RPZ.
-    """
-    def register_streaming_targets(self):
-        self.uploaded_file_tmp = tempfile.NamedTemporaryFile(prefix='upload_')
-        self.uploaded_file = HashedFileTarget(self.uploaded_file_tmp.name)
-        self.streaming_parser.register('rpz_file', self.uploaded_file)
-
-    @PROM_REQUESTS.async_('webcapture_upload')
-    async def post(self):
-        super(Upload, self).post()
-
-        # Get uploaded file
-        filename = self.uploaded_file.filename
-        orig_filename = self.uploaded_file.multipart_filename
-        if (
-            not os.path.getsize(filename)
-            or not orig_filename
-        ):
-            return await self.render(
-                'webcapture/badfile.html',
-                message="Missing file",
-            )
-        filehash = self.uploaded_file.hasher.hexdigest()
-
-        try:
-            upload_short_id = await store_uploaded_rpz(
-                self.application.object_store,
-                self.db,
-                filename,
-                filehash,
-                orig_filename,
-                self.request.remote_ip,
-            )
-        except rpz_metadata.InvalidPackage as e:
-            return await self.render('webcapture/badfile.html', message=str(e))
-
-        # Redirect to dashboard
-        return self.redirect(
-            self.reverse_url('webcapture_dashboard', upload_short_id),
-            status=303,
-        )
 
 
 class Dashboard(BaseHandler):
@@ -72,12 +28,12 @@ class Dashboard(BaseHandler):
             upload_id = database.Upload.decode_id(upload_short_id)
         except ValueError:
             self.set_status(404)
-            return self.render('webcapture/notfound.html')
+            return self.render('setup_notfound.html')
 
         wacz_hash = self.get_query_argument('wacz', None)
 
         hostname = self.get_query_argument('hostname', 'localhost')
-        port_number = self.get_query_argument('port_number', '8000')
+        port_number = self.get_query_argument('port_number', '3000')
         try:
             port_number = int(port_number, 10)
             if not (1 <= port_number <= 65535):
@@ -97,7 +53,7 @@ class Dashboard(BaseHandler):
         )
         if upload is None:
             self.set_status(404)
-            return self.render('webcapture/notfound.html')
+            return self.render('setup_notfound.html')
 
         if wacz_hash:
             try:
@@ -107,7 +63,7 @@ class Dashboard(BaseHandler):
                 )
             except KeyError:
                 self.set_status(404)
-                return self.render('webcapture/notfound.html')
+                return self.render('setup_notfound.html')
 
             wacz = {
                 'hash': wacz_hash,
@@ -140,6 +96,7 @@ class Dashboard(BaseHandler):
         return self.render(
             'webcapture/dashboard.html',
             filename=upload.filename,
+            experiment_url=self.url_for_upload(upload),
             upload_short_id=upload.short_id,
             wacz=wacz,
             hostname=hostname,
@@ -155,7 +112,7 @@ class Preview(BaseHandler):
             upload_id = database.Upload.decode_id(upload_short_id)
         except ValueError:
             self.set_status(404)
-            return self.render('webcapture/notfound.html')
+            return self.render('setup_notfound.html')
 
         wacz_hash = self.get_query_argument('wacz')
 
@@ -176,7 +133,7 @@ class Preview(BaseHandler):
         )
         if upload is None:
             self.set_status(404)
-            return self.render('webcapture/notfound.html')
+            return self.render('setup_notfound.html')
         experiment = upload.experiment
 
         # Update last access
@@ -213,7 +170,7 @@ class StartRecord(BaseHandler):
             upload_id = database.Upload.decode_id(upload_short_id)
         except ValueError:
             self.set_status(404)
-            return self.render('webcapture/notfound.html')
+            return self.render('setup_notfound.html')
 
         hostname = self.get_body_argument('hostname')
         port_number = self.get_body_argument('port_number')
@@ -237,7 +194,7 @@ class StartRecord(BaseHandler):
         )
         if upload is None:
             self.set_status(404)
-            return self.render('webcapture/notfound.html')
+            return self.render('setup_notfound.html')
         experiment = upload.experiment
 
         # Update last access
@@ -280,7 +237,7 @@ class Record(BaseHandler):
             run_id = database.Run.decode_id(run_short_id)
         except ValueError:
             self.set_status(404)
-            return self.render('webcapture/notfound.html')
+            return self.render('setup_notfound.html')
 
         # Look up the run in the database
         run = (
@@ -291,7 +248,7 @@ class Record(BaseHandler):
         ).get(run_id)
         if run is None or run.upload.short_id != upload_short_id:
             self.set_status(404)
-            return self.render('webcapture/notfound.html')
+            return self.render('setup_notfound.html')
 
         # Get the port number
         if len(run.ports) != 1:
@@ -299,13 +256,14 @@ class Record(BaseHandler):
                 "Run has %d ports, can't load into record view",
                 len(run.ports),
             )
-            return self.render('webcapture/notfound.html')
+            return self.render('setup_notfound.html')
         port_number = run.ports[0].port_number
 
         return self.render(
             'webcapture/record.html',
             run=run,
             upload_short_id=upload_short_id,
+            experiment_url=self.url_for_upload(run.upload),
             log=run.get_log(0),
             port_number=port_number,
         )
@@ -363,7 +321,7 @@ class StartCrawl(BaseHandler):
             upload_id = database.Upload.decode_id(upload_short_id)
         except ValueError:
             self.set_status(404)
-            return self.render('webcapture/notfound.html')
+            return self.render('setup_notfound.html')
 
         hostname = self.get_body_argument('hostname')
         port_number = self.get_body_argument('port_number')
@@ -391,7 +349,7 @@ class StartCrawl(BaseHandler):
         )
         if upload is None:
             self.set_status(404)
-            return self.render('webcapture/notfound.html')
+            return self.render('setup_notfound.html')
         experiment = upload.experiment
 
         # Update last access
@@ -462,20 +420,23 @@ class CrawlStatus(BaseHandler):
             run_id = database.Run.decode_id(run_short_id)
         except ValueError:
             self.set_status(404)
-            return self.render('webcapture/notfound.html')
+            return self.render('setup_notfound.html')
         try:
             upload_id = database.Upload.decode_id(upload_short_id)
         except ValueError:
             self.set_status(404)
-            return self.render('webcapture/notfound.html')
+            return self.render('setup_notfound.html')
 
         # Look up the run in the database
         run = (
             self.db.query(database.Run)
+            .options(
+                joinedload(database.Run.upload),
+            )
         ).get(run_id)
         if run is None or run.upload_id != upload_id:
             self.set_status(404)
-            return self.render('webcapture/notfound.html')
+            return self.render('setup_notfound.html')
 
         # Look for an output WACZ in the database
         wacz = None
@@ -493,6 +454,7 @@ class CrawlStatus(BaseHandler):
         return self.render(
             'webcapture/crawl_results.html',
             run=run,
+            experiment_url=self.url_for_upload(run.upload),
             log=run.get_log(0),
             wacz=wacz,
             hostname=hostname,
@@ -554,7 +516,7 @@ class UploadWacz(BaseHandler):
             upload_id = database.Upload.decode_id(upload_short_id)
         except ValueError:
             self.set_status(404)
-            return await self.render('webcapture/notfound.html')
+            return await self.render('setup_notfound.html')
         hostname = self.get_query_argument('hostname')
         port_number = self.get_query_argument('port_number')
         try:
@@ -570,31 +532,24 @@ class UploadWacz(BaseHandler):
         )
         if upload is None:
             self.set_status(404)
-            return await self.render('webcapture/notfound.html')
+            return await self.render('setup_notfound.html')
 
         return await self.render(
             'webcapture/upload_wacz.html',
             upload=upload,
+            experiment_url=self.url_for_upload(upload),
             hostname=hostname,
             port_number=port_number,
         )
 
     @PROM_REQUESTS.sync('webcapture_upload_wacz')
     async def post(self, upload_short_id):
+        # Decode info from URL
         try:
-            uploaded_file = self.request.files['wacz_file'][0]
-        except (KeyError, IndexError):
-            return await self.render(
-                'webcapture/upload_wacz_bad.html',
-                upload_short_id=upload_short_id,
-            )
-
-        logger.info(
-            "Incoming WACZ: %r %d bytes",
-            uploaded_file.filename,
-            len(uploaded_file.body),
-        )
-
+            upload_id = database.Upload.decode_id(upload_short_id)
+        except ValueError:
+            self.set_status(404)
+            return await self.render('setup_notfound.html')
         hostname = self.get_body_argument('hostname')
         port_number = self.get_body_argument('port_number')
         try:
@@ -603,6 +558,29 @@ class UploadWacz(BaseHandler):
                 raise OverflowError
         except (ValueError, OverflowError):
             raise HTTPError(400, "Wrong port number")
+
+        upload = (
+            self.db.query(database.Upload)
+            .get(upload_id)
+        )
+        if upload is None:
+            self.set_status(404)
+            return await self.render('setup_notfound.html')
+
+        try:
+            uploaded_file = self.request.files['wacz_file'][0]
+        except (KeyError, IndexError):
+            return await self.render(
+                'webcapture/upload_wacz_bad.html',
+                upload=upload,
+                experiment_url=self.url_for_upload(upload),
+            )
+
+        logger.info(
+            "Incoming WACZ: %r %d bytes",
+            uploaded_file.filename,
+            len(uploaded_file.body),
+        )
 
         # Hash file
         wacz_hash = sha256(uploaded_file.body).hexdigest()
@@ -628,7 +606,7 @@ class UploadWacz(BaseHandler):
                 run_id = database.Run.decode_id(run_short_id)
             except ValueError:
                 self.set_status(404)
-                return self.render('webcapture/notfound.html')
+                return self.render('setup_notfound.html')
             logger.info("Associating WACZ with run %d", run_id)
             self.db.add(database.RunExtensionResult(
                 run_id=run_id,
@@ -669,7 +647,7 @@ class Download(BaseHandler):
             upload_id = database.Upload.decode_id(upload_short_id)
         except ValueError:
             self.set_status(404)
-            return await self.render('webcapture/notfound.html')
+            return await self.render('setup_notfound.html')
 
         wacz_hash = self.get_query_argument('wacz')
 
@@ -695,7 +673,7 @@ class Download(BaseHandler):
             )
             if upload is None:
                 self.set_status(404)
-                return await self.render('webcapture/notfound.html')
+                return await self.render('setup_notfound.html')
             await asyncio.get_event_loop().run_in_executor(
                 None,
                 lambda: self.application.object_store.download_file(

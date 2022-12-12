@@ -101,7 +101,6 @@ class Upload(StreamedRequestHandler):
 
     An experiment has been provided, store it and extract metadata.
     """
-
     def register_streaming_targets(self):
         self.uploaded_file_tmp = tempfile.NamedTemporaryFile(prefix='upload_')
         self.uploaded_file = HashedFileTarget(self.uploaded_file_tmp.name)
@@ -201,6 +200,7 @@ class BaseReproduce(BaseHandler):
         experiment = upload.experiment
         filename = upload.filename
         experiment_url = self.url_for_upload(upload)
+
         input_files = (
             self.db.query(database.Path)
             .filter(database.Path.experiment_hash ==
@@ -209,8 +209,10 @@ class BaseReproduce(BaseHandler):
 
         # Check whether web archive file is present
         extensions = [
-            extension.name for extension in upload.experiment.extensions]
-        wacz_present = True if "web1" in extensions else False
+            extension.name
+            for extension in upload.experiment.extensions
+        ]
+        wacz_present = 'web1' in extensions
 
         return self.render(
             'setup.html',

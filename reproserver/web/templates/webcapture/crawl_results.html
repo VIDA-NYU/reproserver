@@ -1,5 +1,3 @@
-{% set current_nav = 'webcapture' %}
-
 {% extends "base.html" %}
 
 {% block content %}
@@ -7,9 +5,8 @@
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb">
     <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
-    <li class="breadcrumb-item"><a href="{{ reverse_url('reproduce_local', upload_short_id)}}">Reproduce</a></li>
+    <li class="breadcrumb-item"><a href="{{ experiment_url }}">Package {{ run.upload.filename | truncate(60) }}</a></li>
     <li class="breadcrumb-item"><a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}">Web capture</a></li>
-    <li class="breadcrumb-item"><a href="{{ reverse_url('webcapture_dashboard', run.upload.short_id) }}">Package {{ run.upload.filename | truncate(60) }}</a></li>
     <li class="breadcrumb-item active" aria-current="page">Automated crawl</li>
   </ol>
 </nav>

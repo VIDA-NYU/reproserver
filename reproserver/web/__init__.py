@@ -29,8 +29,6 @@ def make_app(debug=False, xsrf_cookies=True, proxy=None):
             URLSpec('/results/([^/]+)', views.Results, name='results'),
             URLSpec('/results/([^/]+)/json', views.ResultsJson,
                     name='results_json'),
-            URLSpec('/web/upload', webcapture.Upload,
-                    name='webcapture_upload'),
             URLSpec('/web/([^/]+)', webcapture.Dashboard,
                     name='webcapture_dashboard'),
             URLSpec('/web/([^/]+)/preview', webcapture.Preview,

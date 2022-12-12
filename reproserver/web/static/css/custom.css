@@ -6,9 +6,17 @@
   src: url(/static/fonts/montserrat.ttf) format('truetype');
 }
 
+#footer {
+  text-align: center;
+}
+
+#status {
+  font-size: 1.75rem;
+}
+
 .circle-icon {
-  height: 9rem; 
-  width: 9rem; 
+  height: 9rem;
+  width: 9rem;
   min-width: 9rem;
   min-height: 9rem;
   text-align: center;
@@ -18,10 +26,10 @@
   background-image: url("data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mMMZ+t5CwADfQHY7YGjAgAAAABJRU5ErkJggg==");
 }
 
-.arrow-icon{
+.arrow-icon {
   text-align: center;
   display: table-cell;
-  }
+}
 
 .custom-card {
   min-height: 12em;
@@ -44,12 +52,6 @@
 
 }
 
-.grey-bg{
+.grey-bg {
   background-color: #F9F9F9;
-}
-
-.footer {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
 }

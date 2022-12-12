@@ -1,5 +1,3 @@
-{% set current_nav = 'reproduce' %}
-
 {% extends "base.html" %}
 
 {% block content %}
@@ -19,33 +17,21 @@
   <p>From <a href="{{ repo_url }}">{{ repo_name }}</a></p>
   {%- endif %}
 
-  <div id="main-content">
-    <div class="card my-3">
-      <div class="card-header">
-
-
-        <a class="btn btn-link" data-bs-toggle="collapse" data-bs-target="#collapseWeb" aria-expanded="true"
-          aria-controls="collapseWeb" aria-label="Web Capture">
-          <h3>Web Capture</h3>
-        </a>
-        <span> applicable only for web based applications</span>
-
-
-      </div>
-      <div id="collapseWeb" class="collapse" data-parent="#main-content">
-        <div class="card-body">
-          {% if wacz_present %}
-          <p class="card-text">WACZ file is already present in the repository. you can replace existing WACZ by clicking
-            on the webcapture </p>
-          {% else %}
-          <p>WACZ file is not present in the repository, If you like to capture client-side assets(CSS, JS, etc).
-            Perform a Web capture by clicking on the webcapture</p>
-          {% endif %}
-          <a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}" class="btn btn-primary">Web Capture</a>
-        </div>
-      </div>
+  <!-- Web capture card -->
+  <div class="card my-3">
+    <div class="card-header">
+      <h3>Web Capture</h3>
+    </div>
+    <div class="card-body">
+      {% if wacz_present %}
+      <p class="card-text">A WACZ file is already present in the RPZ file. You can use the button below to do a new capture and replace it.</p>
+      {% else %}
+      <p>If this RPZ is a web application, you can use ReproServer to capture the remote assets that are referenced by it (CSS, JS, etc). This will allow the application to keep working correctly in web browsers if those remote sources go away.</p>
+      {% endif %}
+      <a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}" class="btn btn-primary">Web Capture</a>
     </div>
   </div>
+
   <div class="card my-3">
     <div class="card-header">
       <h3>Run The experiment</h3>
@@ -90,5 +76,6 @@
       </form>
     </div>
   </div>
-</div>      
+</div>
+
 {% endblock content %}

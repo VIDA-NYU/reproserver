@@ -1,68 +1,59 @@
-{% set current_nav = 'webcapture' %}
-
 {% extends "base.html" %}
 
 {% block content %}
+
 <div class="container col-md-8 my-5">
   <nav aria-label="breadcrumb">
-  <ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
-    <li class="breadcrumb-item"><a href="{{ reverse_url('reproduce_local', upload_short_id)}}">Reproduce</a></li>
-    <li class="breadcrumb-item"><a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}">Web capture</a>
-    </li>
-    <li class="breadcrumb-item" aria-current="page">Package {{ filename | truncate(60) }}</li>
-  </ol>
-</nav>
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
+      <li class="breadcrumb-item"><a href="{{ experiment_url }}">Package {{ filename | truncate(60) }}</a></li>
+      <li class="breadcrumb-item" aria-current="page">Web capture</li>
+    </ol>
+  </nav>
 
-<h1 class="display-6">Web Capture</h1>
+  <h1 class="display-6">Web Capture</h1>
 
-<form method="POST">
-  {{ xsrf_form_html() }}
-  <div class="my-3 h5">
-    <label for="filename" class="form-label">RPZ File:</label>
-    <p class="form-control" id="filename">{{ filename }}</p>
-  </div>
-  <div class="mb-3 h5">
-    <label for="wacz" class="form-label">WACZ FILE:</label>
-    <p class="form-control" id="wacz">
-      {% if wacz %}
-      present, {{ wacz.filesize }} bytes
-      {% else %}
-      none
-      {% endif %}
-    </p>
-  </div>
-  <div class="mb-3 h5">
-    <label for="hostname" class="form-label">Hostname:</label>
-    <input type="text" name="hostname" id="hostname" class="form-control" value="{{ hostname }}">
-  </div>
-  <div class="mb-3 h5">
-    <label for="port_number" class="form-label">Port number:</label>
-    <input type="number" name="port_number" id="port_number" class="form-control" min="1" max="65535"
-      value="{{ port_number }}">
-  </div>
-  <div class="mb-3">
-    <p>Click "Record from browser" if you want to have more control and manually crawl.</p>
-    <p>Click "Start automated crawl" if you prefer to crawl automatically.</p>
-    <p><strong>After the crawl is complete, you will be redirected to this page. From there, download the new RPZ file (It has a WACZ file in it)</strong></p>
-    <input type="submit" formaction="{{ reverse_url('webcapture_start_record', upload_short_id) }}"
-      class="btn btn-primary" value="Record from browser">
-    <input type="submit" formaction="{{ reverse_url('webcapture_start_crawl', upload_short_id) }}"
-      class="btn btn-primary mx-4" value="Start automated crawl">
-    <input type="submit" formaction="{{ reverse_url('webcapture_upload_wacz', upload_short_id) }}"
-      class="btn btn-secondary" formmethod="GET" value="Upload existing file">
-  </div>
-  {% if wacz %}
-  <div class="mb-3">
-    <input type="submit" formaction="{{ reverse_url('webcapture_download', upload_short_id, wacz=wacz.hash) }}"
-      class="btn btn-primary" value="Download the finished Web RPZ file">
-  </div>
-  <div class="mb-3">
-    <input type="submit" formaction="{{ reverse_url('webcapture_preview', upload_short_id, wacz=wacz.hash) }}"
-      class="btn btn-secondary" value="Preview the result">
-  </div>
-  {% endif %}
-</form>
+  <form method="POST">
+    {{ xsrf_form_html() }}
+    <div class="my-3">
+      <label for="filename" class="form-label">RPZ File:</label>
+      <p class="form-control" id="filename">{{ filename }}</p>
+    </div>
+    <div class="mb-3">
+      <label for="wacz" class="form-label">WACZ FILE:</label>
+      <p class="form-control" id="wacz">
+        {% if wacz %}
+        present, {{ wacz.filesize }} bytes
+        {% else %}
+        none
+        {% endif %}
+      </p>
+    </div>
+    <div class="mb-3">
+      <label for="hostname" class="form-label">Hostname:</label>
+      <input type="text" name="hostname" id="hostname" class="form-control" value="{{ hostname }}">
+    </div>
+    <div class="mb-3">
+      <label for="port_number" class="form-label">Port number:</label>
+      <input type="number" name="port_number" id="port_number" class="form-control" min="1" max="65535" value="{{ port_number }}">
+    </div>
+    <div class="mb-3">
+      <p>Click "Record from browser" if you want to have more control and manually crawl.</p>
+      <p>Click "Start automated crawl" if you prefer to crawl automatically.</p>
+      <p><strong>After the crawl is complete, you will be redirected to this page. From there, download the new RPZ file (with the WACZ file in it).</strong></p>
+      <input type="submit" formaction="{{ reverse_url('webcapture_start_record', upload_short_id) }}" class="btn btn-primary" value="Record from browser">
+      <input type="submit" formaction="{{ reverse_url('webcapture_start_crawl', upload_short_id) }}" class="btn btn-primary mx-4" value="Start automated crawl">
+      <input type="submit" formaction="{{ reverse_url('webcapture_upload_wacz', upload_short_id) }}" class="btn btn-secondary" formmethod="GET" value="Upload existing file">
+    </div>
+    {% if wacz %}
+    <div class="mb-3">
+      <input type="submit" formaction="{{ reverse_url('webcapture_download', upload_short_id, wacz=wacz.hash) }}" class="btn btn-primary" value="Download the finished Web RPZ file">
+    </div>
+    <div class="mb-3">
+      <input type="submit" formaction="{{ reverse_url('webcapture_preview', upload_short_id, wacz=wacz.hash) }}" class="btn btn-secondary" value="Preview the result">
+    </div>
+    {% endif %}
+  </form>
 
 </div>
 
