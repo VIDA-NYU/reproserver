@@ -1,5 +1,3 @@
-{% set current_nav = 'reproduce' %}
-
 {% extends "base.html" %}
 
 {% block content %}
@@ -11,49 +9,70 @@
   </ol>
 </nav>
 
-<h1>Package {{ filename | truncate(60) }}</h1>
+<h2>Package {{ filename | truncate(60) }}</h2>
 
 {% if repo_url -%}
 <p>From <a href="{{ repo_url }}">{{ repo_name }}</a></p>
 {%- endif %}
 
-<h2>Run the experiment</h2>
+<!-- Web capture card -->
+<div class="card my-3">
+  <div class="card-header">
+    <h3>Web Capture</h3>
+  </div>
+  <div class="card-body">
+    {% if wacz_present %}
+    <p class="card-text">A WACZ file is already present in the RPZ file. You can use the button below to do a new capture and replace it.</p>
+    {% else %}
+    <p>If this RPZ is a web application, you can use ReproServer to capture the remote assets that are referenced by it (CSS, JS, etc). This will allow the application to keep working correctly in web browsers if those remote sources go away.</p>
+    {% endif %}
+    <a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}" class="btn btn-primary">Web Capture</a>
+  </div>
+</div>
 
-<form method="POST" action="{{ reverse_url('start_run', upload_short_id) }}" enctype="multipart/form-data">
-  {{ xsrf_form_html() }}
-  <h3>Parameters</h3>
+<div class="card my-3">
+  <div class="card-header">
+    <h3>Run The experiment</h3>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{{ reverse_url('start_run', upload_short_id) }}" enctype="multipart/form-data">
+      {{ xsrf_form_html() }}
+      <h3>Parameters</h3>
 
-    {% if params %}
+      {% if params %}
 
       {% for param in params %}
-  <div class="mb-3">
-    <label for="param_{{ param.name }}" class="form-label">{{ param.description }}</label>
-    <input type="text" class="form-control" id="param_{{ param.name }}" name="param_{{ param.name }}" value="{{ param.default }}" placeholder="value">
-  </div>
+      <div class="mb-3">
+        <label for="param_{{ param.name }}" class="form-label">{{ param.description }}</label>
+        <input type="text" class="form-control" id="param_{{ param.name }}" name="param_{{ param.name }}"
+          value="{{ param.default }}" placeholder="value">
+      </div>
       {% endfor %}
 
-    {% else %}
-  <p>No parameters</p>
-    {% endif %}
+      {% else %}
+      <p>No parameters</p>
+      {% endif %}
 
-  <h3>Expose ports</h3>
-  <div class="mb-3">
-    <label for="ports" class="form-label">Space-separated list of ports to expose:</label>
-    <input type="text" class="form-control" id="ports" name="ports" value="">
-  </div>
+      <h3>Expose ports</h3>
+      <div class="mb-3">
+        <label for="ports" class="form-label">Space-separated list of ports to expose:</label>
+        <input type="text" class="form-control" id="ports" name="ports" value="">
+      </div>
 
-    {% if input_files %}
-  <h3>Input files</h3>
+      {% if input_files %}
+      <h3>Input files</h3>
 
       {% for file in input_files %}
-  <div class="mb-3">
-    <label for="inputfile_{{ file.name }}" class="form-label">{{ file.name }}</label>
-    <input type="file" class="form-control" id="inputfile_{{ file.name }}" name="inputfile_{{ file.name }}">
-  </div>
+      <div class="mb-3">
+        <label for="inputfile_{{ file.name }}" class="form-label">{{ file.name }}</label>
+        <input type="file" class="form-control" id="inputfile_{{ file.name }}" name="inputfile_{{ file.name }}">
+      </div>
       {% endfor %}
-    {% endif %}
+      {% endif %}
 
-  <button type="submit" class="btn btn-primary">Run</button>
-</form>
+      <button type="submit" class="btn btn-primary">Reproduce</button>
+    </form>
+  </div>
+</div>
 
 {% endblock content %}

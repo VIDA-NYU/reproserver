@@ -21,6 +21,8 @@ def make_app(debug=False, xsrf_cookies=True, proxy=None):
         [
             URLSpec('/', views.Index, name='index'),
             URLSpec('/upload', views.Upload, name='upload'),
+            URLSpec('/upload_direct_url', views.UploadDirectUrl,
+                    name='upload_direct_url'),
             URLSpec('/reproduce/([^/]+)/(.+)', views.ReproduceRepo,
                     name='reproduce_repo'),
             URLSpec('/reproduce/([^/]+)', views.ReproduceLocal,
@@ -29,9 +31,6 @@ def make_app(debug=False, xsrf_cookies=True, proxy=None):
             URLSpec('/results/([^/]+)', views.Results, name='results'),
             URLSpec('/results/([^/]+)/json', views.ResultsJson,
                     name='results_json'),
-            URLSpec('/web', webcapture.Index, name='webcapture_index'),
-            URLSpec('/web/upload', webcapture.Upload,
-                    name='webcapture_upload'),
             URLSpec('/web/([^/]+)', webcapture.Dashboard,
                     name='webcapture_dashboard'),
             URLSpec('/web/([^/]+)/preview', webcapture.Preview,

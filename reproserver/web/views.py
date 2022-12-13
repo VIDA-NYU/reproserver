@@ -109,12 +109,20 @@ class Upload(StreamedRequestHandler):
         self.rpz_url = ValueTarget()
         self.streaming_parser.register('rpz_url', self.rpz_url)
 
-        self.not_permanent = ValueTarget()
-        self.streaming_parser.register('not_permanent', self.not_permanent)
-
     @PROM_REQUESTS.async_('upload')
     async def post(self):
         super(Upload, self).post()
+
+        # This view can be reached either by a regular POST or by an XHR
+        # If using an XHR, send error messages or target URL as JSON
+        # Otherwise, send HTML or HTTP redirects
+        send_html = not self.get_query_argument('json', '')
+
+        def redirect(url):
+            if send_html:
+                return self.redirect(url, status=303)
+            else:
+                return self.send_json({'redirectURL': url})
 
         # If a URL was provided, not a file
         rpz_url = self.rpz_url.value.decode('utf-8', 'replace')
@@ -123,43 +131,25 @@ class Upload(StreamedRequestHandler):
             try:
                 repo, repo_path = await parse_repository_url(rpz_url)
             except RepositoryUnknown:
-                if not self.not_permanent.value:
+                return redirect(self.reverse_url(
+                    'upload_direct_url',
+                    url=rpz_url,
+                ))
+            except RepositoryError as e:
+                if send_html:
+                    self.set_status(404)
                     return await self.render(
-                        'repository_notfound.html',
+                        'repository_error.html',
+                        message=str(e),
                         rpz_url=rpz_url,
                     )
-                # else: fall through
-            except RepositoryError as e:
-                self.set_status(404)
-                return await self.render(
-                    'repository_error.html',
-                    message=str(e),
-                    rpz_url=rpz_url,
-                )
+                else:
+                    return self.send_error_json(404, str(e))
             else:
-                return self.redirect(
-                    self.reverse_url(
-                        'reproduce_repo',
-                        repo, repo_path,
-                    ),
-                    status=303,
-                )
-
-            # Fetch and upload URL
-            upload = await get_from_link(
-                self.db, self.application.object_store, self.request.remote_ip,
-                None, None,
-                rpz_url, rpz_url,
-            )
-
-            # Encode ID for permanent URL
-            upload_short_id = upload.short_id
-
-            # Redirect to build page
-            return self.redirect(
-                self.reverse_url('reproduce_local', upload_short_id),
-                status=303,
-            )
+                return redirect(self.reverse_url(
+                    'reproduce_repo',
+                    repo, repo_path,
+                ))
 
         # Get uploaded file
         filename = self.uploaded_file.filename
@@ -168,10 +158,14 @@ class Upload(StreamedRequestHandler):
             not os.path.getsize(filename)
             or not orig_filename
         ):
-            return await self.render(
-                'setup_badfile.html',
-                message="Missing file",
-            )
+            if send_html:
+                self.set_status(400)
+                return await self.render(
+                    'setup_badfile.html',
+                    message="Missing file",
+                )
+            else:
+                return self.send_error_json(400, "Missing file")
         filehash = self.uploaded_file.hasher.hexdigest()
         logger.info("Incoming file: %r", orig_filename)
         logger.info("Computed hash: %s", filehash)
@@ -186,7 +180,38 @@ class Upload(StreamedRequestHandler):
                 self.request.remote_ip,
             )
         except rpz_metadata.InvalidPackage as e:
-            return await self.render('setup_badfile.html', message=str(e))
+            if send_html:
+                return await self.render('setup_badfile.html', message=str(e))
+            else:
+                return self.send_error_json(
+                    400,
+                    "Error reading the file, is it a valid RPZ package?",
+                )
+
+        # Redirect to build page
+        return redirect(self.reverse_url('reproduce_local', upload_short_id))
+
+
+class UploadDirectUrl(BaseHandler):
+    def get(self):
+        rpz_url = self.get_query_argument('url')
+        return self.render(
+            'repository_notfound.html',
+            rpz_url=rpz_url,
+        )
+
+    async def post(self):
+        rpz_url = self.get_body_argument('rpz_url')
+
+        # Fetch and upload URL
+        upload = await get_from_link(
+            self.db, self.application.object_store, self.request.remote_ip,
+            None, None,
+            rpz_url, rpz_url,
+        )
+
+        # Encode ID for permanent URL
+        upload_short_id = upload.short_id
 
         # Redirect to build page
         return self.redirect(
@@ -206,10 +231,19 @@ class BaseReproduce(BaseHandler):
             .filter(database.Path.experiment_hash ==
                     experiment.hash)
             .filter(database.Path.is_input)).all()
+
+        # Check whether web archive file is present
+        extensions = [
+            extension.name
+            for extension in upload.experiment.extensions
+        ]
+        wacz_present = 'web1' in extensions
+
         return self.render(
             'setup.html',
             filename=filename,
             built=True, error=False,
+            wacz_present=wacz_present,
             params=experiment.parameters,
             input_files=input_files,
             upload_short_id=upload.short_id,

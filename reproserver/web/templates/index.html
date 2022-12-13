@@ -1,51 +1,195 @@
-{% set current_nav = 'reproduce' %}
-
 {% extends "base.html" %}
 
-{% block content %}
+{% block fullcontent %}
 
-<h1>How to Use This Site</h1>
-<p>This site allows you to run reproducible research packaged with <a href="https://www.reprozip.org/">ReproZip</a> directly from your browser. Upload your own <code>.rpz</code> file and click the "Upload" button!</p>
+<div class="container grey-bg p-5">
+  <h1><strong>Share reproducible work</strong></h1>
+  <p>This site allows you to run reproducible research packaged with <a href="https://www.reprozip.org/">ReproZip</a> directly from your browser. Upload your own <code>.rpz</code> file and click the "Upload" button!</p>
 
-<p>From there, you can set parameters and (optionally) upload your own inputs, and then reproduce the work by clicking the "Run" button. You can then see the log and output files from the research, which you can view or download to your machine. You can also share the link for other people to reproduce your research.</p>
-
-<p>You can also choose one of the examples below to test it out!</p>
-
-<h1>Examples</h1>
-
-<p><a href="{{ reverse_url('reproduce_repo', 'osf.io', 'r2ptb') }}">bechdel.rpz</a>: Attempt to replicate the findings from a FiveThirtyEight article examining gender bias in the movie business</p>
-<p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ztp2') }}">digits_sklearn_opencv.rpz</a>: Recognizing the value of hand-written digits using OpenCV and scikit-learn</p>
-<p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ke97') }}">bash-count.rpz</a>: Simple bash script counting the lines in a file</p>
-
-<h1>Select a package to upload</h1>
-
-<form method="POST" action="{{ reverse_url('upload') }}" enctype="multipart/form-data">
-  {{ xsrf_form_html() }}
-  <div class="mb-3">
-    <label for="rpz_file" class="form-label">Upload a <code>.rpz</code> file</label>
-    <input type="file" class="form-control" id="rpz_file" name="rpz_file" placeholder="experiment.rpz" accept=".rpz">
+  <div class="row mt-5 p-5">
+    <div class="col-lg">
+      <div class="circle-icon rounded-circle" style="opacity: 40%;">
+        <h3>Trace</h3>
+      </div>
+      <p class="text-center mt-3">Trace your web application in the terminal</p>
+    </div>
+    <div class="col-lg arrow-icon mt-5 d-none d-lg-block">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right"
+        viewBox="0 0 16 16">
+        <path fill-rule="evenodd"
+          d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z">
+        </path>
+      </svg>
+    </div>
+    <div class="col-lg">
+      <div class="circle-icon rounded-circle" style="opacity: 60%;">
+        <h3>Pack</h3>
+      </div>
+      <p class="text-center mt-3">Generate a reprozip bundle with server side elements</p>
+    </div>
+    <div class="col-lg arrow-icon mt-5 d-none d-lg-block">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right"
+        viewBox="0 0 16 16">
+        <path fill-rule="evenodd"
+          d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z">
+        </path>
+      </svg>
+    </div>
+    <div class="col-lg">
+      <div class="circle-icon rounded-circle" style="opacity: 80%;">
+        <h3>Record</h3>
+      </div>
+      <p class="text-center mt-3">Archive client side assets into your reprozip bundle</p>
+    </div>
+    <div class="col-lg arrow-icon mt-5 d-none d-lg-block">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right"
+        viewBox="0 0 16 16">
+        <path fill-rule="evenodd"
+          d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z">
+        </path>
+      </svg>
+    </div>
+    <div class="col-lg">
+      <div class="circle-icon rounded-circle" style="opacity: 100%;">
+        <h3>Replay</h3>
+      </div>
+      <p class="text-center mt-3">Replay and preview your web application</p>
+    </div>
   </div>
-  <div class="mb-3">
-    <label for="rpz_url" class="form-label">or provide a package's URL</label>
-    <input type="text" class="form-control" id="rpz_url" name="rpz_url" placeholder="http://experiment.rpz">
-  </div>
-  <button type="submit" class="btn btn-primary">Upload</button>
-</form>
+</div>
+
+<div class="container col-md-10 my-5 p-5">
+  <h1>Select a package to upload</h1>
+  <form method="POST" action="{{ reverse_url('upload') }}" enctype="multipart/form-data" id="rpz_form">
+    {{ xsrf_form_html() }}
+    <div class="mb-3">
+      <label for="rpz_file" class="form-label">Upload a <code>.rpz</code> file</label>
+      <input type="file" class="form-control" id="rpz_file" name="rpz_file" accept=".rpz">
+
+    </div>
+    <div class="mb-3">
+      <label for="rpz_url" class="form-label">or provide a package's URL</label>
+      <input type="text" class="form-control" id="rpz_url" name="rpz_url" placeholder="http://experiment.rpz">
+    </div>
+
+    <div id="rpz_progress_wrapper" class="progress mb-3" hidden>
+      <div
+        id="rpz_progress_bar"
+        class="progress-bar progress-bar-striped progress-bar-animated"
+        role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
+        style="width: 0%"
+      >
+      </div>
+    </div>
+    <p id="rpz_status"></p>
+
+    <button type="submit" class="btn btn-primary">Upload</button>
+  </form>
+</div>
+
+<div class="container grey-bg p-5">
+  <h2 class="lead">Examples</h2>
+  <p><a href="{{ reverse_url('reproduce_repo', 'osf.io', 'r2ptb') }}">bechdel.rpz</a>: Attempt to replicate the findings from a FiveThirtyEight article examining gender bias in the movie business</p>
+  <p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ztp2') }}">digits_sklearn_opencv.rpz</a>: Recognizing the value of hand-written digits using OpenCV and scikit-learn</p>
+  <p><a href="{{ reverse_url('reproduce_repo', 'osf.io', '5ke97') }}">bash-count.rpz</a>: Simple bash script counting the lines in a file</p>
+</div>
 
 <script>
-var fileInput = document.getElementById('rpz_file');
-var urlInput = document.getElementById('rpz_url');
-var submitButton = fileInput.closest('form').querySelector('button[type="submit"]');
-function updateUploadForm() {
-  if(fileInput.value || urlInput.value) {
-    submitButton.removeAttribute('disabled');
-  } else {
-    submitButton.setAttribute('disabled', true);
+  var uploading = false;
+
+  // Replace form upload with JavaScript upload, so we can update a progress bar
+  var progressWrapper = document.getElementById('rpz_progress_wrapper');
+  var progressBar = document.getElementById('rpz_progress_bar');
+  var statusText = document.getElementById('rpz_status');
+
+  function transferFailed(event) {
+    statusText.innerText = 'Uploading failed';
+    uploading = false;
+    updateUploadForm();
   }
-}
-fileInput.addEventListener('change', updateUploadForm);
-urlInput.addEventListener('input', updateUploadForm);
-updateUploadForm();
+
+  function transferCanceled(event) {
+    statusText.innerText = 'Uploading aborted';
+    uploading = false;
+    updateUploadForm();
+  }
+
+  function updateProgress(event) {
+    if(uploading) {
+      var percent = (event.loaded / event.total) * 100;
+      progressBar.setAttribute('aria-valuenow', Math.round(percent));
+      progressBar.style.width = Math.round(percent) + '%';
+      statusText.innerText = 'Uploading...' + Math.round(percent) + '%';
+    }
+  }
+
+  const form = document.getElementById('rpz_form');
+  form.addEventListener(
+    'submit',
+    (event) => {
+      event.preventDefault();
+      progressWrapper.hidden = false; // make progress bar visible
+      const formData = new FormData(form);
+      const request = new XMLHttpRequest();
+      request.upload.addEventListener('progress', updateProgress);
+      request.upload.addEventListener('error', transferFailed);
+      request.upload.addEventListener('abort', transferCanceled);
+
+      request.open('POST', '{{ reverse_url('upload') }}?json=1', true);
+
+      request.onload = (progress) => {
+        if(request.status === 200) {
+          statusText.innerText = 'Uploading completed... please wait';
+          try {
+            var jsonObj = JSON.parse(request.responseText);
+            if(jsonObj && jsonObj.redirectURL) {
+              window.location.href = jsonObj.redirectURL;
+            }
+            return;
+          } catch(e) {
+          }
+        }
+
+        var message = `Error ${request.status} when occurred when trying to upload the file`;
+        // Try to load an error message from JSON body
+        if(request.responseText) {
+          try {
+            var jsonObj = JSON.parse(request.responseText);
+            if(jsonObj && jsonObj.error) {
+              message = jsonObj.error;
+            }
+          } catch(e) {
+          }
+        }
+        console.error(message);
+        statusText.innerText = message;
+        progressWrapper.hidden = true;
+        uploading = false;
+        updateUploadForm();
+        alert(message);
+      };
+      request.send(formData);
+
+      uploading = true;
+      updateUploadForm();
+    },
+    false
+  );
+
+  // Only enable the "upload" button if a file or URL is selected
+  var fileInput = document.getElementById('rpz_file');
+  var urlInput = document.getElementById('rpz_url');
+  var submitButton = fileInput.closest('form').querySelector('button');
+  function updateUploadForm() {
+    if(!uploading && (fileInput.value || urlInput.value)) {
+      submitButton.removeAttribute('disabled');
+    } else {
+      submitButton.setAttribute('disabled', true);
+    }
+  }
+  fileInput.addEventListener('change', updateUploadForm);
+  urlInput.addEventListener('input', updateUploadForm);
+  updateUploadForm();
 </script>
 
-{% endblock content %}
+{% endblock fullcontent %}

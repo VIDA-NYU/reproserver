@@ -5,3 +5,53 @@
   font-weight: 400;
   src: url(/static/fonts/montserrat.ttf) format('truetype');
 }
+
+#footer {
+  text-align: center;
+}
+
+#status {
+  font-size: 1.75rem;
+}
+
+.circle-icon {
+  height: 9rem;
+  width: 9rem;
+  min-width: 9rem;
+  min-height: 9rem;
+  text-align: center;
+  vertical-align: middle;
+  display: table-cell;
+  color: white;
+  background-image: url("data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mMMZ+t5CwADfQHY7YGjAgAAAABJRU5ErkJggg==");
+}
+
+.arrow-icon {
+  text-align: center;
+  display: table-cell;
+}
+
+.custom-card {
+  min-height: 12em;
+}
+
+#record-link a {
+  text-decoration: none;
+}
+
+#record-link a:hover {
+  color: #dc3545;
+}
+
+#replay-link a {
+  text-decoration: none;
+}
+
+#replay-link a:hover {
+  color: #198754;
+
+}
+
+.grey-bg {
+  background-color: #F9F9F9;
+}
