@@ -17,9 +17,9 @@
 
 <!-- Web capture card -->
 <div class="card my-3">
-  <div class="card-header">
-    <h3>Web Capture</h3>
-  </div>
+  <h3 class="card-header">
+    Web Capture
+  </h3>
   <div class="card-body">
     {% if wacz_present %}
     <p class="card-text">A WACZ file is already present in the RPZ file. You can use the button below to do a new capture and replace it.</p>
@@ -31,9 +31,9 @@
 </div>
 
 <div class="card my-3">
-  <div class="card-header">
-    <h3>Run The experiment</h3>
-  </div>
+  <h3 class="card-header">
+    Run The experiment
+  </h3>
   <div class="card-body">
     <form method="POST" action="{{ reverse_url('start_run', upload_short_id) }}" enctype="multipart/form-data">
       {{ xsrf_form_html() }}
