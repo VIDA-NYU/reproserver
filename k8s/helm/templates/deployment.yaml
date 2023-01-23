@@ -75,6 +75,8 @@ spec:
               value: {{ include "reproserver.postgresServiceName" . }}
             - name: POSTGRES_DB
               value: postgres
+            - name: API_ENDPOINT
+              value: http://{{ include "reproserver.fullname" . }}:{{ .Values.service.port }}
             - name: CONNECTION_TOKEN
               valueFrom:
                 secretKeyRef:

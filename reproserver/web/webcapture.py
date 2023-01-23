@@ -305,7 +305,7 @@ CURL_STATUS="$(curl -s -o /dev/null \
     -F "wacz_file=@$WACZ_PATH" \
     -F "hostname=__HOSTNAME__" \
     -F "port_number=__PORT_NUMBER__" \
-    http://web:8000/web/__UPLOAD_SHORT_ID__/upload-wacz?run=__RUN_ID__)"
+    http://__WEB_URL__/web/__UPLOAD_SHORT_ID__/upload-wacz?run=__RUN_ID__)"
 if [ "$CURL_STATUS" != 303 ]; then
     printf "upload failed (status %s)\n" "$CURL_STATUS" >&2
     exit 1
@@ -377,6 +377,7 @@ class StartCrawl(BaseHandler):
             '__RUN_ID__': run.short_id,
             '__HOSTNAME__': hostname,
             '__PORT_NUMBER__': str(port_number),
+            '__WEB_URL__': os.environ['API_ENDPOINT'],
         }.items():
             script = script.replace(k, v)
         run.extra_config = json.dumps({
