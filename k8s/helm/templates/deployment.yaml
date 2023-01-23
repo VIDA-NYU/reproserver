@@ -199,7 +199,7 @@ spec:
             - name: POSTGRES_HOST
               value: {{ include "reproserver.postgresServiceName" . }}
             - name: POSTGRES_DB
-              value: postgres
+              value: "{{ .Values.postgres.database }}"
             - name: CONNECTION_TOKEN
               valueFrom:
                 secretKeyRef:
