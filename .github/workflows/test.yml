@@ -82,6 +82,5 @@ jobs:
         run: |
           if ! TESTS_DIR=tests/integ WEB_URL=http://localhost:8000 python tests; then
             kubectl logs deploy/reproserver 2>&1
-            kubectl logs deploy/reproserver-web 2>&1
             exit 1
           fi
