@@ -10,10 +10,10 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
-      - uses: actions/setup-python@v1
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
       - name: Install Poetry
@@ -32,10 +32,10 @@ jobs:
     env:
       DOCKER_BUILDKIT: "1"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
-      - uses: actions/setup-python@v1
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
       - name: Install Poetry
@@ -82,6 +82,5 @@ jobs:
         run: |
           if ! TESTS_DIR=tests/integ WEB_URL=http://localhost:8000 python tests; then
             kubectl logs deploy/reproserver 2>&1
-            kubectl logs deploy/reproserver-web 2>&1
             exit 1
           fi

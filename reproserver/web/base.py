@@ -205,6 +205,9 @@ class StreamedRequestHandler(BaseHandler):
     warn_xsrf_not_called = True
 
     def prepare(self):
+        if self.request.method == 'GET':
+            raise tornado.web.HTTPError(405)
+
         self.request.connection.set_max_body_size(10_000_000_000)
         self.streaming_parser = StreamingFormDataParser(self.request.headers)
 
