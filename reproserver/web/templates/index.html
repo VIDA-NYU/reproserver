@@ -119,7 +119,7 @@
       var percent = (event.loaded / event.total) * 100;
       progressBar.setAttribute('aria-valuenow', Math.round(percent));
       progressBar.style.width = Math.round(percent) + '%';
-      statusText.innerText = 'Uploading...' + Math.round(percent) + '%';
+      statusText.innerText = 'Uploading... ' + Math.round(percent) + '%';
     }
   }
 
