@@ -53,6 +53,10 @@ service:
   type: ClusterIP
   port: 80
 
+metricsService:
+  enabled: false
+  annotations: {}
+
 secret:
   create: true
   # Override the secret's name whose default value is the release name
