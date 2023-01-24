@@ -12,7 +12,7 @@ image:
 
 dockerInDocker:
   repository: docker
-  tag: "20.10.7-dind"
+  tag: "20.10.23-dind"
   pullPolicy: IfNotPresent
   storageDriver: overlay2
   resources: {}
