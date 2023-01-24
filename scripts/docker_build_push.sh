@@ -7,7 +7,7 @@ VERSION=$(git describe)
 
 IMAGE=ghcr.io/vida-nyu/reproserver/web:$VERSION
 
-docker build -t $IMAGE .
+docker build --pull -t $IMAGE .
 docker push $IMAGE
 
 echo
