@@ -6,14 +6,18 @@
   <h1><strong>Share reproducible work</strong></h1>
   <p>This site allows you to run reproducible research packaged with <a href="https://www.reprozip.org/">ReproZip</a> directly from your browser. Upload your own <code>.rpz</code> file and click the "Upload" button!</p>
 
-  <div class="row mt-5 p-5">
-    <div class="col-lg">
-      <div class="circle-icon rounded-circle" style="opacity: 40%;">
-        <h3>Trace</h3>
+  <div class="row p-3">
+    <div class="col-lg px-0">
+      <div class="d-flex justify-content-center">
+        <div>
+          <div class="circle-icon rounded-circle" style="opacity: 40%;">
+            <h3>Trace</h3>
+          </div>
+        </div>
       </div>
       <p class="text-center mt-3">Trace your web application in the terminal</p>
     </div>
-    <div class="col-lg arrow-icon mt-5 d-none d-lg-block">
+    <div class="col-lg arrow-icon mt-5 px-0 d-none d-lg-block">
       <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right"
         viewBox="0 0 16 16">
         <path fill-rule="evenodd"
@@ -21,13 +25,17 @@
         </path>
       </svg>
     </div>
-    <div class="col-lg">
-      <div class="circle-icon rounded-circle" style="opacity: 60%;">
-        <h3>Pack</h3>
+    <div class="col-lg px-0">
+      <div class="d-flex justify-content-center">
+        <div>
+          <div class="circle-icon rounded-circle" style="opacity: 60%;">
+            <h3>Pack</h3>
+          </div>
+        </div>
       </div>
       <p class="text-center mt-3">Generate a reprozip bundle with server side elements</p>
     </div>
-    <div class="col-lg arrow-icon mt-5 d-none d-lg-block">
+    <div class="col-lg arrow-icon mt-5 px-0 d-none d-lg-block">
       <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right"
         viewBox="0 0 16 16">
         <path fill-rule="evenodd"
@@ -35,13 +43,17 @@
         </path>
       </svg>
     </div>
-    <div class="col-lg">
-      <div class="circle-icon rounded-circle" style="opacity: 80%;">
-        <h3>Record</h3>
-      </div>
+    <div class="col-lg px-0">
+      <div class="d-flex justify-content-center">
+        <div>
+          <div class="circle-icon rounded-circle" style="opacity: 80%;">
+            <h3>Record</h3>
+          </div>
+          </div>
+        </div>
       <p class="text-center mt-3">Archive client side assets into your reprozip bundle</p>
     </div>
-    <div class="col-lg arrow-icon mt-5 d-none d-lg-block">
+    <div class="col-lg arrow-icon mt-5 px-0 d-none d-lg-block">
       <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-arrow-right"
         viewBox="0 0 16 16">
         <path fill-rule="evenodd"
@@ -49,16 +61,20 @@
         </path>
       </svg>
     </div>
-    <div class="col-lg">
-      <div class="circle-icon rounded-circle" style="opacity: 100%;">
-        <h3>Replay</h3>
-      </div>
+    <div class="col-lg px-0">
+      <div class="d-flex justify-content-center">
+        <div>
+          <div class="circle-icon rounded-circle" style="opacity: 100%;">
+            <h3>Replay</h3>
+          </div>
+          </div>
+        </div>
       <p class="text-center mt-3">Replay and preview your web application</p>
     </div>
   </div>
 </div>
 
-<div class="container col-md-10 my-5 p-5">
+<div class="container col-md-10 p-5">
   <h1>Select a package to upload</h1>
   <form method="POST" action="{{ reverse_url('upload') }}" enctype="multipart/form-data" id="rpz_form">
     {{ xsrf_form_html() }}
