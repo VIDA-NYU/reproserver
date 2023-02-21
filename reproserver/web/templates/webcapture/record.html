@@ -68,7 +68,7 @@ async function doUpload() {
 
   const f = new FormData();
   f.append("wacz_file", blob, "wacz_file.wacz");
-  f.append("hostname", "localhost");
+  f.append("hostname", {{ hostname | tojson }});
   f.append("port_number", {{ port_number }});
 
   const headers = {"Accept": "application/json"};
@@ -91,11 +91,11 @@ async function doUpload() {
 <button class="btn btn-default" id="upload">Upload WACZ</button>
 <record-web-page
   style="height: 500px; display: flex; margin-top: 10px; border: 1px solid black;"
-  url="http://localhost:{{ port_number }}/"
+  url="http://{{ hostname }}/"
   replayBase="/static/replay/"
   coll="{{ run.short_id }}"
   noWebWorker
-  config='{"hostProxy": {"localhost:{{ port_number }}": {"prefix": "/results/{{ run.short_id }}/port/{{ port_number }}", "pathOnly": true}}}'
+  config='{"hostProxy": {"{{ hostname }}": {"prefix": "/results/{{ run.short_id }}/port/{{ port_number }}", "pathOnly": true}}}'
 >
 </record-web-page>
 </script>

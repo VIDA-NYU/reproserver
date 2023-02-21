@@ -183,11 +183,6 @@ class StartRecord(BaseHandler):
         except (ValueError, OverflowError):
             raise HTTPError(400, "Wrong port number")
 
-        if port_number == 80:
-            seed_url = f'http://{hostname}/'
-        else:
-            seed_url = f'http://{hostname}:{port_number}/'
-
         # Look up the experiment in database
         upload = (
             self.db.query(database.Upload)
@@ -225,7 +220,9 @@ class StartRecord(BaseHandler):
                     'webcapture_record',
                     upload_short_id,
                     run.short_id,
-                ) + '#' + urlencode({'url': seed_url})
+                    hostname=hostname,
+                    port_number=port_number,
+                ) + '#' + urlencode({'url': f'http://{hostname}/'})
             ),
             status=303,
         )
@@ -252,14 +249,15 @@ class Record(BaseHandler):
             self.set_status(404)
             return self.render('setup_notfound.html')
 
-        # Get the port number
-        if len(run.ports) != 1:
-            logger.warning(
-                "Run has %d ports, can't load into record view",
-                len(run.ports),
-            )
-            return self.render('setup_notfound.html')
-        port_number = run.ports[0].port_number
+        hostname = self.get_query_argument('hostname', 'localhost')
+
+        port_number = self.get_query_argument('port_number', '80')
+        try:
+            port_number = int(port_number, 10)
+            if not (1 <= port_number <= 65535):
+                raise OverflowError
+        except (ValueError, OverflowError):
+            raise HTTPError(400, "Wrong port number")
 
         return self.render(
             'webcapture/record.html',
@@ -267,6 +265,7 @@ class Record(BaseHandler):
             upload_short_id=upload_short_id,
             experiment_url=self.url_for_upload(run.upload),
             log=run.get_log(0),
+            hostname=hostname,
             port_number=port_number,
         )
 
