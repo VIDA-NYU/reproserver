@@ -32,7 +32,7 @@ class Dashboard(BaseHandler):
 
         wacz_hash = self.get_query_argument('wacz', None)
 
-        hostname = self.get_query_argument('hostname', 'localhost')
+        hostname = self.get_query_argument('hostname', '')
         port_number = self.get_query_argument('port_number', '3000')
         try:
             port_number = int(port_number, 10)
@@ -40,6 +40,8 @@ class Dashboard(BaseHandler):
                 raise OverflowError
         except (ValueError, OverflowError):
             raise HTTPError(400, "Wrong port number")
+        if not hostname:
+            hostname = f'localhost:{port_number}'
 
         # Look up the experiment in database
         upload = (
