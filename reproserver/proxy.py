@@ -325,6 +325,11 @@ class K8sSubdirProxyHandler(SubdirRewriteMixin, K8sProxyHandler):
         url = 'run-{0}:5597{1}'.format(run_id, uri)
         return url
 
+    def alter_request(self, request):
+        super(K8sSubdirProxyHandler, self).alter_request(request)
+        if 'X-Proxy-Host' in request.headers:
+            request.headers['Host'] = request.headers.pop('X-Proxy-Host')
+
 
 def _setup():
     logging.root.handlers.clear()
