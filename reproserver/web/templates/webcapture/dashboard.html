@@ -14,29 +14,39 @@
 
 <form method="POST">
   {{ xsrf_form_html() }}
+  <div class="mb-3 row">
+    <label for="filename" class="col-sm-2 col-form-label">RPZ File:</label>
+    <div class="col-sm-10">
+      <p class="form-control" id="filename">{{ filename }}</p>
+    </div>
+  </div>
+  <div class="mb-3 row">
+    <label for="wacz" class="col-sm-2 col-form-label">WACZ FILE:</label>
+    <div class="col-sm-10">
+      <p class="form-control" id="wacz">
+        {% if wacz %}
+        present, {{ wacz.filesize }} bytes
+        {% else %}
+        none
+        {% endif %}
+      </p>
+    </div>
+  </div>
+  <div class="mb-3 row">
+    <label for="port_number" class="col-sm-2 col-form-label">Port number:</label>
+    <div class="col-sm-10">
+      <input type="number" name="port_number" id="port_number" class="form-control" min="1" max="65535" value="{{ port_number }}">
+      <small>Enter the port number that the web server listens on.</small>
+    </div>
+  </div>
+  <div class="mb-3 row">
+    <label for="hostname" class="col-sm-2 col-form-label">Hostname:</label>
+    <div class="col-sm-10">
+      <input type="text" name="hostname" id="hostname" class="form-control" value="{{ hostname }}" placeholder="Default: localhost:<port>">
+      <small>Optional. If the server expects to be reached at a specific address, you can enter it here. This is useful to circumvent security features or specific setups where the website will only work if we seem to be reaching it from a specific address. It doesn't change the port that we are actually using, which is selected above.</small>
+    </div>
+  </div>
   <div class="my-3">
-    <label for="filename" class="form-label">RPZ File:</label>
-    <p class="form-control" id="filename">{{ filename }}</p>
-  </div>
-  <div class="mb-3">
-    <label for="wacz" class="form-label">WACZ FILE:</label>
-    <p class="form-control" id="wacz">
-      {% if wacz %}
-      present, {{ wacz.filesize }} bytes
-      {% else %}
-      none
-      {% endif %}
-    </p>
-  </div>
-  <div class="mb-3">
-    <label for="hostname" class="form-label">Hostname:</label>
-    <input type="text" name="hostname" id="hostname" class="form-control" value="{{ hostname }}" placeholder="Default: localhost:<port>">
-  </div>
-  <div class="mb-3">
-    <label for="port_number" class="form-label">Port number:</label>
-    <input type="number" name="port_number" id="port_number" class="form-control" min="1" max="65535" value="{{ port_number }}">
-  </div>
-  <div class="mb-3">
     <p>Click "Record from browser" if you want to have more control and manually crawl.</p>
     <p>Click "Start automated crawl" if you prefer to crawl automatically.</p>
     <p><strong>After the crawl is complete, you will be redirected to this page. From there, download the new RPZ file (with the WACZ file in it).</strong></p>
