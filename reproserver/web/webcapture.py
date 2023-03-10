@@ -40,8 +40,6 @@ class Dashboard(BaseHandler):
                 raise OverflowError
         except (ValueError, OverflowError):
             raise HTTPError(400, "Wrong port number")
-        if not hostname:
-            hostname = f'localhost:{port_number}'
 
         # Look up the experiment in database
         upload = (
@@ -174,7 +172,7 @@ class StartRecord(BaseHandler):
             self.set_status(404)
             return self.render('setup_notfound.html')
 
-        hostname = self.get_body_argument('hostname')
+        hostname = self.get_body_argument('hostname', '')
         port_number = self.get_body_argument('port_number')
         try:
             port_number = int(port_number, 10)
@@ -182,6 +180,8 @@ class StartRecord(BaseHandler):
                 raise OverflowError
         except (ValueError, OverflowError):
             raise HTTPError(400, "Wrong port number")
+        if not hostname:
+            hostname = f'localhost:{port_number}'
 
         # Look up the experiment in database
         upload = (
@@ -249,7 +249,7 @@ class Record(BaseHandler):
             self.set_status(404)
             return self.render('setup_notfound.html')
 
-        hostname = self.get_query_argument('hostname', 'localhost')
+        hostname = self.get_query_argument('hostname')
 
         port_number = self.get_query_argument('port_number', '80')
         try:
@@ -332,15 +332,14 @@ class StartCrawl(BaseHandler):
                 raise OverflowError
         except (ValueError, OverflowError):
             raise HTTPError(400, "Wrong port number")
+        if not hostname:
+            hostname = f'localhost:{port_number}'
 
-        if hostname != 'localhost':
+        if hostname.split(':', 1)[0] != 'localhost':
             logger.warning("Using 'localhost' instead of '%s'", hostname)
             hostname = 'localhost'
 
-        if port_number == 80:
-            seed_url = f'http://{hostname}/'
-        else:
-            seed_url = f'http://{hostname}:{port_number}/'
+        seed_url = f'http://{hostname}/'
 
         # Look up the experiment in database
         upload = (
@@ -654,7 +653,7 @@ class Download(BaseHandler):
         wacz_hash = self.get_query_argument('wacz')
 
         # TODO: Those go into the RPZ file somewhere
-        self.get_body_argument('hostname')
+        hostname = self.get_body_argument('hostname')
         port_number = self.get_body_argument('port_number')
         try:
             port_number = int(port_number, 10)
@@ -662,6 +661,8 @@ class Download(BaseHandler):
                 raise OverflowError
         except (ValueError, OverflowError):
             raise HTTPError(400, "Wrong port number")
+        if not hostname:
+            hostname = f'localhost:{port_number}'
 
         with tempfile.TemporaryDirectory() as directory:
             input_rpz = os.path.join(directory, 'input.rpz')
