@@ -4,7 +4,7 @@ load('ext://docker_build_sub', 'docker_build_sub')
 # Rebuild image if those change
 full_rebuild = ['pyproject.toml', 'poetry.lock', 'reprozip']
 # Just sync those and let Tornado reload
-just_sync = ['reproserver/repositories', 'reproserver/static', 'reproserver/templates', 'reproserver/web', 'reproserver/main.py', 'reproserver/proxy.py']
+just_sync = ['reproserver/repositories', 'reproserver/web', 'reproserver/main.py', 'reproserver/proxy.py']
 # Have the rest of the code rebuild as well, the runner uses them
 for path in listdir('reproserver', recursive=True):
     is_synced = False
