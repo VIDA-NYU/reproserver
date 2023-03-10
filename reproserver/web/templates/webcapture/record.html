@@ -50,10 +50,6 @@ function update_page() {
 
 setTimeout(update_page, 3000);
 
-window.addEventListener("load", () => {
-  document.querySelector("#upload").addEventListener("click", doUpload);
-});
-
 async function doUpload() {
   const recorder = document.querySelector("record-web-page");
   if (!recorder) {
@@ -88,7 +84,7 @@ async function doUpload() {
 <p id="web-loading"></p>
 
 <script type="x-template" id="web">
-<button class="btn btn-default" id="upload">Upload WACZ</button>
+<button class="btn btn-default" onclick="doUpload()">Upload WACZ</button>
 <record-web-page
   style="height: 500px; display: flex; margin-top: 10px; border: 1px solid black;"
   url="http://{{ hostname }}/"
