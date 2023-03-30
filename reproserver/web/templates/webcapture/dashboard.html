@@ -46,14 +46,24 @@
       <small>Optional. If the server expects to be reached at a specific address, you can enter it here. This is useful to circumvent security features or specific setups where the website will only work if we seem to be reaching it from a specific address. It doesn't change the port that we are actually using, which is selected above.</small>
     </div>
   </div>
-  <div class="my-3">
-    <p>Click "Record from browser" if you want to have more control and manually crawl.</p>
-    <p>Click "Start automated crawl" if you prefer to crawl automatically.</p>
-    <p><strong>After the crawl is complete, you will be redirected to this page. From there, download the new RPZ file (with the WACZ file in it).</strong></p>
-    <input type="submit" formaction="{{ reverse_url('webcapture_start_record', upload_short_id) }}" class="btn btn-primary" value="Record from browser">
-    <input type="submit" formaction="{{ reverse_url('webcapture_start_crawl', upload_short_id) }}" class="btn btn-primary mx-4" value="Start automated crawl">
-    <input type="submit" formaction="{{ reverse_url('webcapture_upload_wacz', upload_short_id) }}" class="btn btn-secondary" formmethod="GET" value="Upload existing file">
+  <div class="my-3 row">
+    <div class="col-md-4">
+      <h2>Manually capture</h2>
+      <p>Browse your app from here, recording every page you visit.</p>
+      <input type="submit" formaction="{{ reverse_url('webcapture_start_record', upload_short_id) }}" class="btn btn-primary" value="Record from browser">
+    </div>
+    <div class="col-md-4">
+      <h2>Start automated capture</h2>
+      <p>Launch a web crawler which will try to visit all pages automatically.</p>
+      <input type="submit" formaction="{{ reverse_url('webcapture_start_crawl', upload_short_id) }}" class="btn btn-primary" value="Start automated crawl">
+    </div>
+    <div class="col-md-4">
+      <h2>Upload existing file</h2>
+      <p>If you have a WACZ file ready, use this option to upload it.</p>
+      <input type="submit" formaction="{{ reverse_url('webcapture_upload_wacz', upload_short_id) }}" class="btn btn-secondary" formmethod="GET" value="Upload existing file">
+    </div>
   </div>
+  <p>After the crawl is complete, you will be redirected to this page. From there, get a preview of the replayed app, or download the new RPZ file (with the WACZ file in it).</p>
   {% if wacz %}
   <div class="mb-3">
     <input type="submit" formaction="{{ reverse_url('webcapture_download', upload_short_id, wacz=wacz.hash) }}" class="btn btn-primary" value="Download the finished Web RPZ file">
