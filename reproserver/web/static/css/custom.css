@@ -55,3 +55,7 @@
 .grey-bg {
   background-color: #F9F9F9;
 }
+
+.fullsize-buttons button, .fullsize-buttons input[type="button"], .fullsize-buttons input[type="submit"] {
+  width: 100%;
+}
