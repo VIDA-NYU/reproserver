@@ -13,7 +13,7 @@
 
 <h1>Upload a WACZ file</h1>
 
-<p>This page lets you add an existing WACZ to your RPZ file. Use this option if you have created an archive of the frontend of your website through other means, for example using archiveweb.page.</p>
+<p>This page lets you add an existing WACZ to your RPZ file. Use this option if you have created an archive of the frontend of your website through other means, for example using <a href="https://archiveweb.page/">archiveweb.page</a>.</p>
 
 <form method="POST" action="{{ reverse_url('webcapture_upload_wacz', upload.short_id) }}" enctype="multipart/form-data">
   {{ xsrf_form_html() }}

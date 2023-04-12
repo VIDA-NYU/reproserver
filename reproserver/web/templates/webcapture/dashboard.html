@@ -12,26 +12,27 @@
 
 <h1 class="display-6">Web Capture</h1>
 
+<h2 class="mb-3">Info about your files</h2>
+
+<div class="mb-3 row">
+  <p class="col-sm-2">RPZ File:</p>
+  <p class="col-sm-10">{{ filename }}</p>
+</div>
+<div class="mb-3 row">
+  <p class="col-sm-2">WACZ FILE:</p>
+  <p class="col-sm-10">
+    {% if wacz %}
+    present, {{ wacz.filesize }}
+    {% else %}
+    none
+    {% endif %}
+  </p>
+</div>
+
+<h2 class="mb-3">Edit parameters for web capture</h2>
+
 <form method="POST">
   {{ xsrf_form_html() }}
-  <div class="mb-3 row">
-    <label for="filename" class="col-sm-2 col-form-label">RPZ File:</label>
-    <div class="col-sm-10">
-      <p class="form-control" id="filename">{{ filename }}</p>
-    </div>
-  </div>
-  <div class="mb-3 row">
-    <label for="wacz" class="col-sm-2 col-form-label">WACZ FILE:</label>
-    <div class="col-sm-10">
-      <p class="form-control" id="wacz">
-        {% if wacz %}
-        present, {{ wacz.filesize }} bytes
-        {% else %}
-        none
-        {% endif %}
-      </p>
-    </div>
-  </div>
   <div class="mb-3 row">
     <label for="port_number" class="col-sm-2 col-form-label">Port number:</label>
     <div class="col-sm-10">
