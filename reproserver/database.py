@@ -33,6 +33,7 @@ class Experiment(Base):
     hash = Column(String(64), primary_key=True)
     last_access = Column(DateTime, nullable=False,
                          default=lambda: datetime.utcnow())
+    size = Column(Integer, nullable=False)
     info = Column(Text, nullable=False)
 
     extensions = relationship('Extension', back_populates='experiment')

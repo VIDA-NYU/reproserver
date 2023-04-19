@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 from reprounzip.pack_info import get_package_info
 
 from . import database
@@ -33,8 +34,11 @@ def get_metadata(filename):
 
 
 async def make_experiment(filehash, filename):
+    # Get size
+    size = os.path.getsize(filename)
+
     # Insert it in database
-    experiment = database.Experiment(hash=filehash)
+    experiment = database.Experiment(hash=filehash, size=size)
 
     # Extract metadata
     info, experiment.info = await asyncio.get_event_loop().run_in_executor(
