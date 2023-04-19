@@ -27,6 +27,9 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+# Override the title of the HTML pages, defaults to "ReproServer"
+pageTitle: ""
+
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
