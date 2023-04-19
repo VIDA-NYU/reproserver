@@ -98,6 +98,10 @@ spec:
                   name: {{ .Values.zenodoTokenSecret }}
                   key: zenodo_token
             {{- end }}
+            {{- if .Values.pageTitle }}
+            - name: PAGE_TITLE
+              value: {{ .Values.pageTitle }}
+            {{- end }}
             - name: OVERRIDE_RUNNER_IMAGE
               value: "{{ .Values.runner_image_override | default (printf "%s:%s" .Values.image.repository (.Values.image.tag | default .Chart.AppVersion)) }}"
             - name: BROWSERTRIX_IMAGE

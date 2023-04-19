@@ -146,6 +146,7 @@ class BaseHandler(tornado.web.RequestHandler):
             handler=self,
             current_user=self.current_user,
             version=__version__,
+            page_title=os.environ.get('PAGE_TITLE', 'ReproServer'),
             **kwargs)
 
     def is_json_requested(self):

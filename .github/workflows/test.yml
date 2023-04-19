@@ -47,13 +47,13 @@ jobs:
       - name: Install minikube
         run: |
           sudo mkdir -p /usr/local/bin
-          sudo curl -Lo /usr/local/bin/minikube https://github.com/kubernetes/minikube/releases/download/v1.27.1/minikube-linux-amd64
+          sudo curl -Lo /usr/local/bin/minikube https://github.com/kubernetes/minikube/releases/download/v1.29.0/minikube-linux-amd64
           sudo chmod +x /usr/local/bin/minikube
-          sudo curl -Lo /usr/local/bin/kubectl https://dl.k8s.io/release/v1.22.15/bin/linux/amd64/kubectl
+          sudo curl -Lo /usr/local/bin/kubectl https://dl.k8s.io/release/v1.24.11/bin/linux/amd64/kubectl
           sudo chmod +x /usr/local/bin/kubectl
       - name: Start Kubernetes cluster
         run: |
-          minikube start --kubernetes-version=1.22.15 --driver=docker --nodes=1 --container-runtime=docker --ports=8000:30808
+          minikube start --kubernetes-version=1.24.11 --driver=docker --nodes=1 --container-runtime=docker --ports=8000:30808
           kubectl describe node
           kubectl apply -f k8s/ingress-nginx.yml
       - name: Build image
