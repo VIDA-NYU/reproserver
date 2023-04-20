@@ -96,6 +96,7 @@ class Dashboard(BaseHandler):
         return self.render(
             'webcapture/dashboard.html',
             filename=upload.filename,
+            filesize=upload.experiment.size,
             experiment_url=self.url_for_upload(upload),
             upload_short_id=upload.short_id,
             wacz=wacz,
