@@ -4,7 +4,7 @@ metadata:
   name: {{ include "reproserver.fullname" . }}
   labels:
     {{- include "reproserver.labels" . | nindent 4 }}
-    server.reprozip.org/component: web
+    app.kubernetes.io/component: web
 spec:
   replicas: 1
   strategy:
@@ -15,7 +15,7 @@ spec:
   selector:
     matchLabels:
       {{- include "reproserver.selectorLabels" . | nindent 6 }}
-      server.reprozip.org/component: web
+      app.kubernetes.io/component: web
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -24,7 +24,7 @@ spec:
       {{- end }}
       labels:
         {{- include "reproserver.selectorLabels" . | nindent 8 }}
-        server.reprozip.org/component: web
+        app.kubernetes.io/component: web
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:

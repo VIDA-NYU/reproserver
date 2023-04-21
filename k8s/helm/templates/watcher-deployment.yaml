@@ -4,7 +4,7 @@ metadata:
   name: {{ include "reproserver.fullname" . }}-watcher
   labels:
     {{- include "reproserver.labels" . | nindent 4 }}
-    server.reprozip.org/component: watcher
+    app.kubernetes.io/component: watcher
 spec:
   replicas: 1
   strategy:
@@ -12,7 +12,7 @@ spec:
   selector:
     matchLabels:
       {{- include "reproserver.selectorLabels" . | nindent 6 }}
-      server.reprozip.org/component: watcher
+      app.kubernetes.io/component: watcher
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -21,7 +21,7 @@ spec:
       {{- end }}
       labels:
         {{- include "reproserver.selectorLabels" . | nindent 8 }}
-        server.reprozip.org/component: watcher
+        app.kubernetes.io/component: watcher
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
