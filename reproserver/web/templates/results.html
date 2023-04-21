@@ -26,7 +26,7 @@
   </a>
   <div id="runlog" class="collapse">
     <div class="card-body">
-      <pre style="max-height: 200px">{% for line in log %}{{ line }}
+      <pre style="max-height: 200px" class="my-0">{% for line in log %}{{ line }}
 {% endfor %}</pre>
     </div>
   </div>
@@ -69,11 +69,9 @@
   <p class="card-header">
     Run log
   </p>
-  <div>
-    <div class="card-body">
-      <pre id="log" style="max-height: 200px">{% for line in log %}{{ line }}
+  <div class="card-body">
+    <pre id="log" style="max-height: 200px" class="my-0">{% for line in log %}{{ line }}
 {% endfor %}</pre>
-    </div>
   </div>
 </div>
 
@@ -109,7 +107,8 @@ setTimeout(update_page, 3000);
 
 <script type="x-template" id="web">
 <replay-web-page
-  style="height: 500px; display: flex; margin-top: 10px; border: 1px solid black;"
+  class="my-3"
+  style="height: 500px; display: flex; border: 1px solid black;"
   url="http://localhost:{{ run.ports[0].port_number }}/"
   replayBase="/static/replay/"
   source="{{ wacz }}"
