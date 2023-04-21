@@ -20,6 +20,10 @@ from .docker import DockerRunner
 logger = logging.getLogger(__name__)
 
 
+def labels_to_string(labels_dict):
+    return ','.join(k + '=' + v for k, v in labels_dict.items())
+
+
 class InternalProxyHandler(ProxyHandler):
     def select_destination(self):
         # Authentication
@@ -60,6 +64,10 @@ class K8sRunner(BaseRunner):
         super(K8sRunner, self).__init__(connector)
 
         self.config_dir = os.environ['K8S_CONFIG_DIR']
+        with open(os.path.join(self.config_dir, 'runner.namespace')) as fp:
+            self.namespace = fp.read().strip()
+        with open(os.path.join(self.config_dir, 'runner.pod_labels')) as fp:
+            self.pod_labels = yaml.safe_load(fp)
 
     def _pod_name(self, run_id):
         return 'run-{0}'.format(run_id)
@@ -79,8 +87,6 @@ class K8sRunner(BaseRunner):
         # Load configuration from configmap volume
         with open(os.path.join(self.config_dir, 'runner.pod_spec')) as fp:
             pod_spec = yaml.safe_load(fp)
-        with open(os.path.join(self.config_dir, 'runner.namespace')) as fp:
-            namespace = fp.read().strip()
 
         # Make required changes
         for container in pod_spec['containers']:
@@ -99,7 +105,7 @@ class K8sRunner(BaseRunner):
                 kind='Pod',
                 metadata=k8s_client.V1ObjectMeta(
                     name=name,
-                    labels={
+                    labels=self.pod_labels | {
                         'app': 'run',
                         'run': str(run_id),
                     },
@@ -107,7 +113,7 @@ class K8sRunner(BaseRunner):
                 spec=pod_spec,
             )
             await v1.create_namespaced_pod(
-                namespace=namespace,
+                namespace=self.namespace,
                 body=pod,
             )
             logger.info("Pod created: %s", name)
@@ -118,13 +124,13 @@ class K8sRunner(BaseRunner):
                 kind='Service',
                 metadata=k8s_client.V1ObjectMeta(
                     name=name,
-                    labels={
+                    labels=self.pod_labels | {
                         'app': 'run',
                         'run': str(run_id),
                     },
                 ),
                 spec=k8s_client.V1ServiceSpec(
-                    selector={
+                    selector=self.pod_labels | {
                         'app': 'run',
                         'run': str(run_id),
                     },
@@ -137,7 +143,7 @@ class K8sRunner(BaseRunner):
                 ),
             )
             await v1.create_namespaced_service(
-                namespace=namespace,
+                namespace=self.namespace,
                 body=svc,
             )
             logger.info("Service created: %s", name)
@@ -211,6 +217,8 @@ class K8sWatcher(object):
         self.running = set()
         with open(os.path.join(self.config_dir, 'runner.namespace')) as fp:
             self.namespace = fp.read().strip()
+        with open(os.path.join(self.config_dir, 'runner.pod_labels')) as fp:
+            self.pod_labels = yaml.safe_load(fp)
 
     def running_set_add(self, run_id):
         if run_id in self.running:
@@ -246,7 +254,9 @@ class K8sWatcher(object):
             watch = k8s_watch.Watch()
             f, kwargs = v1.list_namespaced_pod, dict(
                 namespace=self.namespace,
-                label_selector='app=run',
+                label_selector=labels_to_string(
+                    self.pod_labels | {'app': 'run'}
+                ),
             )
             while True:
                 try:
@@ -264,7 +274,7 @@ class K8sWatcher(object):
         # Find existing run pods
         pods = await v1.list_namespaced_pod(
             namespace=self.namespace,
-            label_selector='app=run',
+            label_selector=labels_to_string(self.pod_labels | {'app': 'run'}),
         )
         for pod in pods.items:
             run_id = int(pod.metadata.labels['run'], 10)
@@ -276,7 +286,7 @@ class K8sWatcher(object):
         # Find existing services
         services = await v1.list_namespaced_service(
             namespace=self.namespace,
-            label_selector='app=run',
+            label_selector=labels_to_string(self.pod_labels | {'app': 'run'}),
         )
         for service in services.items:
             run_id = int(service.metadata.labels['run'], 10)
