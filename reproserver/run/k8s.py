@@ -25,6 +25,12 @@ def labels_to_string(labels_dict):
 
 
 class InternalProxyHandler(ProxyHandler):
+    """Runs in the run pod, forwards traffic to the Docker container.
+
+    This runs in the "runner" container of the run pod and forwards traffic
+    from the main proxy to the Docker container, which has exposed ports on
+    localhost.
+    """
     def select_destination(self):
         # Authentication
         token = self.request.headers.pop('X-Reproserver-Authenticate', None)
@@ -210,6 +216,11 @@ def _run_in_pod(run_id):
 
 
 class K8sWatcher(object):
+    """Background process watching run pods.
+
+    * Deletes them when done, setting potential error status
+    * Sets Prometheus metrics
+    """
     def __init__(self, connector):
         self.connector = connector
         self.loop = asyncio.get_event_loop()
@@ -218,7 +229,9 @@ class K8sWatcher(object):
         with open(os.path.join(self.config_dir, 'runner.namespace')) as fp:
             self.namespace = fp.read().strip()
         with open(os.path.join(self.config_dir, 'runner.pod_labels')) as fp:
-            self.pod_labels = yaml.safe_load(fp)
+            pod_labels = yaml.safe_load(fp)
+        self.label_selector = labels_to_string(pod_labels | {'app': 'run'})
+        logger.info("Using label selector: %s", self.label_selector)
 
     def running_set_add(self, run_id):
         if run_id in self.running:
@@ -254,9 +267,7 @@ class K8sWatcher(object):
             watch = k8s_watch.Watch()
             f, kwargs = v1.list_namespaced_pod, dict(
                 namespace=self.namespace,
-                label_selector=labels_to_string(
-                    self.pod_labels | {'app': 'run'}
-                ),
+                label_selector=self.label_selector,
             )
             while True:
                 try:
@@ -274,7 +285,7 @@ class K8sWatcher(object):
         # Find existing run pods
         pods = await v1.list_namespaced_pod(
             namespace=self.namespace,
-            label_selector=labels_to_string(self.pod_labels | {'app': 'run'}),
+            label_selector=self.label_selector,
         )
         for pod in pods.items:
             run_id = int(pod.metadata.labels['run'], 10)
@@ -286,7 +297,7 @@ class K8sWatcher(object):
         # Find existing services
         services = await v1.list_namespaced_service(
             namespace=self.namespace,
-            label_selector=labels_to_string(self.pod_labels | {'app': 'run'}),
+            label_selector=self.label_selector,
         )
         for service in services.items:
             run_id = int(service.metadata.labels['run'], 10)
