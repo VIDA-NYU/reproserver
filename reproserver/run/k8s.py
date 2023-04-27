@@ -74,9 +74,11 @@ class K8sRunner(BaseRunner):
             self.namespace = fp.read().strip()
         with open(os.path.join(self.config_dir, 'runner.pod_labels')) as fp:
             self.pod_labels = yaml.safe_load(fp)
+        with open(os.path.join(self.config_dir, 'runner.pod_prefix')) as fp:
+            self.pod_name_prefix = fp.read().strip()
 
     def _pod_name(self, run_id):
-        return 'run-{0}'.format(run_id)
+        return '{0}run-{1}'.format(self.pod_name_prefix, run_id)
 
     async def run_inner(self, run_info):
         run_id = run_info['id']
