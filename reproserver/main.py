@@ -2,9 +2,9 @@ import asyncio
 import importlib
 import logging
 import os
-import prometheus_client
 import tornado.ioloop
 
+from .utils import setup
 from .web import make_app
 
 
@@ -12,12 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    logging.root.handlers.clear()
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
-    prometheus_client.start_http_server(8090)
+    setup()
 
     debug = os.environ.get('REPROSERVER_DEBUG', '').lower() in (
         'y', 'yes', 'true', 'on', '1',

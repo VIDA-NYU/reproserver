@@ -13,7 +13,7 @@ metadata:
 spec:
   selector:
     {{- include "reproserver.selectorLabels" . | nindent 4 }}
-    server.reprozip.org/component: web
+    app.kubernetes.io/component: web
   type: ClusterIP
   clusterIP: None
   ports:
@@ -34,7 +34,7 @@ metadata:
 spec:
   selector:
     {{- include "reproserver.selectorLabels" . | nindent 4 }}
-    server.reprozip.org/component: proxy
+    app.kubernetes.io/component: proxy
   type: ClusterIP
   clusterIP: None
   ports:

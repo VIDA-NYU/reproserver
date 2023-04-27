@@ -5,8 +5,12 @@ metadata:
   labels:
     {{- include "reproserver.labels" . | nindent 4 }}
 data:
-  runner.namespace: {{ .Release.Namespace }}
-  runner.pod_spec: |
+  runner-config.yaml: |
+    namespace: {{ .Release.Namespace }}
+    pod_labels:
+      {{- include "reproserver.labels" . | nindent 6 }}
+    pod_prefix: {{ include "reproserver.fullname" . }}-
+  runner-pod-spec.yaml: |
     restartPolicy: Never
     {{- with .Values.dockerInDocker.imagePullSecrets }}
     imagePullSecrets:

@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 
 from . import __version__
 from . import database
+from .utils import setup
 from .web.base import GracefulApplication
 
 
@@ -304,17 +305,8 @@ class K8sSubdirProxyHandler(K8sProxyHandler):
         return url
 
 
-def _setup():
-    logging.root.handlers.clear()
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
-    prometheus_client.start_http_server(8090)
-
-
 def docker_proxy():
-    _setup()
+    setup()
 
     # Database connection is not used, but we still need to prime short ids
     database.connect()
@@ -326,7 +318,7 @@ def docker_proxy():
 
 
 def k8s_proxy():
-    _setup()
+    setup()
 
     # Database connection is not used, but we still need to prime short ids
     database.connect()

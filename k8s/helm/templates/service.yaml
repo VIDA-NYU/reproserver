@@ -5,7 +5,7 @@ metadata:
   name: {{ include "reproserver.fullname" . }}
   labels:
     {{- include "reproserver.labels" . | nindent 4 }}
-    server.reprozip.org/component: web
+    app.kubernetes.io/component: web
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -15,7 +15,7 @@ spec:
       name: http
   selector:
     {{- include "reproserver.selectorLabels" . | nindent 4 }}
-    server.reprozip.org/component: web
+    app.kubernetes.io/component: web
 ---
 apiVersion: v1
 kind: Service
@@ -23,7 +23,7 @@ metadata:
   name: {{ include "reproserver.fullname" . }}-proxy
   labels:
     {{- include "reproserver.labels" . | nindent 4 }}
-    server.reprozip.org/component: proxy
+    app.kubernetes.io/component: proxy
 spec:
   type: {{ .Values.proxyService.type }}
   ports:
@@ -33,4 +33,4 @@ spec:
       name: http
   selector:
     {{- include "reproserver.selectorLabels" . | nindent 4 }}
-    server.reprozip.org/component: proxy
+    app.kubernetes.io/component: proxy
