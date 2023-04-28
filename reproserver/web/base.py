@@ -5,6 +5,7 @@ import importlib
 import jinja2
 import json
 import logging
+from markupsafe import Markup
 import os
 import pkg_resources
 import signal
@@ -115,7 +116,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
     @jinja2.pass_context
     def _tpl_xsrf_form_html(context):
-        return jinja2.Markup(context['handler'].xsrf_form_html())
+        return Markup(context['handler'].xsrf_form_html())
     template_env.globals['xsrf_form_html'] = _tpl_xsrf_form_html
 
     @jinja2.pass_context

@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 
 from . import __version__
 from . import database
+from .utils import setup
 from .web.base import GracefulApplication
 
 
@@ -288,7 +289,11 @@ class K8sProxyHandler(ProxyHandler):
         run_short_id, self.target_port = parts
         run_id = database.Run.decode_id(run_short_id)
 
-        url = 'run-{0}:5597{1}'.format(run_id, self.request.uri)
+        url = '{0}run-{1}:5597{2}'.format(
+            os.environ['RUN_NAME_PREFIX'],
+            run_id,
+            self.request.uri,
+        )
         return url
 
     def alter_request(self, request):
@@ -322,7 +327,11 @@ class K8sSubdirProxyHandler(SubdirRewriteMixin, K8sProxyHandler):
 
         uri = self.request.uri
         uri = self._re_path.sub('', uri)
-        url = 'run-{0}:5597{1}'.format(run_id, uri)
+        url = '{0}run-{1}:5597{2}'.format(
+            os.environ['RUN_NAME_PREFIX'],
+            run_id,
+            uri,
+        )
         return url
 
     def alter_request(self, request):
@@ -331,17 +340,8 @@ class K8sSubdirProxyHandler(SubdirRewriteMixin, K8sProxyHandler):
             request.headers['Host'] = request.headers.pop('X-Proxy-Host')
 
 
-def _setup():
-    logging.root.handlers.clear()
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
-    prometheus_client.start_http_server(8090)
-
-
 def docker_proxy():
-    _setup()
+    setup()
 
     # Database connection is not used, but we still need to prime short ids
     database.connect()
@@ -353,7 +353,7 @@ def docker_proxy():
 
 
 def k8s_proxy():
-    _setup()
+    setup()
 
     # Database connection is not used, but we still need to prime short ids
     database.connect()

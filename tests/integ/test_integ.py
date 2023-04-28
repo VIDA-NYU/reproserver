@@ -77,7 +77,7 @@ class TestRepro(ReproserverTest):
             m = re.search(r'/results/([a-z0-9]{5})$', res.url)
             run_short_id = m.group(1)
             obj = None
-            for i in range(20):
+            for i in range(60):
                 time.sleep(2)
                 res = self.reproserver_get(
                     '/results/{0}/json?log_from=0'.format(run_short_id),

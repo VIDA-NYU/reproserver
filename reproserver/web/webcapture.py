@@ -493,7 +493,10 @@ class CrawlStatusWebsocket(WebSocketHandler, BaseHandler):
 
     async def open(self, upload_short_id, run_short_id):
         self.upstream_ws = await websocket_connect(
-            'ws://run-%d:9223/ws' % self.run.id,
+            'ws://%srun-%d:9223/ws' % (
+                os.environ['RUN_NAME_PREFIX'],
+                self.run.id,
+            ),
             on_message_callback=self.on_upstream_message,
         )
 
