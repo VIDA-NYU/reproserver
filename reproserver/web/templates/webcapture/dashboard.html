@@ -54,13 +54,13 @@
   <div class="my-3 row">
     <div class="col-md text-center">
       <h2>Manually capture</h2>
-      <p>Browse your app from here, recording every page you visit.</p>
-      <input type="submit" formaction="{{ reverse_url('webcapture_start_record', upload_short_id) }}" class="btn btn-primary" value="Record from browser">
+      <p>You will see the app running, browse the site to interactively capture pages.</p>
+      <input type="submit" formaction="{{ reverse_url('webcapture_start_record', upload_short_id) }}" class="btn btn-primary" value="Manually capture">
     </div>
     <div class="col-md text-center">
       <h2>Start automated capture</h2>
       <p>Launch a web crawler which will try to visit all pages automatically.</p>
-      <input type="submit" formaction="{{ reverse_url('webcapture_start_crawl', upload_short_id) }}" class="btn btn-primary" value="Start automated crawl">
+      <input type="submit" formaction="{{ reverse_url('webcapture_start_crawl', upload_short_id) }}" class="btn btn-primary" value="Start automated capture">
     </div>
     <div class="col-md text-center">
       <h2>Upload existing file</h2>
