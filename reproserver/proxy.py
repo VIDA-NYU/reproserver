@@ -267,7 +267,11 @@ class K8sProxyHandler(ProxyHandler):
         run_short_id, self.target_port = parts
         run_id = database.Run.decode_id(run_short_id)
 
-        url = 'run-{0}:5597{1}'.format(run_id, self.request.uri)
+        url = '{0}run-{1}:5597{2}'.format(
+            os.environ['RUN_NAME_PREFIX'],
+            run_id,
+            self.request.uri,
+        )
         return url
 
     def alter_request(self, request):
@@ -301,7 +305,11 @@ class K8sSubdirProxyHandler(K8sProxyHandler):
 
         uri = self.request.uri
         uri = self._re_path.sub('', uri)
-        url = 'run-{0}:5597{1}'.format(run_id, uri)
+        url = '{0}run-{1}:5597{2}'.format(
+            os.environ['RUN_NAME_PREFIX'],
+            run_id,
+            uri,
+        )
         return url
 
 
