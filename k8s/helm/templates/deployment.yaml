@@ -89,6 +89,13 @@ spec:
               value: k8s
             - name: K8S_CONFIG_DIR
               value: /etc/reproserver-k8s
+            - name: RUN_NAMESPACE
+              value: {{ .Release.Namespace }}
+            - name: RUN_NAME_PREFIX
+              value: {{ include "reproserver.fullname" . }}-
+            - name: RUN_LABELS
+              value: |
+                {{- include "reproserver.labels" . | nindent 16 }}
             {{- if .Values.zenodoTokenSecret }}
             - name: ZENODO_TOKEN
               valueFrom:

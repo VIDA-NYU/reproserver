@@ -70,11 +70,9 @@ class K8sRunner(BaseRunner):
         super(K8sRunner, self).__init__(connector)
 
         self.config_dir = os.environ['K8S_CONFIG_DIR']
-        with open(os.path.join(self.config_dir, 'runner-config.yaml')) as fp:
-            config = yaml.safe_load(fp)
-        self.namespace = config['namespace']
-        self.pod_labels = config['pod_labels']
-        self.pod_name_prefix = config['pod_prefix']
+        self.namespace = os.environ['RUN_NAMESPACE']
+        self.pod_name_prefix = os.environ['RUN_NAME_PREFIX']
+        self.pod_labels = yaml.safe_load(os.environ['RUN_LABELS'])
 
     def _pod_name(self, run_id):
         return '{0}run-{1}'.format(self.pod_name_prefix, run_id)
@@ -227,12 +225,13 @@ class K8sWatcher(object):
         self.loop = asyncio.get_event_loop()
         self.config_dir = os.environ['K8S_CONFIG_DIR']
         self.running = set()
-        with open(os.path.join(self.config_dir, 'runner-config.yaml')) as fp:
-            config = yaml.safe_load(fp)
-        self.namespace = config['namespace']
-        pod_labels = config['pod_labels']
-        self.label_selector = labels_to_string(pod_labels | {'app': 'run'})
+        self.namespace = os.environ['RUN_NAMESPACE']
+        self.pod_labels = yaml.safe_load(os.environ['RUN_LABELS'])
+        self.label_selector = labels_to_string(
+            self.pod_labels | {'app': 'run'}
+        )
         logger.info("Using label selector: %s", self.label_selector)
+        self.pod_name_prefix = os.environ['RUN_NAME_PREFIX']
 
     def running_set_add(self, run_id):
         if run_id in self.running:
@@ -357,7 +356,7 @@ class K8sWatcher(object):
                 await self.connector.run_failed(run_id, "Internal error")
             try:
                 await k8s_client.CoreV1Api(api).delete_namespaced_service(
-                    name='run-%d' % run_id,
+                    name='%srun-%d' % (self.pod_name_prefix, run_id),
                     namespace=self.namespace,
                 )
             except k8s_client.ApiException as e:

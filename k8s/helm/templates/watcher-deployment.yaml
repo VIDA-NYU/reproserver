@@ -50,6 +50,13 @@ spec:
               value: postgres
             - name: K8S_CONFIG_DIR
               value: /etc/reproserver-k8s
+            - name: RUN_NAMESPACE
+              value: {{ .Release.Namespace }}
+            - name: RUN_NAME_PREFIX
+              value: {{ include "reproserver.fullname" . }}-
+            - name: RUN_LABELS
+              value: |
+                {{- include "reproserver.labels" . | nindent 16 }}
           ports:
             - name: prometheus
               containerPort: 8090
