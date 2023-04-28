@@ -175,6 +175,7 @@ class ProxyHandler(WebSocketHandler):
                     logger.info("Host doesn't resolve, sending 410 error")
                     self.set_status(410)
                     self.set_header('Content-Type', 'text/plain')
+                    self.set_header('Cache-Control', 'no-cache')
                     return await self.finish("This run is now over")
 
             PROM_PROXY_REQUESTS.labels('http', 'success').inc()
