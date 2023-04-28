@@ -540,6 +540,7 @@ class UploadWacz(BaseHandler):
             'webcapture/upload_wacz.html',
             upload=upload,
             experiment_url=self.url_for_upload(upload),
+            upload_short_id=upload_short_id,
             hostname=hostname,
             port_number=port_number,
         )
