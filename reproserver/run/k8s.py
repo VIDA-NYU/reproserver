@@ -231,6 +231,7 @@ class K8sWatcher(object):
             self.pod_labels | {'app': 'run'}
         )
         logger.info("Using label selector: %s", self.label_selector)
+        self.pod_name_prefix = os.environ['RUN_NAME_PREFIX']
 
     def running_set_add(self, run_id):
         if run_id in self.running:
@@ -355,7 +356,7 @@ class K8sWatcher(object):
                 await self.connector.run_failed(run_id, "Internal error")
             try:
                 await k8s_client.CoreV1Api(api).delete_namespaced_service(
-                    name='run-%d' % run_id,
+                    name='%srun-%d' % (self.pod_name_prefix, run_id),
                     namespace=self.namespace,
                 )
             except k8s_client.ApiException as e:
