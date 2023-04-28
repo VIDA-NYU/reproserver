@@ -37,23 +37,19 @@
 
 <form method="POST">
   {{ xsrf_form_html() }}
-  <div class="mb-3 row">
-    <label for="port_number" class="col-sm-2 col-form-label">Port number:</label>
-    <div class="col-sm-10">
-      <div class="row"><div class="col-sm-12 col-md-6">
-        <input type="number" name="port_number" id="port_number" class="form-control" min="1" max="65535" value="{{ port_number }}">
-      </div></div>
-      <small>Enter the port number that the web server listens on.</small>
-    </div>
+  <div class="mb-3">
+    <label for="port_number" class="col-form-label">Port number:</label>
+    <div class="row"><div class="col-sm-12 col-md-6">
+      <input type="number" name="port_number" id="port_number" class="form-control" min="1" max="65535" value="{{ port_number }}">
+    </div></div>
+    <small>Enter the port number that the web server listens on.</small>
   </div>
-  <div class="mb-3 row">
-    <label for="hostname" class="col-sm-2 col-form-label">Hostname:</label>
-    <div class="col-sm-10">
-      <div class="row"><div class="col-sm-12 col-md-6">
-        <input type="text" name="hostname" id="hostname" class="form-control" value="{{ hostname }}" placeholder="Default: localhost:<port>">
-      </div></div>
-      <small>Optional. If the server expects to be reached at a specific address, you can enter it here. This is useful to circumvent security features or specific setups where the website will only work if we seem to be reaching it from a specific address. It doesn't change the port that we are actually using, which is selected above.</small>
-    </div>
+  <div class="mb-3">
+    <label for="hostname" class="col-form-label">Hostname:</label>
+    <div class="row"><div class="col-sm-12 col-md-6">
+      <input type="text" name="hostname" id="hostname" class="form-control" value="{{ hostname }}" placeholder="Default: localhost:<port>">
+    </div></div>
+    <small>Optional. If the server expects to be reached at a specific address, you can enter it here. This is useful to circumvent security features or specific setups where the website will only work if we seem to be reaching it from a specific address. It doesn't change the port that we are actually using, which is selected above.</small>
   </div>
   <div class="my-3 row">
     <div class="col-md">
