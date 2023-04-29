@@ -3,14 +3,12 @@ import logging
 import os
 import prometheus_client
 import re
-import socket
 from tornado import httputil
 from tornado import httpclient
 import tornado.ioloop
 from tornado.routing import URLSpec
 import tornado.web
 from tornado.websocket import WebSocketHandler, websocket_connect
-from urllib.parse import urlparse
 
 from . import __version__
 from . import database
@@ -28,19 +26,6 @@ PROM_PROXY_REQUESTS = prometheus_client.Counter(
 )
 for args in itertools.product(['http', 'ws'], ['success', 'error']):
     PROM_PROXY_REQUESTS.labels(*args).inc(0)
-
-
-def is_host_resolving(host):
-    try:
-        ret = socket.getaddrinfo(
-            host,
-            80,
-            type=socket.SOCK_STREAM,
-        )
-    except socket.gaierror:
-        return False
-    else:
-        return len(ret) > 0
 
 
 class IsKubernetesProbe(tornado.routing.Matcher):
@@ -161,22 +146,14 @@ class ProxyHandler(WebSocketHandler):
                 )
             except Exception:
                 PROM_PROXY_REQUESTS.labels('http', 'error').inc()
-                # Is it done or starting up?
-                if is_host_resolving(urlparse(request.url).hostname):
-                    # Host resolves but doesn't answer
-                    logger.info("Host doesn't reply, sending 503")
-                    self.set_status(503)
-                    self.set_header('Content-Type', 'text/plain')
-                    return await self.finish(
-                        "This run is not responding or starting up",
-                    )
-                else:
-                    # Host doesn't resolve, the run is gone
-                    logger.info("Host doesn't resolve, sending 410 error")
-                    self.set_status(410)
-                    self.set_header('Content-Type', 'text/plain')
-                    self.set_header('Cache-Control', 'no-cache')
-                    return await self.finish("This run is now over")
+                # Host resolves but doesn't answer
+                logger.info("Host doesn't reply, sending 503")
+                self.set_status(503)
+                self.set_header('Content-Type', 'text/plain')
+                return await self.finish(
+                    "This run is not responding, it might be starting up "
+                    + "or have already ended",
+                )
 
             PROM_PROXY_REQUESTS.labels('http', 'success').inc()
             return await self.finish()
