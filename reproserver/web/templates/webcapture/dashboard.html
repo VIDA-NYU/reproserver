@@ -49,7 +49,10 @@
     <label for="hostname-input" class="col-form-label" id="hostname-true" style="display: none;">Address to send to the app (or <a href="#hostname" id="hostname-set-false" class="hostname-toggle" role="button">reset to default</a>):</label>
     <div class="collapse" id="hostname-div">
       <div class="row"><div class="col-sm-12 col-md-6">
-        <input type="text" name="hostname" id="hostname-input" class="form-control" value="{{ hostname }}" placeholder="Default: localhost:<port>">
+        <div class="input-group">
+          <span class="input-group-text">http://</span>
+          <input type="text" name="hostname" id="hostname-input" class="form-control" value="{{ hostname }}" placeholder="default: localhost:<port>">
+        </div>
       </div></div>
       <small>Optional. If the server expects to be reached at a specific address, you can enter it here. This is useful to circumvent security features or specific setups where the website will only work if we seem to be reaching it from a specific address. It doesn't change the port that we are actually using, which is selected above.</small>
     </div>
