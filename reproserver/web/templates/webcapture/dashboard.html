@@ -44,14 +44,17 @@
     </div></div>
     <small>Enter the port number that the web server listens on.</small>
   </div>
-  <div class="mb-3">
-    <label for="hostname" class="col-form-label">Hostname:</label>
-    <div class="row"><div class="col-sm-12 col-md-6">
-      <input type="text" name="hostname" id="hostname" class="form-control" value="{{ hostname }}" placeholder="Default: localhost:<port>">
-    </div></div>
-    <small>Optional. If the server expects to be reached at a specific address, you can enter it here. This is useful to circumvent security features or specific setups where the website will only work if we seem to be reaching it from a specific address. It doesn't change the port that we are actually using, which is selected above.</small>
+  <div class="mb-3" id="hostname-label">
+    <label class="col-form-label" id="hostname-false">We will query your app at <code>http://localhost:5000</code>. <a href="#hostname" id="hostname-set-true" class="hostname-toggle" role="button">Change (advanced)</a></label>
+    <label for="hostname-input" class="col-form-label" id="hostname-true" style="display: none;">Address to send to the app (or <a href="#hostname" id="hostname-set-false" class="hostname-toggle" role="button">reset to default</a>):</label>
+    <div class="collapse" id="hostname-div">
+      <div class="row"><div class="col-sm-12 col-md-6">
+        <input type="text" name="hostname" id="hostname-input" class="form-control" value="{{ hostname }}" placeholder="Default: localhost:<port>">
+      </div></div>
+      <small>Optional. If the server expects to be reached at a specific address, you can enter it here. This is useful to circumvent security features or specific setups where the website will only work if we seem to be reaching it from a specific address. It doesn't change the port that we are actually using, which is selected above.</small>
+    </div>
   </div>
-  <div class="my-3 row">
+  <div class="mt-5 mb-3 row">
     <div class="col-md d-flex flex-column">
       <div>
         <h2>Manual capture</h2>
@@ -95,5 +98,27 @@
   </div>
   {% endif %}
 </form>
+
+<script>
+window.addEventListener('load', function() {
+  console.log('setup');
+  var hostnameCollapse = new bootstrap.Collapse(document.getElementById('hostname-div'), {toggle: false});
+  document.getElementById('hostname-set-true').addEventListener('click', function(e) {
+    e.preventDefault();
+    console.log(true);
+    hostnameCollapse.show();
+    document.getElementById('hostname-true').style.display = '';
+    document.getElementById('hostname-false').style.display = 'none';
+  });
+  document.getElementById('hostname-set-false').addEventListener('click', function(e) {
+    e.preventDefault();
+    console.log(false);
+    hostnameCollapse.hide();
+    document.getElementById('hostname-true').style.display = 'none';
+    document.getElementById('hostname-false').style.display = '';
+    document.getElementById('hostname-input').value = '';
+  });
+});
+</script>
 
 {% endblock content %}
