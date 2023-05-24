@@ -7,11 +7,11 @@
     <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
     <li class="breadcrumb-item"><a href="{{ experiment_url }}">Package {{ run.upload.filename | truncate(60) }}</a></li>
     <li class="breadcrumb-item"><a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}">Web capture</a></li>
-    <li class="breadcrumb-item active" aria-current="page">Automated crawl</li>
+    <li class="breadcrumb-item active" aria-current="page">Automated capture</li>
   </ol>
 </nav>
 
-<h1>Automated crawl</h1>
+<h1>Automated capture</h1>
 
 {% if run.done %}
 
@@ -32,9 +32,9 @@
 </div>
 
   {% if wacz %}
-<p>The crawl was successful, <a href="{{ reverse_url('webcapture_dashboard', run.upload.short_id, wacz=wacz, hostname=hostname, port_number=port_number) }}">click here to return to the dashboard</a>.</p>
+<p>The capture was successful, <a href="{{ reverse_url('webcapture_dashboard', run.upload.short_id, wacz=wacz, hostname=hostname, port_number=port_number) }}">click here to return to the dashboard</a>.</p>
   {% else %}
-<p>The crawl failed to produce a WACZ file!</p>
+<p>The capture failed to produce a WACZ file!</p>
   {% endif %}
 
 {% else %}
