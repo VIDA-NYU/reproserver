@@ -284,13 +284,15 @@ while ! printf '%s\n' "$CURL_STATUS" | grep '^[23]' > /dev/null; do
         exit 1
     fi
     CURL_STATUS="$(curl -s -o /dev/null -w "%{http_code}" \
-        --connect-timeout 5 "__URL__")"
+        -H 'Host: __HOSTNAME__' \
+        --connect-timeout 5 "http://localhost:__PORT_NUMBER__/")"
 done
 printf 'web server ready (curl: %s)\n' "$CURL_STATUS"
 if ! crawl \
-    --url "__URL__" \
+    --url "http://__HOSTNAME__/" \
     --screencastPort 9223 \
     --workers 2 \
+    --originOverride http://__HOSTNAME__=http://localhost:__PORT_NUMBER__ \
     --generateWACZ
 then
     printf "crawl failed\n" >&2
@@ -336,12 +338,6 @@ class StartCrawl(BaseHandler):
         if not hostname:
             hostname = f'localhost:{port_number}'
 
-        if hostname.split(':', 1)[0] != 'localhost':
-            logger.warning("Using 'localhost' instead of '%s'", hostname)
-            hostname = 'localhost'
-
-        seed_url = f'http://{hostname}/'
-
         # Look up the experiment in database
         upload = (
             self.db.query(database.Upload)
@@ -373,7 +369,6 @@ class StartCrawl(BaseHandler):
         # Add browsertrix container
         script = BROWSERTRIX_SCRIPT
         for k, v in {
-            '__URL__': seed_url,
             '__UPLOAD_SHORT_ID__': upload_short_id,
             '__RUN_ID__': run.short_id,
             '__HOSTNAME__': hostname,
