@@ -523,6 +523,8 @@ class Results(BaseHandler):
                 )
             )
 
+        web_hostname = self.get_query_argument('hostname', '')
+
         return self.render(
             'results.html',
             run=run,
@@ -531,6 +533,7 @@ class Results(BaseHandler):
             get_port_url=get_port_url,
             output_link=output_link,
             wacz=wacz,
+            web_hostname=web_hostname,
         )
 
 

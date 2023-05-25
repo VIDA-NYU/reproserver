@@ -109,13 +109,13 @@ setTimeout(update_page, 3000);
 <replay-web-page
   class="my-3"
   style="height: 500px; display: flex; border: 1px solid black;"
-  url="http://localhost:{{ run.ports[0].port_number }}/"
+  url="http://{{ web_hostname }}/"
   replayBase="/static/replay/"
   source="{{ wacz }}"
   coll="{{ run.short_id }}"
   noWebWorker
   deepLink
-  config='{"hostProxy": {"localhost:{{ run.ports[0].port_number }}": {"prefix": "/results/{{ run.short_id }}/port/{{ run.ports[0].port_number }}", "pathOnly": true}}}'
+  config='{"hostProxy": {"{{ web_hostname }}": {"prefix": "/results/{{ run.short_id }}/port/{{ run.ports[0].port_number }}", "pathOnly": true}}}'
 >
 </replay-web-page>
 </script>

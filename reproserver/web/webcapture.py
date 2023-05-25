@@ -117,7 +117,7 @@ class Preview(BaseHandler):
 
         wacz_hash = self.get_query_argument('wacz')
 
-        self.get_body_argument('hostname')
+        hostname = self.get_body_argument('hostname')
         port_number = self.get_body_argument('port_number')
         try:
             port_number = int(port_number, 10)
@@ -158,7 +158,11 @@ class Preview(BaseHandler):
 
         # Redirects to crawl status page
         return self.redirect(
-            self.reverse_url('results', run.short_id, wacz=wacz_hash),
+            self.reverse_url('results',
+                run.short_id,
+                wacz=wacz_hash,
+                hostname=hostname,
+            ),
             status=303,
         )
 
