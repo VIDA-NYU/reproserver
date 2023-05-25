@@ -106,21 +106,25 @@
 window.addEventListener('load', function() {
   console.log('setup');
   var hostnameCollapse = new bootstrap.Collapse(document.getElementById('hostname-div'), {toggle: false});
-  document.getElementById('hostname-set-true').addEventListener('click', function(e) {
-    e.preventDefault();
-    console.log(true);
-    hostnameCollapse.show();
-    document.getElementById('hostname-true').style.display = '';
-    document.getElementById('hostname-false').style.display = 'none';
-  });
-  document.getElementById('hostname-set-false').addEventListener('click', function(e) {
-    e.preventDefault();
-    console.log(false);
-    hostnameCollapse.hide();
-    document.getElementById('hostname-true').style.display = 'none';
-    document.getElementById('hostname-false').style.display = '';
-    document.getElementById('hostname-input').value = '';
-  });
+  function setHostnameExpanded(expanded) {
+    console.log(expanded);
+    if(expanded) {
+      hostnameCollapse.show();
+      document.getElementById('hostname-true').style.display = '';
+      document.getElementById('hostname-false').style.display = 'none';
+    } else {
+      hostnameCollapse.hide();
+      document.getElementById('hostname-true').style.display = 'none';
+      document.getElementById('hostname-false').style.display = '';
+      document.getElementById('hostname-input').value = '';
+    }
+  }
+  document.getElementById('hostname-set-true').addEventListener('click', function(e) { e.preventDefault(); setHostnameExpanded(true); });
+  document.getElementById('hostname-set-false').addEventListener('click', function(e) { e.preventDefault(); setHostnameExpanded(false); });
+  {% if hostname %}
+  setHostnameExpanded(true);
+  document.getElementById('hostname-input').value = {{ hostname | tojson }};;
+  {% endif %}
 });
 </script>
 
