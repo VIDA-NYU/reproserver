@@ -524,6 +524,8 @@ class Results(BaseHandler):
             )
 
         web_hostname = self.get_query_argument('hostname', '')
+        web_coll = '%d|%s' % (run.id, web_hostname)
+        web_coll = sha256(web_coll.encode('utf-8')).hexdigest()
 
         return self.render(
             'results.html',
@@ -534,6 +536,7 @@ class Results(BaseHandler):
             output_link=output_link,
             wacz=wacz,
             web_hostname=web_hostname,
+            web_coll=web_coll,
         )
 
 

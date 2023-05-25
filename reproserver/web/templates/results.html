@@ -112,7 +112,7 @@ setTimeout(update_page, 3000);
   url="http://{{ web_hostname }}/"
   replayBase="/static/replay/"
   source="{{ wacz }}"
-  coll="{{ run.short_id }}"
+  coll="{{ web_coll }}"
   noWebWorker
   deepLink
   config='{"hostProxy": {"{{ web_hostname }}": {"prefix": "/results/{{ run.short_id }}/port/{{ run.ports[0].port_number }}", "pathOnly": true}}}'
