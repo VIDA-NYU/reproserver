@@ -13,7 +13,7 @@ from tornado.websocket import WebSocketHandler, websocket_connect
 from . import __version__
 from . import database
 from .utils import setup
-from .web.base import GracefulApplication
+from .web.base import GracefulApplication, HideStreamClosedHandler
 
 
 logger = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ class ProxyApplication(GracefulApplication):
         super(GracefulApplication, self).log_request(handler)
 
 
-class ProxyHandler(WebSocketHandler):
+class ProxyHandler(HideStreamClosedHandler, WebSocketHandler):
     def __init__(self, application, request, **kwargs):
         super(ProxyHandler, self).__init__(application, request, **kwargs)
         self.headers = []
