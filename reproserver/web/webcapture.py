@@ -386,6 +386,7 @@ class StartCrawl(BaseHandler):
                     {
                         'name': 'browsertrix',
                         'image': os.environ['BROWSERTRIX_IMAGE'],
+                        'imagePullPolicy': 'IfNotPresent',
                         'args': ['sh', '-c', script],
                     },
                 ],
