@@ -307,7 +307,7 @@ CURL_STATUS="$(curl -s -o /dev/null \
     -F "wacz_file=@$WACZ_PATH" \
     -F "hostname=__HOSTNAME__" \
     -F "port_number=__PORT_NUMBER__" \
-    http://__WEB_URL__/web/__UPLOAD_SHORT_ID__/upload-wacz?run=__RUN_ID__)"
+    __WEB_URL__/web/__UPLOAD_SHORT_ID__/upload-wacz?run=__RUN_ID__)"
 if [ "$CURL_STATUS" != 303 ]; then
     printf "upload failed (status %s)\n" "$CURL_STATUS" >&2
     exit 1
