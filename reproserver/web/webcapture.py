@@ -492,13 +492,19 @@ class CrawlStatusWebsocket(WebSocketHandler, BaseHandler):
         )
 
     async def open(self, upload_short_id, run_short_id):
-        self.upstream_ws = await websocket_connect(
-            'ws://%srun-%d:9223/ws' % (
-                os.environ['RUN_NAME_PREFIX'],
-                self.run.id,
-            ),
-            on_message_callback=self.on_upstream_message,
-        )
+        try:
+            self.upstream_ws = await websocket_connect(
+                'ws://%srun-%d:9223/ws' % (
+                    os.environ['RUN_NAME_PREFIX'],
+                    self.run.id,
+                ),
+                on_message_callback=self.on_upstream_message,
+            )
+        except ConnectionRefusedError:
+            self.close()
+        except Exception:
+            self.close()
+            raise
 
     def on_message(self, message):
         return self.upstream_ws.write_message(message)

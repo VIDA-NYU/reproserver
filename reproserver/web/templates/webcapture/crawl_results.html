@@ -79,8 +79,14 @@ setTimeout(update_page, 3000);
 </script>
 
 <script>
-const ws = new WebSocket(window.location.href.replace("http", "ws") + "/ws");
-ws.addEventListener("message", (event) => handleMessage(event.data));
+let ws;
+function connectToBrowsertrix() {
+  ws = new WebSocket(window.location.href.replace("http", "ws") + "/ws");
+  ws.addEventListener("message", (event) => handleMessage(event.data));
+  ws.addEventListener("close", function() { setTimeout(connectToBrowsertrix, 2000); });
+  ws.addEventListener("error", function() { setTimeout(connectToBrowsertrix, 2000); });
+}
+connectToBrowsertrix();
 
 const unusedElems = [];
 
