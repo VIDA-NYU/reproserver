@@ -86,7 +86,7 @@ s3:
 shutdownTime: 30
 
 browsertrix:
-  image: webrecorder/browsertrix-crawler@sha256:b9822b7bd699748903e8f6663775442292263599e62f00d6e402e0eac145211c
+  image: webrecorder/browsertrix-crawler@sha256:5e38eefdfd8cf37cf040af5196b6613d971652e87f57f0884142f572d7a35a2e # 0.10.0
 
 ingress:
   enabled: false
