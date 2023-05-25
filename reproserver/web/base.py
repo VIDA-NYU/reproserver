@@ -53,6 +53,20 @@ class GracefulApplication(tornado.web.Application):
         signal.signal(signal.SIGINT, signal_handler)
 
 
+class HideStreamClosedHandler(tornado.web.RequestHandler):
+    def log_exception(self, typ, value, tb):
+        if isinstance(value, tornado.iostream.StreamClosedError):
+            return
+        super(HideStreamClosedHandler, self).log_exception(typ, value, tb)
+
+    def send_error(self, status_code=500, **kwargs):
+        if 'exc_info' in kwargs:
+            exception = kwargs['exc_info'][1]
+            if isinstance(exception, tornado.iostream.StreamClosedError):
+                return
+        super(HideStreamClosedHandler, self).send_error(status_code, **kwargs)
+
+
 class Application(GracefulApplication):
     def __init__(self, handlers, **kwargs):
         super(Application, self).__init__(handlers, **kwargs)
@@ -83,7 +97,7 @@ class Application(GracefulApplication):
         super(Application, self).log_request(handler)
 
 
-class BaseHandler(tornado.web.RequestHandler):
+class BaseHandler(HideStreamClosedHandler):
     """Base class for all request handlers.
     """
     application: Application

@@ -33,7 +33,7 @@ docker_build_sub(
 )
 
 # Run Helm chart
-yaml = helm('k8s/helm', name='reproserver', values=['k8s/minikube.values.yml'], set=['debugMode=true', 'secret.debugPassword=debug'])
+yaml = helm('k8s/helm', name='reproserver', values=['k8s/minikube.values.yml'], set=['debugMode=true', 'secret.debugPassword=debug', 'pageTitle=ReproServer DEV'])
 
 # Override passwords
 postgres_secret, yaml = filter_yaml(yaml, kind='Secret', name='reproserver-postgres')
