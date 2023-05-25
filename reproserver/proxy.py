@@ -171,6 +171,10 @@ class ProxyHandler(WebSocketHandler):
         else:
             for line in self.headers[1:]:
                 name, value = line.split(":", 1)
+                if name.lower() in (
+                    'content-length', 'connection', 'transfer-encoding',
+                ):
+                    continue
                 self.set_header(name, value.strip())
             self.flush()
 
