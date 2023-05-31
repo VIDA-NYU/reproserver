@@ -158,7 +158,8 @@ class Preview(BaseHandler):
 
         # Redirects to crawl status page
         return self.redirect(
-            self.reverse_url('results',
+            self.reverse_url(
+                'results',
                 run.short_id,
                 wacz=wacz_hash,
                 hostname=hostname,
