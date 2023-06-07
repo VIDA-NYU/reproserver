@@ -237,6 +237,11 @@ class DirectConnector(BaseConnector):
                 'port_number': port.port_number,
             })
 
+        # Get extra config
+        extra_config = run.extra_config
+        if extra_config is not None:
+            extra_config = json.loads(extra_config)
+
         # Remove previous info
         run.log[:] = []
         run.output_files[:] = []
@@ -249,6 +254,7 @@ class DirectConnector(BaseConnector):
             'inputs': inputs,
             'outputs': outputs,
             'ports': ports,
+            'extra_config': extra_config,
         }
 
     async def run_started(self, run_id):

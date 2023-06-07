@@ -69,6 +69,28 @@ class ProxyApplication(GracefulApplication):
         super(GracefulApplication, self).log_request(handler)
 
 
+class SubdirRewriteMixin:
+    def set_status(self, code, reason=None):
+        if code >= 300 and code < 400:
+            logger.info(
+                "Rewrite status %d %s -> 200 OK, add as headers",
+                code,
+                reason,
+            )
+            super(SubdirRewriteMixin, self).set_status(200, "OK")
+            self.set_header("x-redirect-status", str(code))
+            self.set_header("x-redirect-statusText", reason)
+        else:
+            super(SubdirRewriteMixin, self).set_status(code, reason)
+
+    def set_header(self, name, value):
+        if name and name.lower() == "location":
+            name = "x-orig-location"
+            logger.info("Rewrite location -> x-orig-location")
+
+        super(SubdirRewriteMixin, self).set_header(name, value)
+
+
 class ProxyHandler(HideStreamClosedHandler, WebSocketHandler):
     def __init__(self, application, request, **kwargs):
         super(ProxyHandler, self).__init__(application, request, **kwargs)
@@ -178,7 +200,7 @@ class ProxyHandler(HideStreamClosedHandler, WebSocketHandler):
                 self.set_header(name, value.strip())
             self.flush()
 
-    def on_ws_connection_close(self, close_code, close_reason):
+    def on_ws_connection_close(self, close_code=None, close_reason=None):
         self.upstream_ws.close(close_code, close_reason)
 
     def on_message(self, message):
@@ -216,7 +238,7 @@ class DockerProxyHandler(ProxyHandler):
         request.headers['Host'] = self.original_host
 
 
-class DockerSubdirProxyHandler(DockerProxyHandler):
+class DockerSubdirProxyHandler(SubdirRewriteMixin, DockerProxyHandler):
     _re_path = re.compile(r'^/?results/([^/]+)/port/([0-9]+)')
 
     def select_destination(self):
@@ -272,10 +294,16 @@ class K8sProxyHandler(ProxyHandler):
         )
 
 
-class K8sSubdirProxyHandler(K8sProxyHandler):
+class K8sSubdirProxyHandler(SubdirRewriteMixin, K8sProxyHandler):
     _re_path = re.compile(r'^/?results/([^/]+)/port/([0-9]+)')
 
     def select_destination(self):
+        if self.request.headers.get('Sec-Fetch-Site', None) != 'same-origin':
+            self.set_status(500)
+            logger.info("Non-service-worker request to subdir proxy")
+            self.finish("Non-service-worker request to subdir proxy")
+            return
+
         self.original_host = self.request.host
 
         # Read destination from path
@@ -293,6 +321,11 @@ class K8sSubdirProxyHandler(K8sProxyHandler):
             uri,
         )
         return url
+
+    def alter_request(self, request):
+        super(K8sSubdirProxyHandler, self).alter_request(request)
+        if 'X-Proxy-Host' in request.headers:
+            request.headers['Host'] = request.headers.pop('X-Proxy-Host')
 
 
 def docker_proxy():

@@ -4,6 +4,8 @@ image:
 
 proxyUrl: "http://{short_id}-{port}.web.localhost:8000/"
 
+proxyClass: "reproserver.proxy:K8sSubdirProxyHandler"
+
 s3:
   clientUrl: http://files.localhost:8000
 

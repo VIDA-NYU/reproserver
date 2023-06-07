@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{{ experiment_url }}">Package {{ upload.filename | truncate(60) }}</a></li>
+    <li class="breadcrumb-item"><a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}">Web capture</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Upload a WACZ file</li>
+  </ol>
+</nav>
+
+<h1>Upload a WACZ file</h1>
+
+<p>This page lets you add an existing WACZ to your RPZ file. Use this option if you have created an archive of the frontend of your website through other means, for example using <a href="https://archiveweb.page/">archiveweb.page</a>.</p>
+
+<form method="POST" action="{{ reverse_url('webcapture_upload_wacz', upload.short_id) }}" enctype="multipart/form-data">
+  {{ xsrf_form_html() }}
+  <input type="hidden" name="hostname" value="{{ hostname }}">
+  <input type="hidden" name="port_number" value="{{ port_number }}">
+  <div class="mb-3">
+    <label for="wacz_file" class="form-label">WACZ file</label>
+    <input type="file" class="form-control" id="wacz_file" name="wacz_file" placeholder="capture.wacz" accept=".wacz,application/wacz">
+  </div>
+  <button type="submit" class="btn btn-primary">Upload</button>
+</form>
+
+<script>
+var fileInput = document.getElementById('wacz_file');
+var submitButton = fileInput.closest('form').querySelector('button[type="submit"]');
+function updateUploadForm() {
+  if(fileInput.value) {
+    submitButton.removeAttribute('disabled');
+  } else {
+    submitButton.setAttribute('disabled', true);
+  }
+}
+fileInput.addEventListener('change', updateUploadForm);
+updateUploadForm();
+</script>
+
+{% endblock content %}

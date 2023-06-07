@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{{ experiment_url }}">Package {{ run.upload.filename | truncate(60) }}</a></li>
+    <li class="breadcrumb-item"><a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}">Web capture</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Automated capture</li>
+  </ol>
+</nav>
+
+<h1>Automated capture</h1>
+
+{% if run.done %}
+
+<div class="card my-3">
+  <a href="#" data-bs-toggle="collapse" data-bs-target="#runlog" aria-expanded="false" aria-controls="runlog" class="card-header text-decoration-none" style="text-decoration: none; color: var(--bs-link-color);">
+    Run log
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-double-down" viewBox="0 0 16 16">
+      <path fill-rule="evenodd" d="M1.646 6.646a.5.5 0 0 1 .708 0L8 12.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+      <path fill-rule="evenodd" d="M1.646 2.646a.5.5 0 0 1 .708 0L8 8.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+    </svg>
+  </a>
+  <div id="runlog" class="collapse my-3">
+    <div class="card-body">
+      <pre>{% for line in log %}{{ line }}
+{% endfor %}</pre>
+    </div>
+  </div>
+</div>
+
+  {% if wacz %}
+<p>The capture was successful, <a href="{{ reverse_url('webcapture_dashboard', run.upload.short_id, wacz=wacz, hostname=hostname, port_number=port_number) }}">click here to return to the dashboard</a>.</p>
+  {% else %}
+<p>The capture failed to produce a WACZ file!</p>
+  {% endif %}
+
+{% else %}
+
+<p>Run in progress, please wait...</p>
+
+<div class="card my-3">
+  <p class="card-header">
+    Run log
+  </p>
+  <div class="card-body">
+    <pre id="log" style="max-height: 200px" class="my-0">{% for line in log %}{{ line }}
+{% endfor %}</pre>
+  </div>
+</div>
+
+<div id="browsertrix"></div>
+
+<script>
+var log_lines = {{ log | length }};
+function update_page() {
+  var req = new XMLHttpRequest();
+  req.addEventListener("load", function(e) {
+    if(this.status == 200) {
+      if(this.response.done) {
+        window.location.reload();
+      } else if(this.response.log.length > 0) {
+        log_lines += this.response.log.length;
+        var dom_log = document.getElementById("log");
+        dom_log.textContent += this.response.log.join("\n") + "\n";
+      }
+    }
+    setTimeout(update_page, 3000);
+  });
+  req.responseType = "json";
+  req.open("GET", "{{ reverse_url('results_json', run.short_id) }}?log_from=" + log_lines);
+  req.setRequestHeader("Accept", "application/json");
+  req.send();
+}
+
+setTimeout(update_page, 3000);
+</script>
+
+<script>
+let ws;
+function connectToBrowsertrix() {
+  ws = new WebSocket(window.location.href.replace("http", "ws") + "/ws");
+  ws.addEventListener("message", (event) => handleMessage(event.data));
+  ws.addEventListener("close", function() { setTimeout(connectToBrowsertrix, 2000); });
+  ws.addEventListener("error", function() { setTimeout(connectToBrowsertrix, 2000); });
+}
+connectToBrowsertrix();
+
+const unusedElems = [];
+
+function handleMessage(resp) {
+  resp = JSON.parse(resp);
+
+  switch (resp.msg) {
+    case "screencast":
+      img = createImage(resp.id);
+      if (resp.data) {
+        setImageData(img, resp.data);
+      }
+      break;
+
+    case "close":
+      img = unuseImage(resp.id);
+      break;
+  }
+}
+
+function setImageData(img, data) {
+  //img.style.display = "";
+  img.src = "data:image/png;base64," + data;
+}
+
+function createImage(id) {
+  let elem = document.getElementById(id);
+  if (elem) {
+    return elem;
+  }
+
+  if (unusedElems.length) {
+    elem = unusedElems.shift();
+    elem.setAttribute("id", id);
+    return elem;
+  }
+
+  elem = document.createElement("img");
+  elem.setAttribute("id", id);
+  document.getElementById("browsertrix").appendChild(elem);
+  return elem;
+}
+
+function unuseImage(id) {
+  const elem = document.getElementById(id);
+  if (!elem) {
+    return;
+  }
+  //elem.style.display = "none";
+  unusedElems.push(elem);
+}
+</script>
+
+{% endif %}
+
+{% endblock content %}

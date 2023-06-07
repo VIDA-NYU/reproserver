@@ -1,5 +1,3 @@
-{% set current_nav = 'reproduce' %}
-
 {% extends "base.html" %}
 
 {% block content %}
@@ -8,62 +6,12 @@
   <ol class="breadcrumb">
     <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
     <li class="breadcrumb-item"><a href="{{ experiment_url }}">Package {{ run.upload.filename | truncate(60) }}</a></li>
-    <li class="breadcrumb-item active" aria-current="page">Run results</li>
+    <li class="breadcrumb-item"><a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}">Web capture</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Live record</li>
   </ol>
 </nav>
 
-<h1>Run results</h1>
-
-{% if run.done %}
-
-<div class="card my-3">
-  <a href="#" data-bs-toggle="collapse" data-bs-target="#runlog" aria-expanded="false" aria-controls="runlog" class="card-header text-decoration-none" style="text-decoration: none; color: var(--bs-link-color);">
-    Run log
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-double-down" viewBox="0 0 16 16">
-      <path fill-rule="evenodd" d="M1.646 6.646a.5.5 0 0 1 .708 0L8 12.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
-      <path fill-rule="evenodd" d="M1.646 2.646a.5.5 0 0 1 .708 0L8 8.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
-    </svg>
-  </a>
-  <div id="runlog" class="collapse">
-    <div class="card-body">
-      <pre style="max-height: 200px" class="my-0">{% for line in log %}{{ line }}
-{% endfor %}</pre>
-    </div>
-  </div>
-</div>
-
-<h2>Output files:</h2>
-
-  {% if run.output_files %}
-
-  <ul>
-
-    {% for file in run.output_files %}
-
-    <li><a href="{{ output_link(file) }}" target="_blank" rel="noopener">{{ file.name }}</a>, {{ file.size }} bytes</li>
-
-    {% endfor %}
-
-  </ul>
-
-  {% else %}
-
-<p>No output files</p>
-
-  {% endif %}
-
-{% else %}
-
-<p>Run in progress, please wait...</p>
-
-{% if run.ports %}
-<p>
-  Exposed ports:
-  {% for port in run.ports %}
-  <a href="{{ get_port_url(port.port_number) }}">{{ port.port_number }}</a>
-  {% endfor %}
-</p>
-{% endif %}
+<h1>Live manual capture</h1>
 
 <div class="card my-3">
   <p class="card-header">
@@ -81,12 +29,13 @@ function update_page() {
   var req = new XMLHttpRequest();
   req.addEventListener("load", function(e) {
     if(this.status == 200) {
-      if(this.response.done) {
-        window.location.reload();
-      } else if(this.response.log.length > 0) {
+      if(this.response.log.length > 0) {
         log_lines += this.response.log.length;
         var dom_log = document.getElementById("log");
         dom_log.textContent += this.response.log.join("\n") + "\n";
+      }
+      if(this.response.done) {
+        return;
       }
     }
     setTimeout(update_page, 3000);
@@ -98,26 +47,52 @@ function update_page() {
 }
 
 setTimeout(update_page, 3000);
+
+async function doUpload() {
+  const recorder = document.querySelector("record-web-page");
+  if (!recorder) {
+    return;
+  }
+
+  const blobUrl = await recorder.doDownload();
+  console.log(blobUrl);
+
+  const resp = await fetch(blobUrl);
+  const blob = await resp.blob();
+
+  const f = new FormData();
+  f.append("wacz_file", blob, "wacz_file.wacz");
+  f.append("hostname", {{ hostname | tojson }});
+  f.append("port_number", {{ port_number }});
+
+  const headers = {"Accept": "application/json"};
+
+  const resp2 = await fetch("{{ reverse_url('webcapture_upload_wacz', upload_short_id) }}", {method: "POST", headers, body: f});
+
+  const json = await resp2.json();
+
+  // todo: add error handling
+  if (json.redirect_url) {
+    window.location.href = json.redirect_url;
+  }
+}
+
 </script>
 
-{% endif %}
-
-{% if wacz and run.ports | length %}
 <p id="web-loading"></p>
 
 <script type="x-template" id="web">
-<replay-web-page
+<button class="btn btn-primary" onclick="doUpload()">End recording and save WACZ</button>
+<record-web-page
   class="my-3"
   style="height: 500px; display: flex; border: 1px solid black;"
-  url="http://{{ web_hostname }}/"
+  url="http://{{ hostname }}/"
   replayBase="/static/replay/"
-  source="{{ wacz }}"
-  coll="{{ web_coll }}"
+  coll="{{ run.short_id }}"
   noWebWorker
-  deepLink
-  config='{"hostProxy": {"{{ web_hostname }}": {"prefix": "/results/{{ run.short_id }}/port/{{ run.ports[0].port_number }}", "pathOnly": true}}}'
+  config='{"hostProxy": {"{{ hostname }}": {"prefix": "/results/{{ run.short_id }}/port/{{ port_number }}", "pathOnly": true}}}'
 >
-</replay-web-page>
+</record-web-page>
 </script>
 
 <script>
@@ -156,6 +131,4 @@ web_check();
 
 setTimeout(function() { web_status = "toolong"; web_update_status(); }, 30000);
 </script>
-{% endif %}
-
 {% endblock content %}

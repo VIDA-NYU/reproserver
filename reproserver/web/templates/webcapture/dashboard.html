@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{{ experiment_url }}">Package {{ filename | truncate(60) }}</a></li>
+    <li class="breadcrumb-item" aria-current="page">Web capture</li>
+  </ol>
+</nav>
+
+<h1>Web Capture</h1>
+
+<p>Use this page to capture the remote assets that are referenced by your application (CSS, JS, etc). This will allow it to keep working correctly in web browsers if those remote sources go away.</p>
+
+<p>After completing this process, you will be able to download a new RPZ file with an embedded WACZ archive.</p>
+
+<h2 class="mb-3">Info about your files</h2>
+
+<div class="mb-3 row">
+  <p class="col-sm-2">RPZ File:</p>
+  <p class="col-sm-10">{{ filename }}, {{ filesize | human_size }}</p>
+</div>
+<div class="mb-3 row">
+  <p class="col-sm-2">WACZ FILE:</p>
+  <p class="col-sm-10">
+    {% if wacz %}
+    present, {{ wacz.filesize | human_size }}
+    {% else %}
+    none
+    {% endif %}
+  </p>
+</div>
+
+<h2 class="mb-3">Edit parameters for web capture</h2>
+
+<form method="POST">
+  {{ xsrf_form_html() }}
+  <div class="mb-3">
+    <label for="port_number" class="col-form-label">Port number:</label>
+    <div class="row"><div class="col-sm-12 col-md-6">
+      <input type="number" name="port_number" id="port_number" class="form-control" min="1" max="65535" value="{{ port_number }}">
+    </div></div>
+    <small>Enter the port number that the web server listens on.</small>
+  </div>
+  <div class="mb-3" id="hostname-label">
+    <label class="col-form-label" id="hostname-false">We will query your app at <code>http://localhost:5000</code>. <a href="#hostname" id="hostname-set-true" class="hostname-toggle" role="button">Change (advanced)</a></label>
+    <label for="hostname-input" class="col-form-label" id="hostname-true" style="display: none;">Address to send to the app (or <a href="#hostname" id="hostname-set-false" class="hostname-toggle" role="button">reset to default</a>):</label>
+    <div class="collapse" id="hostname-div">
+      <div class="row"><div class="col-sm-12 col-md-6">
+        <div class="input-group">
+          <span class="input-group-text">http://</span>
+          <input type="text" name="hostname" id="hostname-input" class="form-control" value="{{ hostname }}" placeholder="default: localhost:<port>">
+        </div>
+      </div></div>
+      <small>Optional. If the server expects to be reached at a specific address, you can enter it here. This is useful to circumvent security features or specific setups where the website will only work if we seem to be reaching it from a specific address. It doesn't change the port that we are actually using, which is selected above.</small>
+    </div>
+  </div>
+  <div class="mt-5 mb-3 row">
+    <div class="col-md d-flex flex-column">
+      <div>
+        <h2>Manual capture</h2>
+        <p>You will see the app running, browse the site to interactively capture pages.</p>
+      </div>
+      <div class="mt-auto">
+        <input type="submit" formaction="{{ reverse_url('webcapture_start_record', upload_short_id) }}" class="btn btn-primary" value="Manually capture">
+      </div>
+    </div>
+    <div class="col-md d-flex flex-column">
+      <div>
+        <h2>Automated capture</h2>
+        <p>ReproZip-Web will attempt to capture everything by crawling the site.</p>
+      </div>
+      <div class="mt-auto">
+        <input type="submit" formaction="{{ reverse_url('webcapture_start_crawl', upload_short_id) }}" class="btn btn-primary" value="Start automated capture">
+      </div>
+    </div>
+    <div class="col-md d-flex flex-column">
+      <div>
+        <h2>Upload existing file</h2>
+        <p>If you have a WACZ file ready, use this option to upload it.</p>
+      </div>
+      <div class="mt-auto">
+        <input type="submit" formaction="{{ reverse_url('webcapture_upload_wacz', upload_short_id) }}" class="btn btn-secondary" formmethod="GET" value="Upload existing file">
+      </div>
+    </div>
+  </div>
+  <p>After the capture is complete, you will be redirected to this page. From there, get a preview of the replayed app, or download the new RPZ file (with the WACZ file in it).</p>
+  {% if wacz %}
+  <div class="row justify-content-center">
+    <div class="col-md-4">
+      <h2>Get the finished RPZ bundle</h2>
+      <div class="mb-3">
+        <input type="submit" formaction="{{ reverse_url('webcapture_download', upload_short_id, wacz=wacz.hash) }}" class="btn btn-primary" value="Download finished RPZ">
+      </div>
+      <div class="mb-3">
+        <input type="submit" formaction="{{ reverse_url('webcapture_preview', upload_short_id, wacz=wacz.hash) }}" class="btn btn-secondary" value="Preview the result">
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</form>
+
+<script>
+window.addEventListener('load', function() {
+  console.log('setup');
+  var hostnameCollapse = new bootstrap.Collapse(document.getElementById('hostname-div'), {toggle: false});
+  function setHostnameExpanded(expanded) {
+    console.log(expanded);
+    if(expanded) {
+      hostnameCollapse.show();
+      document.getElementById('hostname-true').style.display = '';
+      document.getElementById('hostname-false').style.display = 'none';
+    } else {
+      hostnameCollapse.hide();
+      document.getElementById('hostname-true').style.display = 'none';
+      document.getElementById('hostname-false').style.display = '';
+      document.getElementById('hostname-input').value = '';
+    }
+  }
+  document.getElementById('hostname-set-true').addEventListener('click', function(e) { e.preventDefault(); setHostnameExpanded(true); });
+  document.getElementById('hostname-set-false').addEventListener('click', function(e) { e.preventDefault(); setHostnameExpanded(false); });
+  {% if hostname %}
+  setHostnameExpanded(true);
+  document.getElementById('hostname-input').value = {{ hostname | tojson }};;
+  {% endif %}
+});
+</script>
+
+{% endblock content %}

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -7,59 +8,59 @@
 
     <link rel="stylesheet" href="{{ static_url('css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ static_url('css/custom.css') }}">
-
+    <script async src="{{ static_url('js/archivewebpage-ui.js') }}"></script>
     <title>{{ page_title }}</title>
     <meta name="description" content="Reproduce ReproZip packages in the cloud">
   </head>
+
   <body>
 
-    <div id="content" role="main">
+    <div class="container-fluid" id="content" role="main">
+      <div class="row">
+        <!-- Menubar -->
+        <nav class="navbar navbar-expand-md navbar-dark bg-primary mb-3">
+          <div class="container-fluid container-md">
+            <a class="navbar-brand" href="/">ReproServer</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
+              aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
+              <ul class="navbar-nav mb-2 ms-auto mb-md-auto">
+                <li class="nav-item"><a class="nav-link{% if current_nav == 'about' %} active{% endif %}" {% if current_nav == 'about' %} aria-current="page" {% endif %} href="{{ reverse_url('about') }}">About</a></li>
+                <!-- dropdown -->
+                <li class="nav-item dropdown">
+                  <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown"
+                    aria-expanded="false">Links<span class="caret"></span></a>
+                  <ul class="dropdown-menu dropdown-menu-md-end">
+                    <li><a class="dropdown-item" href="https://github.com/VIDA-NYU/reproserver">GitHub Repository</a></li>
+                    <li><a class="dropdown-item" href="https://www.reprozip.org/">ReproZip Website</a></li>
+                  </ul>
+                </li>
+                <!-- /.dropdown -->
+              </ul>
+            </div><!-- /.navbar-collapse -->
+          </div><!-- /.container-fluid -->
+        </nav><!-- /.navbar -->
 
-      <!-- Menubar -->
-      <nav class="navbar navbar-expand-md navbar-dark bg-primary">
-        <div class="container-fluid container-md">
-          <a class="navbar-brand" href="#">ReproServer</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-          </button>
-          <div class="collapse navbar-collapse" id="navbarContent">
-            <ul class="navbar-nav mb-2 mb-md-0 flex-md-grow-1">
-              <li class="nav-item"><a class="nav-link{% if current_nav == 'reproduce' %} active{% endif %}"{% if current_nav == 'reproduce' %} aria-current="true"{% endif %} href="{{ reverse_url('index') }}">Reproduce</a></li>
-              <li class="nav-item ms-md-auto"><a class="nav-link{% if current_nav == 'about' %} active{% endif %}"{% if current_nav == 'about' %} aria-current="page"{% endif %} href="{{ reverse_url('about') }}">About</a></li>
-              <!--dropdown-->
-              <li class="nav-item dropdown">
-                <a href="#" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">Links<span class="caret"></span></a>
-                <ul class="dropdown-menu dropdown-menu-md-end">
-                  <li><a class="dropdown-item" href="https://github.com/VIDA-NYU/reproserver">GitHub Repository</a></li>
-                  <li><a class="dropdown-item" href="https://www.reprozip.org/">ReproZip Website</a></li>
-                </ul>
-              </li>
-              <!--end dropdown-->
-            </ul>
+        {% block fullcontent %}
+        <div><div class="container">
+        {% block content %}
+        {% endblock content %}
+        </div></div>
+        {% endblock fullcontent %}
 
-          </div><!-- /.navbar-collapse -->
-        </div><!-- /.container -->
-      </nav><!-- /.navbar -->
-
-      <div class="container mt-3"> <!--Body content-->
-
-{% block content %}
-{% endblock content %}
-
+        <!-- begin footer -->
+        <footer id="footer">
+            <hr />
+            <p>Version: {{ version }}<br />Any questions or comments can be directed to the <a
+                href="https://groups.google.com/a/nyu.edu/g/reprozip">ReproZip mailing list</a> or on <a
+                href="https://github.com/VIDA-NYU/reproserver">GitHub</a> via an issue.</p>
+        </footer>
+        <!-- /footer -->
+        <script src="{{ static_url('js/bootstrap.bundle.min.js') }}"></script>
       </div>
-      <!-- end body content -->
     </div>
-
-    <!-- begin footer -->
-    <footer id="footer">
-      <div align="center">
-        <hr/>
-        <p>Version: {{ version }}<br/>Any questions or comments can be directed to the <a href="https://groups.google.com/a/nyu.edu/g/reprozip">ReproZip mailing list</a> or on <a href="https://github.com/VIDA-NYU/reproserver">GitHub</a> via an issue.</p>
-      </div>
-    </footer>
-    <!-- end footer -->
-
-    <script src="{{ static_url('js/bootstrap.bundle.min.js') }}"></script>
-
   </body>
+
 </html>

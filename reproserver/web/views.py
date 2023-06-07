@@ -1,5 +1,6 @@
 from datetime import datetime
 from hashlib import sha256
+import json
 import logging
 import mimetypes
 import os
@@ -9,6 +10,7 @@ from streaming_form_data.targets import ValueTarget
 import tempfile
 
 from .. import database
+from ..extensions import process_uploaded_rpz
 from ..repositories import RepositoryError, RepositoryUnknown, \
     get_from_link, get_experiment_from_repository, get_repository_name, \
     get_repository_page_url, parse_repository_url
@@ -46,6 +48,54 @@ class Index(BaseHandler):
         return self.finish()
 
 
+async def store_uploaded_rpz(
+    object_store,
+    db,
+    filename,
+    filehash,
+    orig_filename,
+    remote_ip,
+):
+    # Check for existence of experiment
+    experiment = db.query(database.Experiment).get(filehash)
+    if experiment:
+        experiment.last_access = datetime.utcnow()
+        logger.info("File exists in storage")
+    else:
+        # Insert it in database
+
+        # Might raise rpz_metadata.InvalidPackage
+        experiment = await rpz_metadata.make_experiment(
+            filehash,
+            filename,
+        )
+        db.add(experiment)
+
+        # Insert it on S3
+        await object_store.upload_file_async(
+            'experiments',
+            filehash,
+            filename,
+        )
+        logger.info("Inserted file in storage")
+
+        await process_uploaded_rpz(
+            object_store,
+            db,
+            experiment,
+            filename,
+        )
+
+    # Insert Upload in database
+    upload = database.Upload(experiment=experiment,
+                             filename=orig_filename,
+                             submitted_ip=remote_ip)
+    db.add(upload)
+    db.commit()
+
+    return upload.short_id
+
+
 class Upload(StreamedRequestHandler):
     """Target of the landing page.
 
@@ -59,12 +109,20 @@ class Upload(StreamedRequestHandler):
         self.rpz_url = ValueTarget()
         self.streaming_parser.register('rpz_url', self.rpz_url)
 
-        self.not_permanent = ValueTarget()
-        self.streaming_parser.register('not_permanent', self.not_permanent)
-
     @PROM_REQUESTS.async_('upload')
     async def post(self):
         super(Upload, self).post()
+
+        # This view can be reached either by a regular POST or by an XHR
+        # If using an XHR, send error messages or target URL as JSON
+        # Otherwise, send HTML or HTTP redirects
+        send_html = not self.get_query_argument('json', '')
+
+        def redirect(url):
+            if send_html:
+                return self.redirect(url, status=303)
+            else:
+                return self.send_json({'redirectURL': url})
 
         # If a URL was provided, not a file
         rpz_url = self.rpz_url.value.decode('utf-8', 'replace')
@@ -73,92 +131,84 @@ class Upload(StreamedRequestHandler):
             try:
                 repo, repo_path = await parse_repository_url(rpz_url)
             except RepositoryUnknown:
-                if not self.not_permanent.value:
+                return redirect(self.reverse_url(
+                    'upload_direct_url',
+                    url=rpz_url,
+                ))
+            except RepositoryError as e:
+                if send_html:
+                    self.set_status(404)
                     return await self.render(
-                        'repository_notfound.html',
+                        'repository_error.html',
+                        message=str(e),
                         rpz_url=rpz_url,
                     )
-                # else: fall through
-            except RepositoryError as e:
-                self.set_status(404)
-                return await self.render(
-                    'repository_error.html',
-                    message=str(e),
-                    rpz_url=rpz_url,
-                )
+                else:
+                    return self.send_error_json(404, str(e))
             else:
-                return self.redirect(
-                    self.reverse_url(
-                        'reproduce_repo',
-                        repo, repo_path,
-                    ),
-                    status=303,
-                )
-
-            # Fetch and upload URL
-            upload = await get_from_link(
-                self.db, self.application.object_store, self.request.remote_ip,
-                None, None,
-                rpz_url, rpz_url,
-            )
-
-            # Encode ID for permanent URL
-            upload_short_id = upload.short_id
-
-            # Redirect to build page
-            return self.redirect(
-                self.reverse_url('reproduce_local', upload_short_id),
-                status=303,
-            )
+                return redirect(self.reverse_url(
+                    'reproduce_repo',
+                    repo, repo_path,
+                ))
 
         # Get uploaded file
+        filename = self.uploaded_file.filename
+        orig_filename = self.uploaded_file.multipart_filename
         if (
-            not os.path.getsize(self.uploaded_file.filename)
-            or not self.uploaded_file.multipart_filename
+            not os.path.getsize(filename)
+            or not orig_filename
         ):
-            return await self.render(
-                'setup_badfile.html',
-                message="Missing file",
-            )
-        logger.info("Incoming file: %r", self.uploaded_file.multipart_filename)
-        filehash = self.uploaded_file.hasher.hexdigest()
-        logger.info("Computed hash: %s", self.uploaded_file.hasher.hexdigest())
-
-        # Check for existence of experiment
-        experiment = self.db.query(database.Experiment).get(filehash)
-        if experiment:
-            experiment.last_access = datetime.utcnow()
-            logger.info("File exists in storage")
-        else:
-            # Insert it in database
-            try:
-                experiment = await rpz_metadata.make_experiment(
-                    filehash,
-                    self.uploaded_file.filename,
-                )
-            except rpz_metadata.InvalidPackage as e:
+            if send_html:
+                self.set_status(400)
                 return await self.render(
                     'setup_badfile.html',
-                    message=str(e),
+                    message="Missing file",
                 )
-            self.db.add(experiment)
+            else:
+                return self.send_error_json(400, "Missing file")
+        filehash = self.uploaded_file.hasher.hexdigest()
+        logger.info("Incoming file: %r", orig_filename)
+        logger.info("Computed hash: %s", filehash)
 
-            # Insert it on S3
-            await self.application.object_store.upload_file_async(
-                'experiments',
+        try:
+            upload_short_id = await store_uploaded_rpz(
+                self.application.object_store,
+                self.db,
+                filename,
                 filehash,
-                self.uploaded_file.filename,
+                orig_filename,
+                self.request.remote_ip,
             )
-            logger.info("Inserted file in storage")
+        except rpz_metadata.InvalidPackage as e:
+            if send_html:
+                return await self.render('setup_badfile.html', message=str(e))
+            else:
+                return self.send_error_json(
+                    400,
+                    "Error reading the file, is it a valid RPZ package?",
+                )
 
-        # Insert Upload in database
-        upload = database.Upload(
-            experiment=experiment,
-            filename=self.uploaded_file.multipart_filename,
-            submitted_ip=self.request.remote_ip,
+        # Redirect to build page
+        return redirect(self.reverse_url('reproduce_local', upload_short_id))
+
+
+class UploadDirectUrl(BaseHandler):
+    def get(self):
+        rpz_url = self.get_query_argument('url')
+        return self.render(
+            'repository_notfound.html',
+            rpz_url=rpz_url,
         )
-        self.db.add(upload)
-        self.db.commit()
+
+    async def post(self):
+        rpz_url = self.get_body_argument('rpz_url')
+
+        # Fetch and upload URL
+        upload = await get_from_link(
+            self.db, self.application.object_store, self.request.remote_ip,
+            None, None,
+            rpz_url, rpz_url,
+        )
 
         # Encode ID for permanent URL
         upload_short_id = upload.short_id
@@ -181,10 +231,19 @@ class BaseReproduce(BaseHandler):
             .filter(database.Path.experiment_hash ==
                     experiment.hash)
             .filter(database.Path.is_input)).all()
+
+        # Check whether web archive file is present
+        extensions = [
+            extension.name
+            for extension in upload.experiment.extensions
+        ]
+        wacz_present = 'web1' in extensions
+
         return self.render(
             'setup.html',
             filename=filename,
             built=True, error=False,
+            wacz_present=wacz_present,
             params=experiment.parameters,
             input_files=input_files,
             upload_short_id=upload.short_id,
@@ -402,15 +461,24 @@ class Results(BaseHandler):
         # Look up the run in the database
         run = (
             self.db.query(database.Run)
-            .options(joinedload(database.Run.experiment),
-                     joinedload(database.Run.upload),
-                     joinedload(database.Run.parameter_values),
-                     joinedload(database.Run.input_files),
-                     joinedload(database.Run.output_files))
+            .options(
+                joinedload(database.Run.experiment).joinedload(
+                    database.Experiment.extensions,
+                ),
+                joinedload(database.Run.upload),
+                joinedload(database.Run.parameter_values),
+                joinedload(database.Run.input_files),
+                joinedload(database.Run.output_files),
+            )
         ).get(run_id)
         if run is None:
             self.set_status(404)
             return self.render('results_notfound.html')
+        # Read extensions
+        extensions = {
+            extension.name: json.loads(extension.data)
+            for extension in run.experiment.extensions
+        }
         # Update last access
         run.experiment.last_access = datetime.utcnow()
         self.db.commit()
@@ -433,10 +501,31 @@ class Results(BaseHandler):
             ).one().path
             mime = mimetypes.guess_type(path)[0]
             return self.application.object_store.presigned_serve_url(
-                'outputs', output_file.hash,
+                'outputs',
+                output_file.hash,
                 output_file.name,
                 mime,
             )
+
+        wacz_hash = self.get_query_argument('wacz', None)
+        if wacz_hash is None and 'web1' in extensions:
+            wacz_hash = extensions['web1']['filehash']
+
+        if wacz_hash is None:
+            wacz = None
+        else:
+            wacz = (
+                self.application.object_store.presigned_serve_url(
+                    'web1',
+                    wacz_hash + '.wacz',
+                    'archive.wacz',
+                    'application/zip',
+                )
+            )
+
+        web_hostname = self.get_query_argument('hostname', '')
+        web_coll = '%d|%s' % (run.id, web_hostname)
+        web_coll = sha256(web_coll.encode('utf-8')).hexdigest()
 
         return self.render(
             'results.html',
@@ -445,6 +534,9 @@ class Results(BaseHandler):
             experiment_url=self.url_for_upload(run.upload),
             get_port_url=get_port_url,
             output_link=output_link,
+            wacz=wacz,
+            web_hostname=web_hostname,
+            web_coll=web_coll,
         )
 
 

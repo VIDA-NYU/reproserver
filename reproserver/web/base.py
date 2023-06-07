@@ -14,6 +14,7 @@ from streaming_form_data.targets import FileTarget, ValueTarget
 from tornado.escape import utf8
 import tornado.ioloop
 import tornado.web
+from urllib.parse import urlencode
 
 from .. import __version__
 from .. import database
@@ -123,8 +124,8 @@ class BaseHandler(HideStreamClosedHandler):
     template_env.globals['static_url'] = _tpl_static_url
 
     @jinja2.pass_context
-    def _tpl_reverse_url(context, path, *args):
-        return context['handler'].reverse_url(path, *args)
+    def _tpl_reverse_url(context, path, *args, **kwargs):
+        return context['handler'].reverse_url(path, *args, **kwargs)
     template_env.globals['reverse_url'] = _tpl_reverse_url
 
     @jinja2.pass_context
@@ -137,9 +138,27 @@ class BaseHandler(HideStreamClosedHandler):
         return context['handler'].url_for_upload(upload)
     template_env.globals['url_for_upload'] = _tpl_url_for_upload
 
+    @jinja2.pass_context
+    def _tpl_human_size(context, num, suffix="B"):
+        if abs(num) < 1000.0:
+            return f"{num} {suffix}"
+        num /= 1000.0
+        for unit in ["k", "M", "G", "T", "P", "E", "Z"]:
+            if abs(num) < 1000.0:
+                return f"{num:3.1f} {unit}{suffix}"
+            num /= 1000.0
+        return f"{num:.1f} Y{suffix}"
+    template_env.filters['human_size'] = _tpl_human_size
+
     def __init__(self, application, request, **kwargs):
         super(BaseHandler, self).__init__(application, request, **kwargs)
         self.db = application.DBSession()
+
+    def reverse_url(self, name, *args, **kwargs):
+        url = super(BaseHandler, self).reverse_url(name, *args)
+        if kwargs:
+            url = url + '?' + urlencode(kwargs)
+        return url
 
     def on_finish(self):
         super(BaseHandler, self).on_finish()

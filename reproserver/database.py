@@ -36,6 +36,7 @@ class Experiment(Base):
     size = Column(Integer, nullable=False)
     info = Column(Text, nullable=False)
 
+    extensions = relationship('Extension', back_populates='experiment')
     uploads = relationship('Upload', back_populates='experiment')
     runs = relationship('Run', back_populates='experiment')
     parameters = relationship('Parameter', back_populates='experiment')
@@ -45,6 +46,23 @@ class Experiment(Base):
         return "<Experiment hash=%r, docker_image=%r>" % (
             self.hash,
             self.docker_image)
+
+
+class Extension(Base):
+    """An extension discovered and processed.
+    """
+    __tablename__ = 'extensions'
+
+    experiment_hash = Column(
+        String(64),
+        ForeignKey('experiments.hash', ondelete='CASCADE'),
+        primary_key=True,
+        index=True,
+    )
+    experiment = relationship('Experiment', uselist=False,
+                              back_populates='extensions')
+    name = Column(Text, primary_key=True)
+    data = Column(Text)
 
 
 class Upload(Base):
@@ -166,6 +184,10 @@ class Run(Base):
 
     log = relationship('RunLogLine', back_populates='run')
     output_files = relationship('OutputFile', back_populates='run')
+    extension_results = relationship('RunExtensionResult',
+                                     back_populates='run')
+
+    extra_config = Column(Text, nullable=True)
 
     @property
     def short_id(self):
@@ -279,6 +301,20 @@ class Setting(Base):
     """
     __tablename__ = 'settings'
 
+    name = Column(Text, nullable=False, primary_key=True)
+    value = Column(Text, nullable=False)
+
+
+class RunExtensionResult(Base):
+    """A special result from a run, controlled by an extension.
+    """
+    __tablename__ = 'run_extension_results'
+
+    run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'),
+                    primary_key=True)
+    run = relationship('Run', uselist=False,
+                       back_populates='extension_results')
+    extension_name = Column(String(64), primary_key=True)
     name = Column(Text, nullable=False, primary_key=True)
     value = Column(Text, nullable=False)
 

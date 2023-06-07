@@ -15,10 +15,9 @@
 
 <p>Because the URL you provided is not recognized, we can't provide you a permanent URL, but if you provided a direct link to a RPZ file we can still reproduce it. Do you want to continue?</p>
 
-<form method="POST" action="{{ reverse_url('upload') }}" enctype="multipart/form-data">
+<form method="POST" action="{{ reverse_url('upload_direct_url') }}" enctype="multipart/form-data">
   {{ xsrf_form_html() }}
   <input type="hidden" name="rpz_url" value="{{ rpz_url }}">
-  <input type="hidden" name="not_permanent" value="1">
   <div class="mb-3 d-flex">
     <label for="rpz_file" class="col-form-label me-2">Direct RPZ URL:</label>
     <div class=" flex-sm-grow-1 me-2">

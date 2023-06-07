@@ -11,6 +11,7 @@ data:
     imagePullSecrets:
       {{- toYaml . | nindent 6 }}
     {{- end }}
+    enableServiceLinks: false
     containers:
       - name: docker
         image: "{{ .Values.dockerInDocker.repository }}:{{ .Values.dockerInDocker.tag }}"

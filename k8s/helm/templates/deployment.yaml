@@ -46,6 +46,10 @@ spec:
             {{- end }}
             - name: WEB_PROXY_URL
               value: {{ .Values.proxyUrl }}
+            {{- if .Values.proxyClass }}
+            - name: WEB_PROXY_CLASS
+              value: {{ .Values.proxyClass | quote }}
+            {{- end }}
             - name: TORNADO_SHUTDOWN_TIME
               value: {{ .Values.shutdownTime | quote }}
             - name: S3_KEY
@@ -75,6 +79,8 @@ spec:
               value: {{ include "reproserver.postgresServiceName" . }}
             - name: POSTGRES_DB
               value: "{{ .Values.postgres.database }}"
+            - name: API_ENDPOINT
+              value: http://{{ include "reproserver.fullname" . }}:{{ .Values.service.port }}
             - name: CONNECTION_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -109,6 +115,8 @@ spec:
             {{- end }}
             - name: OVERRIDE_RUNNER_IMAGE
               value: "{{ .Values.runner_image_override | default (printf "%s:%s" .Values.image.repository (.Values.image.tag | default .Chart.AppVersion)) }}"
+            - name: BROWSERTRIX_IMAGE
+              value: "{{ .Values.browsertrix.image }}"
           ports:
             - name: http
               containerPort: 8000

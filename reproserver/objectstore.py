@@ -21,6 +21,8 @@ def get_object_store():
 
 
 class ObjectStore(object):
+    BUCKETS = 'experiments', 'inputs', 'outputs', 'web1'
+
     def __init__(self, endpoint_url, client_endpoint_url, bucket_prefix):
         self.s3 = boto3.resource(
             's3', endpoint_url=endpoint_url,
@@ -53,7 +55,7 @@ class ObjectStore(object):
         return None
 
     def bucket_name(self, name):
-        if name not in ('experiments', 'inputs', 'outputs'):
+        if name not in self.BUCKETS:
             raise ValueError("Invalid bucket name %s" % name)
 
         name = '%s%s' % (self.bucket_prefix, name)
@@ -64,6 +66,22 @@ class ObjectStore(object):
 
     def download_file(self, bucket, objectname, filename):
         self.bucket(bucket).download_file(objectname, filename)
+
+    def get_file_metadata(self, bucket, objectname):
+        try:
+            res = self.s3.meta.client.head_object(
+                Bucket=self.bucket_name(bucket),
+                Key=objectname,
+            )
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error']['Code'] == '404':
+                raise KeyError("No such object in storage")
+            raise
+        return {
+            'size': res['ContentLength'],
+            'modified': res['LastModified'],
+            'etag': res['ETag'],
+        }
 
     def upload_fileobj(self, bucket, objectname, fileobj):
         # s3.Object(...).put(...) and s3.meta.client.upload_file(...) do
@@ -99,7 +117,7 @@ class ObjectStore(object):
 
     def create_buckets(self):
         missing = []
-        for name in ('experiments', 'inputs', 'outputs'):
+        for name in self.BUCKETS:
             name = self.bucket_name(name)
             try:
                 self.s3.meta.client.head_bucket(Bucket=name)

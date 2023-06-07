@@ -1181,6 +1181,24 @@ type = "directory"
 url = "reprozip/reprozip-core"
 
 [[package]]
+name = "reprozip-web"
+version = "2.0.0"
+description = "Capture and Replay Remote Web Content for ReproZip"
+category = "main"
+optional = false
+python-versions = "*"
+files = []
+develop = true
+
+[package.dependencies]
+reprounzip = ">=2.0.0,<3.0.0"
+reprounzip-docker = ">=2.0.0,<3.0.0"
+
+[package.source]
+type = "directory"
+url = "reprozip/reprozip-web"
+
+[[package]]
 name = "requests"
 version = "2.28.2"
 description = "Python HTTP for Humans."
@@ -1620,4 +1638,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "68a926b2e156854f4f5d5c6690ff178600da420d7a643e0606eb1e3feeed0bf8"
+content-hash = "1dd8361172221e2be00307fa36ed7abed6a0c1bd5240b6af61b4c545f505ba2e"

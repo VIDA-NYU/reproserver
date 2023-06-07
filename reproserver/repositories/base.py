@@ -4,6 +4,7 @@ import tempfile
 from tornado.httpclient import AsyncHTTPClient
 
 from .. import database
+from ..extensions import process_uploaded_rpz
 from .. import rpz_metadata
 
 
@@ -22,7 +23,7 @@ async def get_from_link(db, object_store, remote_addr,
                         repo, repo_path,
                         link, filename, *, filehash=None, http_client=None):
     if http_client is None:
-        http_client = AsyncHTTPClient()
+        http_client = AsyncHTTPClient(max_body_size=10000000000)
 
     # Check for existence of experiment
     if filehash is not None:
@@ -46,6 +47,7 @@ async def get_from_link(db, object_store, remote_addr,
             await http_client.fetch(
                 link,
                 streaming_callback=callback,
+                request_timeout=0
             )
             tfile.flush()
 
@@ -72,6 +74,13 @@ async def get_from_link(db, object_store, remote_addr,
                 )
                 logger.info("Inserted file in storage")
 
+                await process_uploaded_rpz(
+                    object_store,
+                    db,
+                    experiment,
+                    tfile.name,
+                )
+
     # Insert Upload in database
     upload = database.Upload(
         experiment=experiment,
@@ -91,7 +100,7 @@ class BaseRepository(object):
     URL_DOMAINS = []
 
     def __init__(self):
-        self.http_client = AsyncHTTPClient()
+        self.http_client = AsyncHTTPClient(max_body_size=10000000000)
 
     def parse_url(self, url):
         raise NotImplementedError
