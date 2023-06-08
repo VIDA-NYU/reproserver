@@ -104,10 +104,8 @@
 
 <script>
 window.addEventListener('load', function() {
-  console.log('setup');
   var hostnameCollapse = new bootstrap.Collapse(document.getElementById('hostname-div'), {toggle: false});
   function setHostnameExpanded(expanded) {
-    console.log(expanded);
     if(expanded) {
       hostnameCollapse.show();
       document.getElementById('hostname-true').style.display = '';
