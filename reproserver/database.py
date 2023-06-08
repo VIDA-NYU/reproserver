@@ -176,6 +176,9 @@ class Run(Base):
     started = Column(DateTime, nullable=True)
     done = Column(DateTime, nullable=True)
 
+    progress_percent = Column(Integer, nullable=False, default=0)
+    progress_text = Column(Text, nullable=False, default='')
+
     submitted_ip = Column(Text, nullable=True)
 
     parameter_values = relationship('ParameterValue', back_populates='run')
