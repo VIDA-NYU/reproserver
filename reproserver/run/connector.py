@@ -453,76 +453,40 @@ class HttpConnector(BaseConnector):
         self.http_client = AsyncHTTPClient()
         self.connection_token = connection_token
 
-    async def init_run_get_info(self, run_id):
-        response = await self.http_client.fetch(
-            '{0}/runners/run/{1}/init'.format(
+    def _post(self, run_id, method, body=None):
+        return self.http_client.fetch(
+            '{0}/runners/run/{1}/{2}'.format(
                 self.api_endpoint,
-                run_id
+                run_id,
+                method,
             ),
             method='POST',
-            body=b'{}',
+            body=b'{}' if body is None else json.dumps(body).encode('utf-8'),
             headers={
                 'Content-Type': 'application/json; charset=utf-8',
                 'X-Reproserver-Authenticate': self.connection_token,
             },
         )
+
+    async def init_run_get_info(self, run_id):
+        response = await self._post(run_id, 'init')
         return json.loads(response.body.decode('utf-8'))
 
     async def run_started(self, run_id):
-        await self.http_client.fetch(
-            '{0}/runners/run/{1}/start'.format(
-                self.api_endpoint,
-                run_id
-            ),
-            method='POST',
-            body=b'{}',
-            headers={
-                'Content-Type': 'application/json; charset=utf-8',
-                'X-Reproserver-Authenticate': self.connection_token,
-            },
-        )
+        await self._post(run_id, 'start')
 
     async def run_progress(self, run_id, percent, text):
-        await self.http_client.fetch(
-            '{0}/runners/run/{1}/set-progress'.format(
-                self.api_endpoint,
-                run_id,
-            ),
-            method='POST',
-            body=json.dumps({'percent': percent, 'text': text}),
-            headers={
-                'Content-Type': 'application/json; charset=utf-8',
-                'X-Reproserver-Authenticate': self.connection_token,
-            },
+        await self._post(
+            run_id,
+            'set-progress',
+            {'percent': percent, 'text': text},
         )
 
     async def run_done(self, run_id):
-        await self.http_client.fetch(
-            '{0}/runners/run/{1}/done'.format(
-                self.api_endpoint,
-                run_id
-            ),
-            method='POST',
-            body=b'{}',
-            headers={
-                'Content-Type': 'application/json; charset=utf-8',
-                'X-Reproserver-Authenticate': self.connection_token,
-            },
-        )
+        await self._post(run_id, 'done')
 
     async def run_failed(self, run_id, error):
-        await self.http_client.fetch(
-            '{0}/runners/run/{1}/failed'.format(
-                self.api_endpoint,
-                run_id
-            ),
-            method='POST',
-            body=json.dumps({'error': error}).encode('utf-8'),
-            headers={
-                'Content-Type': 'application/json; charset=utf-8',
-                'X-Reproserver-Authenticate': self.connection_token,
-            }
-        )
+        await self._post(run_id, 'failed', {'error': error})
 
     def get_input_links(self, run_info):
         # The input links are already set by init_run_get_info()
@@ -627,7 +591,7 @@ class HttpConnector(BaseConnector):
                     }
                     for line in lines
                 ],
-            }),
+            }).encode('utf-8'),
             headers={
                 'Content-Type': 'application/json; charset=utf-8',
                 'X-Reproserver-Authenticate': self.connection_token,
