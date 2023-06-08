@@ -561,11 +561,26 @@ class ResultsJson(BaseHandler):
         if run is None:
             return self.send_error_json(404, "Not found")
 
+        progress_percent = run.progress_percent
+        progress_text = run.progress_text
+        if run.done:
+            progress_percent = 100
+            progress_text = "Completed"
+        elif not progress_text:
+            if not run.started:
+                progress_percent = 0
+                progress_text = "Queued"
+            else:
+                progress_percent = 40
+                progress_text = "Starting"
+
         log_from = int(self.get_query_argument('log_from', '0'), 10)
         return self.send_json({
             'started': bool(run.started),
             'done': bool(run.done),
             'log': run.get_log(log_from),
+            'progress_percent': progress_percent,
+            'progress_text': progress_text,
         })
 
 

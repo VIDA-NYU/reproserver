@@ -100,6 +100,11 @@ class DockerRunner(BaseRunner):
                     ", ".join(extra_config['required']),
                 ))
 
+        await self.connector.run_progress(
+            run_info['id'],
+            40, "Setting up container",
+        )
+
         # Make build directory
         directory = tempfile.mkdtemp('build_%s' % run_info['experiment_hash'])
 
@@ -151,7 +156,13 @@ class DockerRunner(BaseRunner):
 
             # Update status in database
             logger.info("Starting container")
-            await self.connector.run_started(run_info['id'])
+            await asyncio.gather(
+                self.connector.run_started(run_info['id']),
+                self.connector.run_progress(
+                    run_info['id'],
+                    80, "Container is running",
+                ),
+            )
 
             # Start container and wait until completion
             try:

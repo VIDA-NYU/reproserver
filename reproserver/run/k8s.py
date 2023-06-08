@@ -124,6 +124,8 @@ class K8sRunner(BaseRunner):
         if extra_containers:
             pod_spec['containers'].extend(extra_containers)
 
+        await self.connector.run_progress(run_id, 20, "Worker starting")
+
         async with k8s_client.ApiClient() as api:
             # Create a Kubernetes pod to run
             v1 = k8s_client.CoreV1Api(api)
