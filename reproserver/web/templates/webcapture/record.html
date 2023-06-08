@@ -25,19 +25,21 @@
 
 <script>
 var log_lines = {{ log | length }};
+var last_status = undefined;
 function update_page() {
   var req = new XMLHttpRequest();
   req.addEventListener("load", function(e) {
     if(this.status == 200) {
-      if(this.response.log.length > 0) {
-        log_lines += this.response.log.length;
+      last_status = this.response;
+      if(last_status.log.length > 0) {
+        log_lines += last_status.log.length;
         var dom_log = document.getElementById("log");
-        dom_log.textContent += this.response.log.join("\n") + "\n";
+        dom_log.textContent += last_status.log.join("\n") + "\n";
       }
-      document.getElementById('progress-text').innerText = this.response.progress_text;
-      document.getElementById('progress-bar').setAttribute('aria-valuenow', this.response.progress_percent);
-      document.getElementById('progress-bar').style.width = this.response.progress_percent + '%';
-      if(this.response.done) {
+      document.getElementById('progress-text').innerText = last_status.progress_text;
+      document.getElementById('progress-bar').setAttribute('aria-valuenow', last_status.progress_percent);
+      document.getElementById('progress-bar').style.width = last_status.progress_percent + '%';
+      if(last_status.done) {
         return;
       }
     }
@@ -106,6 +108,7 @@ async function doUpload() {
 
 <script>
 var web_status = "starting";
+var web_timer = undefined;
 
 function web_update_status() {
   if(web_status == "ready") {
@@ -123,6 +126,16 @@ function web_update_status() {
 }
 
 function web_check() {
+  if(!last_status || !last_status.started) {
+    setTimeout(web_check, 2000);
+    return;
+  }
+
+  if(!web_timer) {
+    console.log("Starting 30s timer");
+    web_timer = setTimeout(function() { web_status = "toolong"; web_update_status(); }, 30000);
+  }
+
   var req = new XMLHttpRequest();
   req.addEventListener("load", function(e) {
     if(this.status != 503) {
@@ -137,7 +150,5 @@ function web_check() {
   req.send();
 }
 web_check();
-
-setTimeout(function() { web_status = "toolong"; web_update_status(); }, 30000);
 </script>
 {% endblock content %}
