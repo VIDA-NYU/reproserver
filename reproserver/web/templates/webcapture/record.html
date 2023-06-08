@@ -34,6 +34,9 @@ function update_page() {
         var dom_log = document.getElementById("log");
         dom_log.textContent += this.response.log.join("\n") + "\n";
       }
+      document.getElementById('progress-text').innerText = this.response.progress_text;
+      document.getElementById('progress-bar').setAttribute('aria-valuenow', this.response.progress_percent);
+      document.getElementById('progress-bar').style.width = this.response.progress_percent + '%';
       if(this.response.done) {
         return;
       }
@@ -46,7 +49,7 @@ function update_page() {
   req.send();
 }
 
-setTimeout(update_page, 3000);
+window.addEventListener('load', update_page);
 
 async function doUpload() {
   const recorder = document.querySelector("record-web-page");
@@ -79,7 +82,13 @@ async function doUpload() {
 
 </script>
 
-<p id="web-loading"></p>
+<div id="web-loading">
+  <p id="web-loading-text"></p>
+  <div id="progress" class="progress mb-3">
+    <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;"></div>
+  </div>
+  <p id="progress-text"></p>
+</div>
 
 <script type="x-template" id="web">
 <button class="btn btn-primary" onclick="doUpload()">End recording and save WACZ</button>
@@ -107,9 +116,9 @@ function web_update_status() {
     web_widget.innerHTML = web.innerHTML;
     web.parentNode.replaceChild(web_widget, web);
   } else if(web_status == "starting") {
-    document.getElementById("web-loading").innerText = "The package is starting up and is not yet ready to serve web requests. Please wait...";
+    document.getElementById("web-loading-text").innerText = "The package is starting up and is not yet ready to serve web requests. Please wait...";
   } else if(web_status == "toolong") {
-    document.getElementById("web-loading").innerHTML = "The package is not ready to serve web requests after 30 seconds.<br>Please check the logs above to see if something went wrong with startup, and if you have the right port number (you entered {{ run.ports[0].port_number }} into ReproServer).";
+    document.getElementById("web-loading-text").innerHTML = "The package is not ready to serve web requests after 30 seconds.<br>Please check the logs above to see if something went wrong with startup, and if you have the right port number (you entered {{ run.ports[0].port_number }} into ReproServer).";
   }
 }
 
