@@ -55,6 +55,7 @@ def make_app(debug=False, xsrf_cookies=True, proxy=None):
             URLSpec('/health', views.Health, name='health'),
             URLSpec('/runners/run/([^/]+)/init', api.InitRunGetInfo),
             URLSpec('/runners/run/([^/]+)/start', api.RunStarted),
+            URLSpec('/runners/run/([^/]+)/set-progress', api.RunSetProgress),
             URLSpec('/runners/run/([^/]+)/done', api.RunDone),
             URLSpec('/runners/run/([^/]+)/failed', api.RunFailed),
             URLSpec('/runners/run/([^/]+)/output/(.+)', api.UploadOutput),

@@ -61,6 +61,31 @@ class RunStarted(BaseApiHandler):
         await self.connector.run_started(run_id)
 
 
+class RunSetProgress(BaseApiHandler):
+    async def post(self, run_id):
+        try:
+            run_id = int(run_id)
+        except (ValueError, OverflowError):
+            return await self.send_error_json(400, "Invalid run ID")
+
+        body = self.get_json()
+        try:
+            percent = body['percent']
+            text = body['text']
+            if (
+                not isinstance(percent, int)
+                or not isinstance(text, str)
+            ):
+                raise KeyError
+        except KeyError:
+            return await self.send_error_json(
+                400,
+                "Expected JSON object with 'percent' and 'text' keys",
+            )
+
+        await self.connector.run_progress(run_id, percent, text)
+
+
 class RunDone(BaseApiHandler):
     async def post(self, run_id):
         try:

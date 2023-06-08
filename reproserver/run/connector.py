@@ -32,6 +32,11 @@ class BaseConnector(object):
         """
         raise NotImplementedError
 
+    def run_progress(self, run_id, percent, text):
+        """Set the progress of the run.
+        """
+        raise NotImplementedError
+
     def run_done(self, run_id):  # async
         """Mark run as completed, set end date.
         """
@@ -266,6 +271,16 @@ class DirectConnector(BaseConnector):
             run.started = datetime.utcnow()
             db.commit()
 
+    async def run_progress(self, run_id, percent, text):
+        db = self.DBSession()
+        run = db.query(database.Run).get(run_id)
+        if run.done:
+            logger.warning("Can't set progress of completed run")
+        else:
+            run.progress_percent = percent
+            run.progress_text = text
+            db.commit()
+
     async def run_done(self, run_id):
         db = self.DBSession()
         run = db.query(database.Run).get(run_id)
@@ -461,6 +476,20 @@ class HttpConnector(BaseConnector):
             ),
             method='POST',
             body=b'{}',
+            headers={
+                'Content-Type': 'application/json; charset=utf-8',
+                'X-Reproserver-Authenticate': self.connection_token,
+            },
+        )
+
+    async def run_progress(self, run_id, percent, text):
+        await self.http_client.fetch(
+            '{0}/runners/run/{1}/set-progress'.format(
+                self.api_endpoint,
+                run_id,
+            ),
+            method='POST',
+            body=json.dumps({'percent': percent, 'text': text}),
             headers={
                 'Content-Type': 'application/json; charset=utf-8',
                 'X-Reproserver-Authenticate': self.connection_token,
