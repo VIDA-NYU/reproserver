@@ -50,6 +50,12 @@ class DockerRunner(BaseRunner):
             logger.info("Pulled image from cache")
         else:
             logger.info("Couldn't get image from cache, building")
+            await self.connector.run_progress(
+                run_info['id'],
+                60,
+                "No cached container for this RPZ, building; "
+                + "this might take several minutes",
+            )
             with tempfile.TemporaryDirectory() as directory:
                 # Get experiment file
                 logger.info("Downloading file...")
