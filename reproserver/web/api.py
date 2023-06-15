@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+import functools
 import hashlib
 import logging
 import tempfile
@@ -33,13 +34,21 @@ class BaseApiHandler(BaseHandler):
         )
 
 
-class InitRunGetInfo(BaseApiHandler):
-    async def post(self, run_id):
+def parse_run_id(wrapped):
+    @functools.wraps(wrapped)
+    def wrapper(self, run_id, *args):
         try:
             run_id = int(run_id)
         except (ValueError, OverflowError):
-            return await self.send_error_json(400, "Invalid run ID")
+            return self.send_error_json(400, "Invalid run ID")
+        return wrapped(self, run_id, *args)
 
+    return wrapper
+
+
+class InitRunGetInfo(BaseApiHandler):
+    @parse_run_id
+    async def post(self, run_id):
         run_info = await self.connector.init_run_get_info(run_id)
 
         # Get signed download link for bundle
@@ -52,32 +61,41 @@ class InitRunGetInfo(BaseApiHandler):
 
 
 class RunStarted(BaseApiHandler):
+    @parse_run_id
     async def post(self, run_id):
-        try:
-            run_id = int(run_id)
-        except (ValueError, OverflowError):
-            return await self.send_error_json(400, "Invalid run ID")
-
         await self.connector.run_started(run_id)
 
 
-class RunDone(BaseApiHandler):
+class RunSetProgress(BaseApiHandler):
+    @parse_run_id
     async def post(self, run_id):
+        body = self.get_json()
         try:
-            run_id = int(run_id)
-        except (ValueError, OverflowError):
-            return await self.send_error_json(400, "Invalid run ID")
+            percent = body['percent']
+            text = body['text']
+            if (
+                not isinstance(percent, int)
+                or not isinstance(text, str)
+            ):
+                raise KeyError
+        except KeyError:
+            return await self.send_error_json(
+                400,
+                "Expected JSON object with 'percent' and 'text' keys",
+            )
 
+        await self.connector.run_progress(run_id, percent, text)
+
+
+class RunDone(BaseApiHandler):
+    @parse_run_id
+    async def post(self, run_id):
         await self.connector.run_done(run_id)
 
 
 class RunFailed(BaseApiHandler):
+    @parse_run_id
     async def post(self, run_id):
-        try:
-            run_id = int(run_id)
-        except (ValueError, OverflowError):
-            return await self.send_error_json(400, "Invalid run ID")
-
         body = self.get_json()
         try:
             error = body['error']
@@ -107,12 +125,8 @@ class UploadOutput(BaseApiHandler):
         self.temp_file.write(chunk)
         self.hasher.update(chunk)
 
+    @parse_run_id
     def put(self, run_id, output_name):
-        try:
-            run_id = int(run_id)
-        except (ValueError, OverflowError):
-            return self.send_error_json(400, "Invalid run ID")
-
         self.temp_file.flush()
 
         return asyncio.get_event_loop().run_in_executor(
@@ -127,6 +141,7 @@ class UploadOutput(BaseApiHandler):
 
 
 class Log(BaseApiHandler):
+    @parse_run_id
     def post(self, run_id):
         obj = self.get_json()
         for line in obj['lines']:

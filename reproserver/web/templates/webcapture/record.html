@@ -25,16 +25,22 @@
 
 <script>
 var log_lines = {{ log | length }};
+var last_status = undefined;
 function update_page() {
   var req = new XMLHttpRequest();
   req.addEventListener("load", function(e) {
     if(this.status == 200) {
-      if(this.response.log.length > 0) {
-        log_lines += this.response.log.length;
+      var status = this.response;
+      last_status = status;
+      if(status.log.length > 0) {
+        log_lines += status.log.length;
         var dom_log = document.getElementById("log");
-        dom_log.textContent += this.response.log.join("\n") + "\n";
+        dom_log.textContent += status.log.join("\n") + "\n";
       }
-      if(this.response.done) {
+      document.getElementById('progress-text').innerText = status.progress_text;
+      document.getElementById('progress-bar').setAttribute('aria-valuenow', status.progress_percent);
+      document.getElementById('progress-bar').style.width = status.progress_percent + '%';
+      if(status.done) {
         return;
       }
     }
@@ -46,7 +52,7 @@ function update_page() {
   req.send();
 }
 
-setTimeout(update_page, 3000);
+window.addEventListener('load', update_page);
 
 async function doUpload() {
   const recorder = document.querySelector("record-web-page");
@@ -79,7 +85,13 @@ async function doUpload() {
 
 </script>
 
-<p id="web-loading"></p>
+<div id="web-loading">
+  <div id="progress" class="progress mb-3">
+    <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;"></div>
+  </div>
+  <p id="progress-text"></p>
+  <p id="web-loading-text"></p>
+</div>
 
 <script type="x-template" id="web">
 <button class="btn btn-primary" onclick="doUpload()">End recording and save WACZ</button>
@@ -97,6 +109,7 @@ async function doUpload() {
 
 <script>
 var web_status = "starting";
+var web_timer = undefined;
 
 function web_update_status() {
   if(web_status == "ready") {
@@ -106,14 +119,22 @@ function web_update_status() {
     web_widget.setAttribute("id", "web");
     web_widget.innerHTML = web.innerHTML;
     web.parentNode.replaceChild(web_widget, web);
-  } else if(web_status == "starting") {
-    document.getElementById("web-loading").innerText = "The package is starting up and is not yet ready to serve web requests. Please wait...";
   } else if(web_status == "toolong") {
-    document.getElementById("web-loading").innerHTML = "The package is not ready to serve web requests after 30 seconds.<br>Please check the logs above to see if something went wrong with startup, and if you have the right port number (you entered {{ run.ports[0].port_number }} into ReproServer).";
+    document.getElementById("web-loading-text").innerHTML = "THIS IS TAKING LONGER THAN EXPECTED. HANG TIGHT? The package is not ready to serve web requests after 2 minutes.<br>Please check the logs above to see if something went wrong with startup, and if you have the right port number (you entered {{ run.ports[0].port_number }} into ReproServer).";
   }
 }
 
 function web_check() {
+  if(!last_status || !last_status.started) {
+    setTimeout(web_check, 2000);
+    return;
+  }
+
+  if(!web_timer) {
+    console.log("Starting 30s timer");
+    web_timer = setTimeout(function() { web_status = "toolong"; web_update_status(); }, 30000);
+  }
+
   var req = new XMLHttpRequest();
   req.addEventListener("load", function(e) {
     if(this.status != 503) {
@@ -128,7 +149,5 @@ function web_check() {
   req.send();
 }
 web_check();
-
-setTimeout(function() { web_status = "toolong"; web_update_status(); }, 30000);
 </script>
 {% endblock content %}

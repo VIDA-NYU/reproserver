@@ -50,6 +50,12 @@ class DockerRunner(BaseRunner):
             logger.info("Pulled image from cache")
         else:
             logger.info("Couldn't get image from cache, building")
+            await self.connector.run_progress(
+                run_info['id'],
+                60,
+                "No cached container for this RPZ, building; "
+                + "this might take several minutes",
+            )
             with tempfile.TemporaryDirectory() as directory:
                 # Get experiment file
                 logger.info("Downloading file...")
@@ -99,6 +105,11 @@ class DockerRunner(BaseRunner):
                 raise ValueError("Unsupported required extra config: %s" % (
                     ", ".join(extra_config['required']),
                 ))
+
+        await self.connector.run_progress(
+            run_info['id'],
+            40, "Setting up container",
+        )
 
         # Make build directory
         directory = tempfile.mkdtemp('build_%s' % run_info['experiment_hash'])
@@ -151,7 +162,13 @@ class DockerRunner(BaseRunner):
 
             # Update status in database
             logger.info("Starting container")
-            await self.connector.run_started(run_info['id'])
+            await asyncio.gather(
+                self.connector.run_started(run_info['id']),
+                self.connector.run_progress(
+                    run_info['id'],
+                    80, "Container is running",
+                ),
+            )
 
             # Start container and wait until completion
             try:
