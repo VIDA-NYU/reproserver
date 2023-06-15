@@ -30,16 +30,17 @@ function update_page() {
   var req = new XMLHttpRequest();
   req.addEventListener("load", function(e) {
     if(this.status == 200) {
-      last_status = this.response;
-      if(last_status.log.length > 0) {
-        log_lines += last_status.log.length;
+      var status = this.response;
+      last_status = status;
+      if(status.log.length > 0) {
+        log_lines += status.log.length;
         var dom_log = document.getElementById("log");
-        dom_log.textContent += last_status.log.join("\n") + "\n";
+        dom_log.textContent += status.log.join("\n") + "\n";
       }
-      document.getElementById('progress-text').innerText = last_status.progress_text;
-      document.getElementById('progress-bar').setAttribute('aria-valuenow', last_status.progress_percent);
-      document.getElementById('progress-bar').style.width = last_status.progress_percent + '%';
-      if(last_status.done) {
+      document.getElementById('progress-text').innerText = status.progress_text;
+      document.getElementById('progress-bar').setAttribute('aria-valuenow', status.progress_percent);
+      document.getElementById('progress-bar').style.width = status.progress_percent + '%';
+      if(status.done) {
         return;
       }
     }
