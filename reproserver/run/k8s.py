@@ -135,7 +135,7 @@ class K8sRunner(BaseRunner):
                 metadata=k8s_client.V1ObjectMeta(
                     name=name,
                     labels=self.pod_labels | {
-                        'app': 'run',
+                        'app.kubernetes.io/component': 'run',
                         'run': str(run_id),
                     },
                 ),
@@ -154,13 +154,13 @@ class K8sRunner(BaseRunner):
                 metadata=k8s_client.V1ObjectMeta(
                     name=name,
                     labels=self.pod_labels | {
-                        'app': 'run',
+                        'app.kubernetes.io/component': 'run',
                         'run': str(run_id),
                     },
                 ),
                 spec=k8s_client.V1ServiceSpec(
                     selector=self.pod_labels | {
-                        'app': 'run',
+                        'app.kubernetes.io/component': 'run',
                         'run': str(run_id),
                     },
                     ports=[
@@ -261,7 +261,7 @@ class K8sWatcher(object):
         self.namespace = os.environ['RUN_NAMESPACE']
         self.pod_labels = yaml.safe_load(os.environ['RUN_LABELS'])
         self.label_selector = labels_to_string(
-            self.pod_labels | {'app': 'run'}
+            self.pod_labels | {'app.kubernetes.io/component': 'run'}
         )
         logger.info("Using label selector: %s", self.label_selector)
         self.pod_name_prefix = os.environ['RUN_NAME_PREFIX']
