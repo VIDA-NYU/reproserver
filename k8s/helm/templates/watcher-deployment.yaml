@@ -47,7 +47,7 @@ spec:
             - name: POSTGRES_HOST
               value: {{ include "reproserver.postgresServiceName" . }}
             - name: POSTGRES_DB
-              value: postgres
+              value: "{{ .Values.postgres.database }}"
             - name: K8S_CONFIG_DIR
               value: /etc/reproserver-k8s
             - name: RUN_NAMESPACE

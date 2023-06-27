@@ -471,7 +471,7 @@ def watch():
     setup()
 
     watcher = K8sWatcher(DirectConnector(
-        DBSession=database.connect(create=True),
+        DBSession=database.connect(),
         object_store=None,
     ))
     asyncio.run(watcher.watch())
