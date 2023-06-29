@@ -120,7 +120,7 @@ function web_update_status() {
     web_widget.innerHTML = web.innerHTML;
     web.parentNode.replaceChild(web_widget, web);
   } else if(web_status == "toolong") {
-    document.getElementById("web-loading-text").innerHTML = "THIS IS TAKING LONGER THAN EXPECTED. HANG TIGHT? The package is not ready to serve web requests after 2 minutes.<br>Please check the logs above to see if something went wrong with startup, and if you have the right port number (you entered {{ run.ports[0].port_number }} into ReproServer).";
+    document.getElementById("web-loading-text").innerHTML = "The package is not ready to serve web requests after 30 seconds.<br>Please check the logs above to see if something went wrong with startup, and if you have the right port number (you entered {{ run.ports[0].port_number }} into ReproServer).";
   }
 }
 
