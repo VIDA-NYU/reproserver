@@ -45,7 +45,7 @@
     <small>Enter the port number that the web server listens on.</small>
   </div>
   <div class="mb-3" id="hostname-label">
-    <label class="col-form-label" id="hostname-false">We will query your app at <code>http://localhost:5000</code>. <a href="#hostname" id="hostname-set-true" class="hostname-toggle" role="button">Change (advanced)</a></label>
+    <label class="col-form-label" id="hostname-false">We will query your app at <code class="hostname-default">http://localhost:&lt;port&gt;</code>. <a href="#hostname" id="hostname-set-true" class="hostname-toggle" role="button">Change (advanced)</a></label>
     <label for="hostname-input" class="col-form-label" id="hostname-true" style="display: none;">Address to send to the app (or <a href="#hostname" id="hostname-set-false" class="hostname-toggle" role="button">reset to default</a>):</label>
     <div class="collapse" id="hostname-div">
       <div class="row"><div class="col-sm-12 col-md-6">
@@ -123,6 +123,14 @@ window.addEventListener('load', function() {
   setHostnameExpanded(true);
   document.getElementById('hostname-input').value = {{ hostname | tojson }};;
   {% endif %}
+
+  function updateHostnameDefault() {
+    [].forEach.call(document.getElementsByClassName('hostname-default'), function(elem) {
+      elem.innerText = 'http://localhost:' + document.getElementById('port_number').value;
+    });
+  }
+  document.getElementById('port_number').addEventListener('input', updateHostnameDefault);
+  updateHostnameDefault();
 });
 </script>
 
