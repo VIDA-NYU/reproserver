@@ -83,11 +83,13 @@
 
 <script>
 var log_lines = {{ log | length }};
+var last_status = undefined;
 function update_page() {
   var req = new XMLHttpRequest();
   req.addEventListener("load", function(e) {
     if(this.status == 200) {
       var status = this.response;
+      last_status = status;
       if(status.done) {
         window.location.reload();
         return;
@@ -133,6 +135,7 @@ window.addEventListener('load', update_page);
 
 <script>
 var web_status = "starting";
+var web_timer = undefined;
 
 function web_update_status() {
   if(web_status == "ready") {
@@ -148,6 +151,16 @@ function web_update_status() {
 }
 
 function web_check() {
+  if(!last_status || !last_status.started) {
+    setTimeout(web_check, 2000);
+    return;
+  }
+
+  if(!web_timer) {
+    console.log("Starting 30s timer");
+    web_timer = setTimeout(function() { web_status = "toolong"; web_update_status(); }, 30000);
+  }
+
   var req = new XMLHttpRequest();
   req.addEventListener("load", function(e) {
     if(this.status != 503) {
@@ -162,8 +175,6 @@ function web_check() {
   req.send();
 }
 web_check();
-
-setTimeout(function() { web_status = "toolong"; web_update_status(); }, 30000);
 </script>
 {% endif %}
 
