@@ -348,7 +348,11 @@ class K8sWatcher(object):
 
         # Handle runs with missing pods
         db = DBSession()
-        runs = db.query(database.Run).filter(database.Run.done == None).all()
+        runs = (
+            db.query(database.Run)
+            .filter(database.Run.done == None)  # noqa: E711
+            .all()
+        )
         for run in runs:
             if run.id not in self.running:
                 await self.connector.run_failed(run.id, "Pod deleted")
