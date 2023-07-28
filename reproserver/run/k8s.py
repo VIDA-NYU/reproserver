@@ -294,7 +294,7 @@ class K8sWatcher(object):
         async with k8s_client.ApiClient() as api:
             v1 = k8s_client.CoreV1Api(api)
 
-            await self._full_sync(api)
+            await self._full_sync(api, DBSession)
 
             # Watch changes
             watch = k8s_watch.Watch()
@@ -310,7 +310,7 @@ class K8sWatcher(object):
                     if e.status != 410:
                         raise
 
-    async def _full_sync(self, api):
+    async def _full_sync(self, api, DBSession):
         logger.info("Doing full sync")
 
         v1 = k8s_client.CoreV1Api(api)
@@ -345,6 +345,13 @@ class K8sWatcher(object):
                 except k8s_client.ApiException as e:
                     if e.status != 404:
                         raise
+
+        # Handle runs with missing pods
+        db = DBSession()
+        runs = db.query(database.Run).filter(database.Run.done == None).all()
+        for run in runs:
+            if run.id not in self.running:
+                await self.connector.run_failed(run.id, "Pod deleted")
 
         logger.info(
             "Full sync complete, %d pods: %s",
