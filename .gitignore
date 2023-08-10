@@ -3,6 +3,8 @@
 # Downloaded from get_assets.sh
 reproserver/web/static/js/archivewebpage-ui.js
 reproserver/web/static/replay/sw.js
+reproserver/web/static/js/replaywebpage-ui.js
+reproserver/web/static/replay/rwp-sw.js
 
 # Python
 __pycache__
