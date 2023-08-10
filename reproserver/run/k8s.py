@@ -252,6 +252,15 @@ class K8sWatcher(object):
 
     * Deletes them when done, setting potential error status
     * Sets Prometheus metrics
+
+    How does it work:
+
+    It keeps a list of running Run IDs in memory (``self.running``).
+
+    The ``_full_sync_loop()`` task runs reconciliation on startup and every 5
+    minutes.
+
+    The ``_watch_loop()`` task watches for changes in pods.
     """
     def __init__(self, connector):
         self.connector = connector
@@ -292,23 +301,32 @@ class K8sWatcher(object):
         k8s_config.load_incluster_config()
 
         async with k8s_client.ApiClient() as api:
-            v1 = k8s_client.CoreV1Api(api)
-
-            await self._full_sync(api, DBSession)
-
-            # Watch changes
-            watch = k8s_watch.Watch()
-            f, kwargs = v1.list_namespaced_pod, dict(
-                namespace=self.namespace,
-                label_selector=self.label_selector,
+            watch = asyncio.ensure_future(self._watch_loop(api, DBSession))
+            sync = asyncio.ensure_future(self._full_sync_loop(api, DBSession))
+            done, pending = await asyncio.wait(
+                [
+                    watch,
+                    sync,
+                ],
+                return_when=asyncio.FIRST_COMPLETED,
             )
-            while True:
+
+            # Those tasks should not ever return, log and crash
+            for fut in done:
+                if fut is watch:
+                    logger.critical("Watch loop finished")
+                elif fut is sync:
+                    logger.critical("Full sync loop finished")
                 try:
-                    async for event in watch.stream(f, **kwargs):
-                        await self._handle_watch_event(api, DBSession, event)
-                except k8s_client.ApiException as e:
-                    if e.status != 410:
-                        raise
+                    fut.result()
+                except Exception as e:
+                    logger.critical("Exception", exc_info=e)
+            sys.exit(1)
+
+    async def _full_sync_loop(self, api, DBSession):
+        while True:
+            await asyncio.sleep(5 * 60)
+            await self._full_sync(api, DBSession)
 
     async def _full_sync(self, api, DBSession):
         logger.info("Doing full sync")
@@ -320,12 +338,17 @@ class K8sWatcher(object):
             namespace=self.namespace,
             label_selector=self.label_selector,
         )
+        running = set()
         for pod in pods.items:
             run_id = int(pod.metadata.labels['run'], 10)
-            self.running.add(run_id)
+            running.add(run_id)
             logger.info("Found run pod for %d", run_id)
-            await self._check_pod(api, run_id, pod)
+        self.running = running
         PROM_RUNS.set(len(self.running))
+
+        for pod in pods.items:
+            run_id = int(pod.metadata.labels['run'], 10)
+            await self._check_pod(api, run_id, pod)
 
         # Find existing services
         services = await v1.list_namespaced_service(
@@ -362,6 +385,23 @@ class K8sWatcher(object):
             len(self.running),
             ', '.join('%d' % i for i in sorted(self.running)),
         )
+
+    async def _watch_loop(self, api, DBSession):
+        v1 = k8s_client.CoreV1Api(api)
+
+        # Watch changes
+        watch = k8s_watch.Watch()
+        f, kwargs = v1.list_namespaced_pod, dict(
+            namespace=self.namespace,
+            label_selector=self.label_selector,
+        )
+        while True:
+            try:
+                async for event in watch.stream(f, **kwargs):
+                    await self._handle_watch_event(api, DBSession, event)
+            except k8s_client.ApiException as e:
+                if e.status != 410:
+                    raise
 
     async def _handle_watch_event(self, api, DBSession, event):
         pod = event['object']
@@ -455,7 +495,7 @@ class K8sWatcher(object):
                             pod.metadata.name,
                             self.namespace,
                             container=container.name,
-                            tail_lines=300,
+                            tail_lines=50,
                         )
                         log = '\n'.join(
                             '    %s' % line
