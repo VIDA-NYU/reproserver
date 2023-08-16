@@ -41,6 +41,9 @@ class Dashboard(BaseHandler):
         except (ValueError, OverflowError):
             raise HTTPError(400, "Wrong port number")
 
+        if hostname == f'localhost:{port_number}':
+            hostname = ''
+
         # Look up the experiment in database
         upload = (
             self.db.query(database.Upload)
