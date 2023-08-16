@@ -21,7 +21,7 @@ docker_build_sub(
     context='.',
     # chown files to allow live update to work
     extra_cmds=['USER root', 'RUN chown -R appuser /usr/src/app', 'USER appuser'],
-    only=['reprozip', 'reproserver', 'pyproject.toml', 'poetry.lock', 'README.md', 'LICENSE.txt'],
+    only=['reprozip', 'reproserver', 'pyproject.toml', 'poetry.lock', 'README.md', 'LICENSE.txt', 'scripts'],
     live_update=[
         fall_back_on(full_rebuild),
     ] + [

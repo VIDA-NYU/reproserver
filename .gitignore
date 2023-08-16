@@ -1,5 +1,9 @@
 .env
 
+# Downloaded from get_assets.sh
+reproserver/web/static/js/archivewebpage-ui.js
+reproserver/web/static/replay/sw.js
+
 # Python
 __pycache__
 *.py[co]

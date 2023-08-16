@@ -1,6 +1,10 @@
 **/.env
 k8s
 
+# Downloaded from get_assets.sh
+reproserver/web/static/js/archivewebpage-ui.js
+reproserver/web/static/replay/sw.js
+
 reprozip/.travis
 reprozip/docs
 reprozip/reprozip-jupyter

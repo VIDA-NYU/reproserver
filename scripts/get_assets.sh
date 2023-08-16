@@ -5,6 +5,10 @@ download_asset() {
   DEST="$2"
   CHECKSUM="$3"
 
+  if [ -n "$(dirname "$DEST")" ]; then
+    mkdir -p "$(dirname "$DEST")" || return 1
+  fi
+
   # If the file exists and has the correct checksum
   if [ -e "$2" ] && printf '%s  %s\n' "$CHECKSUM" "$DEST" | sha256sum -c >/dev/null 2>&1; then
     return 0
