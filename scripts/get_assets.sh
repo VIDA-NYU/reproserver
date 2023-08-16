@@ -33,5 +33,5 @@ set -eu
 
 cd "$(dirname "$0")/.."
 
-download_asset "https://cdn.jsdelivr.net/npm/@webrecorder/archivewebpage@0.9.8/dist/embed/ui.js" "reproserver/web/static/js/archivewebpage-ui.js" "30e28e10b1afcf7587405a03aa9bcff1abc827aa5351d51ffdb555d5440e0945"
-download_asset "https://cdn.jsdelivr.net/npm/@webrecorder/archivewebpage@0.9.8/dist/embed/replay/sw.js" "reproserver/web/static/replay/sw.js" "32e0fe19718935f93a2599ed9a2f5daed52cb6237e388841f4f56e2453c7f728"
+download_asset "https://cdn.jsdelivr.net/npm/@webrecorder/archivewebpage@0.11.0/dist/embed/ui.js" "reproserver/web/static/js/archivewebpage-ui.js" "9b1a7edad4ed7f07daf96c3b32a8db8ea08aa155fda87c2ba089d36dc51758a2"
+download_asset "https://cdn.jsdelivr.net/npm/@webrecorder/archivewebpage@0.11.0/dist/embed/replay/sw.js" "reproserver/web/static/replay/sw.js" "bb742cc4cec2e373e9dee9de018f567cd5c10dd3e4a9a9d807841cd9b2e090f2"
