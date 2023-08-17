@@ -50,6 +50,8 @@ def make_app(debug=False, xsrf_cookies=True, proxy=None):
                     name='webcapture_upload_wacz'),
             URLSpec('/web/([^/]+)/download', webcapture.Download,
                     name='webcapture_download'),
+            URLSpec('/web/([^/]+)/done/([^/]+)', webcapture.Done,
+                    name='webcapture_done'),
             URLSpec('/about', views.About, name='about'),
             URLSpec('/data', views.Data, name='data'),
             URLSpec('/health', views.Health, name='health'),
