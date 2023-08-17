@@ -3,14 +3,9 @@
 ReproServer
 ===========
 
-Goals
------
+An online service to run ReproZip bundles in the cloud. No need to install reprounzip on your machine, point ReproServer to a RPZ file or upload one, and interact with the reproduced environment from your browser.
 
-* Import something we can build a Docker image from (currently only a ReproZip package)
-* Build a Docker image from it
-* Allow the user to change experiment parameters and input files
-* Run the experiment
-* Show the log and output files to the user
+Additionally, ReproServer can capture remote web assets referenced by a web application that has been packaged as a RPZ file. That way, you will always be able to get a consistent reproduction of the RPZ bundle, even if those remote assets disappear.
 
 How to run this with Tilt
 -------------------------
@@ -25,13 +20,13 @@ For example, create a local cluster with:
 minikube start --kubernetes-version=1.22.2 --driver=docker --nodes=1 --container-runtime=docker --ports=8000:30808
 ```
 
-Install the ingress controller using::
+Install the ingress controller using:
 
 ```
 kubectl apply -f k8s/nginx-ingress.k8s-1.22.yml
 ```
 
-Start the application for development using::
+Start the application for development using:
 
 ```
 tilt up
