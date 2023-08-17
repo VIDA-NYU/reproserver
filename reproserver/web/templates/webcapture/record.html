@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block head_insert %}
+<script async src="{{ static_url('js/archivewebpage-ui.js') }}"></script>
+{% endblock %}
+
 {% block content %}
 
 <nav aria-label="breadcrumb">

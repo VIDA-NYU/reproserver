@@ -2,6 +2,10 @@
 
 {% extends "base.html" %}
 
+{% block head_insert %}
+<script async src="{{ static_url('js/replaywebpage-ui.js') }}"></script>
+{% endblock %}
+
 {% block content %}
 
 <nav aria-label="breadcrumb">
@@ -124,6 +128,7 @@ window.addEventListener('load', update_page);
   style="height: 500px; display: flex; border: 1px solid black;"
   url="http://{{ web_hostname }}/"
   replayBase="/static/replay/"
+  swName="rwp-sw.js"
   source="{{ wacz }}"
   coll="{{ web_coll }}"
   noWebWorker
