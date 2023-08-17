@@ -6,7 +6,7 @@
   <ol class="breadcrumb">
     <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
     <li class="breadcrumb-item"><a href="{{ experiment_url }}">Package {{ run.upload.filename | truncate(60) }}</a></li>
-    <li class="breadcrumb-item"><a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}">Web capture</a></li>
+    <li class="breadcrumb-item"><a href="{{ reverse_url('webcapture_index', upload_short_id) }}">Web capture</a></li>
     <li class="breadcrumb-item active" aria-current="page">Automated capture</li>
   </ol>
 </nav>

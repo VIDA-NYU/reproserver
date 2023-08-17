@@ -26,7 +26,7 @@
     {% else %}
     <p>If this RPZ is a web application, you can use ReproServer to capture the remote assets that are referenced by it (CSS, JS, etc). This will allow the application to keep working correctly in web browsers if those remote sources go away.</p>
     {% endif %}
-    <a href="{{ reverse_url('webcapture_dashboard', upload_short_id) }}" class="btn btn-primary">Web Capture</a>
+    <a href="{{ reverse_url('webcapture_index', upload_short_id) }}" class="btn btn-primary">Web Capture</a>
   </div>
 </div>
 

@@ -27,10 +27,15 @@
 </div>
 
 <div class="mb-3">
-  <input type="submit" formaction="{{ reverse_url('webcapture_download', upload_short_id, wacz=wacz.hash) }}" class="btn btn-primary" value="Download finished RPZ">
-  <input type="submit" formaction="{{ reverse_url('webcapture_preview', upload_short_id, wacz=wacz.hash) }}" class="btn btn-secondary" value="Preview the result">
+  <form method="POST">
+    {{ xsrf_form_html() }}
+    <input type="hidden" name="port_number" value="{{ port_number }}">
+    <input type="hidden" name="hostname" value="{{ hostname }}">
+    <input type="submit" formaction="{{ reverse_url('webcapture_download', upload_short_id, wacz=wacz.hash) }}" class="btn btn-primary" value="Download finished RPZ">
+    <input type="submit" formaction="{{ reverse_url('webcapture_preview', upload_short_id, wacz=wacz.hash) }}" class="btn btn-secondary" value="Preview the result">
+  </form>
 </div>
 
-<p>If you want, you can <a href="{{ reverse_url('webcapture_dashboard', upload_short_id, hostname=hostname, port_number=port_number) }}">start a new web capture</a>. This will discard the current WACZ file.</p>
+<p>If you want, you can <a href="{{ reverse_url('webcapture_index', upload_short_id, hostname=hostname, port_number=port_number) }}">start a new web capture</a>. This will discard the current WACZ file.</p>
 
 {% endblock content %}

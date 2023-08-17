@@ -20,8 +20,8 @@ from .. import database
 logger = logging.getLogger(__name__)
 
 
-class Dashboard(BaseHandler):
-    @PROM_REQUESTS.sync('webcapture_dashboard')
+class Index(BaseHandler):
+    @PROM_REQUESTS.sync('webcapture_index')
     def get(self, upload_short_id):
         # Decode info from URL
         try:
@@ -87,7 +87,7 @@ class Dashboard(BaseHandler):
             wacz = None
 
         return self.render(
-            'webcapture/dashboard.html',
+            'webcapture/index.html',
             filename=upload.filename,
             filesize=upload.experiment.size,
             experiment_url=self.url_for_upload(upload),
