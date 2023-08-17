@@ -515,6 +515,8 @@ class CrawlStatus(BaseHandler):
 
 
 class CrawlStatusWebsocket(WebSocketHandler, BaseHandler):
+    upstream_ws = None
+
     def get(self, upload_short_id, run_short_id):
         # Decode info from URL
         try:
@@ -566,7 +568,8 @@ class CrawlStatusWebsocket(WebSocketHandler, BaseHandler):
             return self.write_message(message, isinstance(message, bytes))
 
     def on_ws_connection_close(self, close_code=None, close_reason=None):
-        self.upstream_ws.close(close_code, close_reason)
+        if self.upstream_ws is not None:
+            self.upstream_ws.close(close_code, close_reason)
 
 
 class UploadWacz(BaseHandler):
