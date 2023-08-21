@@ -341,7 +341,15 @@ def connect(url=None, *, create=False):
             host=os.environ['POSTGRES_HOST'],
             database=os.environ['POSTGRES_DB'],
         )
-        engine = create_engine(url, connect_args={'connect_timeout': 10})
+        engine = create_engine(
+            url,
+            connect_args={
+                'connect_timeout': 10,
+                'keepalives_idle': 30,
+                'keepalives_interval': 10,
+                'keepalives_count': 3,
+            },
+        )
     else:
         engine = create_engine(url)
 

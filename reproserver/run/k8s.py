@@ -370,15 +370,15 @@ class K8sWatcher(object):
                         raise
 
         # Handle runs with missing pods
-        db = DBSession()
-        runs = (
-            db.query(database.Run)
-            .filter(database.Run.done == None)  # noqa: E711
-            .all()
-        )
-        for run in runs:
-            if run.id not in self.running:
-                await self.connector.run_failed(run.id, "Pod deleted")
+        with DBSession() as db:
+            runs = (
+                db.query(database.Run)
+                .filter(database.Run.done == None)  # noqa: E711
+                .all()
+            )
+            for run in runs:
+                if run.id not in self.running:
+                    await self.connector.run_failed(run.id, "Pod deleted")
 
         logger.info(
             "Full sync complete, %d pods: %s",
@@ -425,8 +425,8 @@ class K8sWatcher(object):
             return
 
         # Get run
-        db = DBSession()
-        run = db.query(database.Run).get(run_id)
+        with DBSession() as db:
+            run = db.query(database.Run).get(run_id)
         if run is None:
             logger.warning("Event in pod for unknown run %d", run_id)
             return
