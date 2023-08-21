@@ -1,9 +1,11 @@
 import asyncio
 import logging
 import os
+import random
 import shutil
 import subprocess
 import tempfile
+import textwrap
 
 from .base import PROM_RUNS, BaseRunner
 from ..utils import subprocess_call_async, subprocess_check_call_async, \
@@ -28,59 +30,6 @@ class DockerRunner(BaseRunner):
                 run_info,
                 '0.0.0.0',  # Accept connections to proxy from everywhere
             )
-
-    async def get_image(self, run_info):
-        experiment_hash = run_info['experiment_hash']
-
-        push_process = None
-        fq_image_name = '%s/%s' % (
-            DOCKER_REGISTRY,
-            'rpuz_exp_%s' % experiment_hash,
-        )
-        logger.info("Image name: %s", fq_image_name)
-        pull_proc = await asyncio.create_subprocess_exec(
-            'docker', 'pull', fq_image_name,
-        )
-        ret = await pull_proc.wait()
-        if ret == 0:
-            logger.info("Pulled image from cache")
-        else:
-            logger.info("Couldn't get image from cache, building")
-            await self.connector.run_progress(
-                run_info['id'],
-                60,
-                "No cached container for this RPZ, building; "
-                + "this might take several minutes",
-            )
-            with tempfile.TemporaryDirectory() as directory:
-                # Get experiment file
-                logger.info("Downloading file...")
-                local_path = os.path.join(directory, 'experiment.rpz')
-                build_dir = os.path.join(directory, 'build_dir')
-                await self.connector.download_bundle(
-                    run_info,
-                    local_path,
-                )
-                logger.info("Got file, %d bytes", os.stat(local_path).st_size)
-
-                # Build image
-                ret = await subprocess_call_async([
-                    'reprounzip', '-v', 'docker', 'setup',
-                    # `RUN --mount` doesn't work with userns-remap
-                    '--dont-use-buildkit',
-                    '--image-name', fq_image_name,
-                    local_path, build_dir,
-                ])
-                if ret != 0:
-                    raise ValueError("Error: Docker returned %d" % ret)
-            logger.info("Build over, pushing image")
-
-            # Push image to Docker repository in the background
-            push_process = await asyncio.create_subprocess_exec(
-                'docker', 'push', fq_image_name,
-            )
-
-        return fq_image_name, push_process
 
     async def _docker_run(self, run_info, bind_host):
         """Pull or build an image, then run it.
@@ -108,32 +57,89 @@ class DockerRunner(BaseRunner):
         )
 
         # Make build directory
-        directory = tempfile.mkdtemp('build_%s' % run_info['experiment_hash'])
+        directory = tempfile.mkdtemp('rpz-run')
+
+        # TODO: Select base image from metadata
+        run_info['rpz_meta']['meta']['distribution']
+        image_name = 'ubuntu:22.04'
 
         try:
-            # Download input files
-            input_download_future = asyncio.ensure_future(
-                self.connector.download_inputs(run_info, directory),
-            )
-
-            # Get or build the Docker image
-            get_image_future = asyncio.ensure_future(
-                self.get_image(run_info),
-            )
-
-            # Wait for both tasks to finish
-            run_info, (fq_image_name, push_process) = await asyncio.gather(
-                input_download_future,
-                get_image_future,
-            )
-
             # Create container
             container = 'run_%s' % run_info['id']
             logger.info(
                 "Creating container %s with image %s",
-                container, fq_image_name,
+                container, image_name,
             )
-            # Turn parameters into a command-line
+
+            working_dir = '/.rpz.%d' % random.randint(0, 1000000)
+            rpztar = '/.rpztar.%d' % random.randint(0, 1000000)
+            script = [textwrap.dedent(
+                f'''\
+                set -eu
+
+                apt-get update && apt-get install -yy curl busybox-static # TODO
+
+                mkdir {working_dir}
+
+                # Download RPZ
+                curl -Lo {working_dir}/exp.rpz {shell_escape(run_info['experiment_url'])}
+
+                # Download inputs
+                '''
+            )]
+            for i, input_file in enumerate(run_info['inputs']):
+                script.append(
+                    'curl -Lo'
+                    + ' ' + f'input_{i}'
+                    + ' ' + shell_escape(input_file["link"])
+                    + '\n'
+                )
+            script.append(textwrap.dedent(
+                f'''\
+
+                # Extract RPZ
+                cd /
+                {rpztar} {working_dir}/exp.rpz
+                rm {working_dir}/exp.rpz
+                rm {rpztar}
+
+                # Move inputs into position
+                '''
+            ))
+            for i, input_file in enumerate(run_info['inputs']):
+                script.append(
+                    'mv'
+                    + ' ' + f'{working_dir}/input_{i}'
+                    + ' ' + shell_escape(input_file["path"])
+                    + '\n'
+                )
+            script.append(textwrap.dedent(
+                f'''\
+
+                # Run commands
+                '''
+            ))
+            for k, cmd in sorted(run_info['parameters'].items()):
+                if k.startswith('cmdline_'):
+                    i = int(k[8:], 10)
+                    run = run_info['rpz_meta']['runs'][i]
+                    # Apply the environment
+                    cmd = '/bin/busybox env -i ' + ' '.join(
+                        f'{k}={shell_escape(v)}'
+                        for k, v in run['environ'].items()
+                    ) + ' ' + cmd
+                    # Apply uid/gid
+                    cmd = (
+                        f'/rpzsudo "#{run["uid"]}" "#{run["gid"]}"'
+                        + ' /bin/busybox sh -c ' + shell_escape(cmd)
+                    )
+                    # Change to the working directory
+                    wd = run['workingdir']
+                    cmd = f'cd {shell_escape(wd)} && {cmd}'
+
+                    script.append(cmd + '\n')
+            script = ''.join(script)
+
             cmdline = [
                 'docker', 'create', '-i', '--name', container,
             ]
@@ -142,19 +148,27 @@ class DockerRunner(BaseRunner):
                     '-p', '{0}:{1}:{1}'.format(bind_host, port['port_number']),
                 ])
             cmdline.extend([
-                '--', fq_image_name,
+                '--', image_name,
             ])
-            for k, v in sorted(run_info['parameters'].items()):
-                if k.startswith('cmdline_'):
-                    i = str(int(k[8:], 10))
-                    cmdline.extend(['cmd', v, 'run', i])
+            cmdline.extend(['sh', '-c', script])
             logger.info('$ %s', ' '.join(shell_escape(a) for a in cmdline))
 
             # Create container
             await subprocess_check_call_async(cmdline)
 
-            # Put input files in container
-            await self._load_input_files(run_info, container)
+            # Put rpztar in container
+            await subprocess_check_call_async([
+                'docker', 'cp', '--',
+                '/bin/rpztar-x86_64',
+                '%s:%s' % (container, rpztar)
+            ])
+
+            # Put rpzsudo in container
+            await subprocess_check_call_async([
+                'docker', 'cp', '--',
+                '/bin/rpzsudo-x86_64',
+                '%s:/rpzsudo' % (container,),
+            ])
 
             # Update status in database
             logger.info("Starting container")
@@ -189,26 +203,8 @@ class DockerRunner(BaseRunner):
             # Remove container if created
             if container is not None:
                 subprocess.call(['docker', 'rm', '-f', '--', container])
-            # Remove build directory
+            # Remove temp directory
             shutil.rmtree(directory)
-
-        # Wait for push process to end
-        if push_process:
-            if push_process.returncode is None:
-                logger.info("Waiting for docker push to finish...")
-            ret = await push_process.wait()
-            logger.info("docker push returned %d", ret)
-
-    async def _load_input_files(self, run_info, container):
-        for input_file in run_info['inputs']:
-            logger.info("Copying file to container")
-            await subprocess_check_call_async([
-                'docker', 'cp', '--',
-                input_file['local_path'],
-                '%s:%s' % (container, input_file['path']),
-            ])
-
-            os.remove(input_file['local_path'])
 
     async def _upload_output_files(self, run_info, container, directory):
         logs = []
