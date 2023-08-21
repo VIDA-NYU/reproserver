@@ -13,10 +13,6 @@ from ..utils import subprocess_call_async, subprocess_check_call_async, \
 logger = logging.getLogger(__name__)
 
 
-# IP as understood by Docker daemon, not this container
-DOCKER_REGISTRY = os.environ.get('REGISTRY', 'localhost:5000')
-
-
 class DockerRunner(BaseRunner):
     """Docker runner implementation.
 

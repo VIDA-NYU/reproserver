@@ -28,5 +28,3 @@ dependencies:
     condition: minio.enabled
   - name: postgres
     condition: postgres.enabled
-  - name: registry
-    condition: registry.enabled
