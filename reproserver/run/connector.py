@@ -260,6 +260,7 @@ class DirectConnector(BaseConnector):
             'outputs': outputs,
             'ports': ports,
             'extra_config': extra_config,
+            'rpz_meta': json.loads(run.experiment.info),
         }
 
     async def run_started(self, run_id):
