@@ -181,13 +181,14 @@ class DockerRunner(BaseRunner):
             if ret != 0:
                 raise ValueError("Error: Docker returned %d" % ret)
             logger.info("Container done")
-            await self.connector.run_done(run_info['id'])
 
             # Get output files
             logs = await self._upload_output_files(
                 run_info, container, directory,
             )
-            await self.connector.log_multiple(run_info['id'], logs)
+            if logs:
+                await self.connector.log_multiple(run_info['id'], logs)
+            await self.connector.run_done(run_info['id'])
         finally:
             # Remove container if created
             if container is not None:
