@@ -170,7 +170,13 @@ class DockerRunner(BaseRunner):
                     wd = run['workingdir']
                     cmd = f'cd {shell_escape(wd)} && {cmd}'
 
-                    script.append(cmd + '\n')
+                    script.append(cmd)
+                    script.append(textwrap.dedent(
+                        '''\
+
+                        printf '*** Command finished, status: %s\n' $?
+                        '''
+                    ))
 
             # Update status in database
             await asyncio.gather(
