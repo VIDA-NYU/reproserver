@@ -81,6 +81,9 @@ jobs:
       - name: Run integration tests
         run: |
           if ! TESTS_DIR=tests/integ WEB_URL=http://localhost:8000 python tests; then
+            echo "logs: deploy/reproserver"
             kubectl logs deploy/reproserver 2>&1
+            echo "logs: runners"
+            kubectl logs --all-containers --prefix -l app.kubernetes.io/component=run
             exit 1
           fi
