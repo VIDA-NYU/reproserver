@@ -524,9 +524,16 @@ class Results(BaseHandler):
             )
 
         web_hostname = self.get_query_argument('hostname', '')
-        # TODO: Get from the RPZ itself
         if not web_hostname and run.ports:
             web_hostname = 'localhost:%d' % run.ports[0].port_number
+
+            # Get hostname from web1 extension info
+            if 'web1' in extensions:
+                try:
+                    hosts = extensions['web1']['config']['hosts']
+                    web_hostname = next(iter(hosts.keys()))
+                except (KeyError, StopIteration):
+                    pass
 
         web_coll = '%d|%s' % (run.id, web_hostname)
         web_coll = sha256(web_coll.encode('utf-8')).hexdigest()

@@ -716,7 +716,6 @@ class Download(BaseHandler):
 
         wacz_hash = self.get_query_argument('wacz')
 
-        # TODO: Those go into the RPZ file somewhere
         hostname = self.get_body_argument('hostname')
         port_number = self.get_body_argument('port_number')
         try:
@@ -759,7 +758,10 @@ class Download(BaseHandler):
             # Build combined file
             await asyncio.get_event_loop().run_in_executor(
                 None,
-                lambda: combine(input_rpz, input_wacz, output_rpz),
+                lambda: combine(
+                    input_rpz, input_wacz, output_rpz,
+                    hostname=hostname, port_number=port_number,
+                ),
             )
 
             # Send combined file
