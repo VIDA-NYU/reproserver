@@ -20,8 +20,8 @@ from .. import database
 logger = logging.getLogger(__name__)
 
 
-class Dashboard(BaseHandler):
-    @PROM_REQUESTS.sync('webcapture_dashboard')
+class Index(BaseHandler):
+    @PROM_REQUESTS.sync('webcapture_index')
     def get(self, upload_short_id):
         # Decode info from URL
         try:
@@ -30,16 +30,17 @@ class Dashboard(BaseHandler):
             self.set_status(404)
             return self.render('setup_notfound.html')
 
-        wacz_hash = self.get_query_argument('wacz', None)
-
         hostname = self.get_query_argument('hostname', '')
-        port_number = self.get_query_argument('port_number', '3000')
+        port_number = self.get_query_argument('port_number', '') or '3000'
         try:
             port_number = int(port_number, 10)
             if not (1 <= port_number <= 65535):
                 raise OverflowError
         except (ValueError, OverflowError):
             raise HTTPError(400, "Wrong port number")
+
+        if hostname == f'localhost:{port_number}':
+            hostname = ''
 
         # Look up the experiment in database
         upload = (
@@ -55,7 +56,14 @@ class Dashboard(BaseHandler):
             self.set_status(404)
             return self.render('setup_notfound.html')
 
-        if wacz_hash:
+        # Look for web extension
+        extensions = {
+            extension.name: json.loads(extension.data)
+            for extension in upload.experiment.extensions
+        }
+        if 'web1' in extensions:
+            wacz_hash = extensions['web1']['filehash']
+
             try:
                 meta = self.application.object_store.get_file_metadata(
                     'web1',
@@ -76,25 +84,10 @@ class Dashboard(BaseHandler):
                 )
             }
         else:
-            # Look for web extension
-            extensions = {
-                extension.name: json.loads(extension.data)
-                for extension in upload.experiment.extensions
-            }
-            if 'web1' in extensions:
-                wacz_hash = extensions['web1']['filehash']
-                return self.redirect(
-                    self.reverse_url(
-                        'webcapture_dashboard',
-                        upload_short_id,
-                        wacz=wacz_hash,
-                    ),
-                )
-
             wacz = None
 
         return self.render(
-            'webcapture/dashboard.html',
+            'webcapture/index.html',
             filename=upload.filename,
             filesize=upload.experiment.size,
             experiment_url=self.url_for_upload(upload),
@@ -102,6 +95,62 @@ class Dashboard(BaseHandler):
             wacz=wacz,
             hostname=hostname,
             port_number=port_number,
+        )
+
+
+class Done(BaseHandler):
+    @PROM_REQUESTS.sync('webcapture_done')
+    def get(self, upload_short_id, wacz_hash):
+        # Decode info from URL
+        try:
+            upload_id = database.Upload.decode_id(upload_short_id)
+        except ValueError:
+            self.set_status(404)
+            return self.render('setup_notfound.html')
+
+        # Look up the experiment in database
+        upload = (
+            self.db.query(database.Upload)
+            .options(
+                joinedload(database.Upload.experiment).joinedload(
+                    database.Experiment.extensions,
+                )
+            )
+            .get(upload_id)
+        )
+        if upload is None:
+            self.set_status(404)
+            return self.render('setup_notfound.html')
+
+        try:
+            meta = self.application.object_store.get_file_metadata(
+                'web1',
+                wacz_hash + '.wacz',
+            )
+        except KeyError:
+            self.set_status(404)
+            return self.render('setup_notfound.html')
+
+        wacz = {
+            'hash': wacz_hash,
+            'filesize': meta['size'],
+            'url': self.application.object_store.presigned_serve_url(
+                'web1',
+                wacz_hash + '.wacz',
+                'archive.wacz',
+                'application/zip',
+            )
+        }
+
+        return self.render(
+            'webcapture/done.html',
+            filename=upload.filename,
+            filesize=upload.experiment.size,
+            experiment_url=self.url_for_upload(upload),
+            upload_short_id=upload.short_id,
+            wacz=wacz,
+            hostname=self.get_query_argument('hostname', ''),
+            port_number=self.get_query_argument('port_number', ''),
         )
 
 
@@ -466,6 +515,8 @@ class CrawlStatus(BaseHandler):
 
 
 class CrawlStatusWebsocket(WebSocketHandler, BaseHandler):
+    upstream_ws = None
+
     def get(self, upload_short_id, run_short_id):
         # Decode info from URL
         try:
@@ -517,7 +568,8 @@ class CrawlStatusWebsocket(WebSocketHandler, BaseHandler):
             return self.write_message(message, isinstance(message, bytes))
 
     def on_ws_connection_close(self, close_code=None, close_reason=None):
-        self.upstream_ws.close(close_code, close_reason)
+        if self.upstream_ws is not None:
+            self.upstream_ws.close(close_code, close_reason)
 
 
 class UploadWacz(BaseHandler):
@@ -634,9 +686,9 @@ class UploadWacz(BaseHandler):
             self.db.commit()
 
         redirect_url = self.reverse_url(
-            'webcapture_dashboard',
+            'webcapture_done',
             upload_short_id,
-            wacz=wacz_hash,
+            wacz_hash,
             hostname=hostname,
             port_number=port_number,
         )

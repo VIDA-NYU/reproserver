@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ reverse_url('index') }}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{{ experiment_url }}">Package {{ filename | truncate(60) }}</a></li>
+    <li class="breadcrumb-item" aria-current="page">Web capture</li>
+  </ol>
+</nav>
+
+<h1>Web Capture complete</h1>
+
+<p>You have completed the web capture. A WACZ file has been created containing the remote assets referenced by your application (CSS, JS, etc). This will allow it to keep working correctly in web browsers if those remote sources go away.</p>
+
+<div class="row">
+  <p class="col-sm-2">RPZ File:</p>
+  <p class="col-sm-10">{{ filename }}, {{ filesize | human_size }}</p>
+</div>
+
+<div class="row">
+  <p class="col-sm-2">WACZ FILE:</p>
+  <p class="col-sm-10">
+    {{ wacz.filesize | human_size }}
+  </p>
+</div>
+
+<div class="mb-3">
+  <form method="POST">
+    {{ xsrf_form_html() }}
+    <input type="hidden" name="port_number" value="{{ port_number }}">
+    <input type="hidden" name="hostname" value="{{ hostname }}">
+    <input type="submit" formaction="{{ reverse_url('webcapture_download', upload_short_id, wacz=wacz.hash) }}" class="btn btn-primary" value="Download finished RPZ">
+    <input type="submit" formaction="{{ reverse_url('webcapture_preview', upload_short_id, wacz=wacz.hash) }}" class="btn btn-secondary" value="Preview the result">
+  </form>
+</div>
+
+<p>If you want, you can <a href="{{ reverse_url('webcapture_index', upload_short_id, hostname=hostname, port_number=port_number) }}">start a new web capture</a>. This will discard the current WACZ file.</p>
+
+{% endblock content %}
