@@ -233,11 +233,22 @@ class BaseReproduce(BaseHandler):
             .filter(database.Path.is_input)).all()
 
         # Check whether web archive file is present
-        extensions = [
-            extension.name
+        extensions = {
+            extension.name: extension.data
             for extension in upload.experiment.extensions
-        ]
+        }
         wacz_present = 'web1' in extensions
+
+        # Add the port to the list of ports to expose, if one is specified in
+        # the web1 extension config
+        ports = set()
+        if 'web1' in extensions:
+            web1 = json.loads(extensions['web1'])
+            try:
+                hosts = web1['config']['hosts']
+            except KeyError:
+                pass
+            ports.update(host['port'] for host in hosts.values())
 
         return self.render(
             'setup.html',
@@ -249,6 +260,7 @@ class BaseReproduce(BaseHandler):
             upload_short_id=upload.short_id,
             experiment_url=experiment_url,
             repo_name=repo_name, repo_url=repo_url,
+            expose_ports=' '.join(str(port) for port in sorted(ports)),
         )
 
 
