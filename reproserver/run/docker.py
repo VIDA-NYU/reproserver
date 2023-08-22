@@ -64,84 +64,18 @@ class DockerRunner(BaseRunner):
         image_name = 'ubuntu:22.04'
 
         try:
+            # Use a random directory in the container for our operations
+            # This avoids conflicts
+            working_dir = '/.rpz.%d' % random.randint(0, 1000000)
+
             # Create container
             container = 'run_%s' % run_info['id']
             logger.info(
                 "Creating container %s with image %s",
                 container, image_name,
             )
-
-            working_dir = '/.rpz.%d' % random.randint(0, 1000000)
-            rpztar = '/.rpztar.%d' % random.randint(0, 1000000)
-            script = [textwrap.dedent(
-                f'''\
-                set -eu
-
-                apt-get update && apt-get install -yy curl busybox-static # TODO
-
-                mkdir {working_dir}
-
-                # Download RPZ
-                curl -Lo {working_dir}/exp.rpz {shell_escape(run_info['experiment_url'])}
-
-                # Download inputs
-                '''
-            )]
-            for i, input_file in enumerate(run_info['inputs']):
-                script.append(
-                    'curl -Lo'
-                    + ' ' + f'input_{i}'
-                    + ' ' + shell_escape(input_file["link"])
-                    + '\n'
-                )
-            script.append(textwrap.dedent(
-                f'''\
-
-                # Extract RPZ
-                cd /
-                {rpztar} {working_dir}/exp.rpz
-                rm {working_dir}/exp.rpz
-                rm {rpztar}
-
-                # Move inputs into position
-                '''
-            ))
-            for i, input_file in enumerate(run_info['inputs']):
-                script.append(
-                    'mv'
-                    + ' ' + f'{working_dir}/input_{i}'
-                    + ' ' + shell_escape(input_file["path"])
-                    + '\n'
-                )
-            script.append(textwrap.dedent(
-                f'''\
-
-                # Run commands
-                '''
-            ))
-            for k, cmd in sorted(run_info['parameters'].items()):
-                if k.startswith('cmdline_'):
-                    i = int(k[8:], 10)
-                    run = run_info['rpz_meta']['runs'][i]
-                    # Apply the environment
-                    cmd = '/bin/busybox env -i ' + ' '.join(
-                        f'{k}={shell_escape(v)}'
-                        for k, v in run['environ'].items()
-                    ) + ' ' + cmd
-                    # Apply uid/gid
-                    cmd = (
-                        f'/rpzsudo "#{run["uid"]}" "#{run["gid"]}"'
-                        + ' /bin/busybox sh -c ' + shell_escape(cmd)
-                    )
-                    # Change to the working directory
-                    wd = run['workingdir']
-                    cmd = f'cd {shell_escape(wd)} && {cmd}'
-
-                    script.append(cmd + '\n')
-            script = ''.join(script)
-
             cmdline = [
-                'docker', 'create', '-i', '--name', container,
+                'docker', 'create', '--name', container,
             ]
             for port in run_info['ports']:
                 cmdline.extend([
@@ -149,29 +83,96 @@ class DockerRunner(BaseRunner):
                 ])
             cmdline.extend([
                 '--', image_name,
+                f'{working_dir}/busybox', 'sleep', '86400',
             ])
-            cmdline.extend(['sh', '-c', script])
-            logger.info('$ %s', ' '.join(shell_escape(a) for a in cmdline))
-
-            # Create container
             await subprocess_check_call_async(cmdline)
 
-            # Put rpztar in container
+            # Copy tools into container
+            logger.info("Copying tools into container")
             await subprocess_check_call_async([
                 'docker', 'cp', '--',
-                '/bin/rpztar-x86_64',
-                '%s:%s' % (container, rpztar)
+                '/opt/rpz-tools-x86_64',
+                '%s:%s' % (container, working_dir)
             ])
 
-            # Put rpzsudo in container
+            # Start the container (does nothing, but now we may exec)
+            logger.info("Starting container")
             await subprocess_check_call_async([
-                'docker', 'cp', '--',
-                '/bin/rpzsudo-x86_64',
-                '%s:/rpzsudo' % (container,),
+                'docker', 'start', '--', container,
             ])
+
+            # Download RPZ into container
+            logger.info("Downloading RPZ into container")
+            await subprocess_check_call_async(['sh', '-c', (
+                'curl -fsSL '
+                + shell_escape(run_info["experiment_url"])
+                + ' | '
+                + f'docker exec -i {container} {working_dir}/busybox sh -c'
+                + f' "cat > {working_dir}/exp.rpz"'
+            )])
+
+            # Download inputs into container
+            logger.info("Downloading inputs into container")
+            for i, input_file in enumerate(run_info['inputs']):
+                await subprocess_check_call_async(['sh', '-c', (
+                    'curl -fsSL '
+                    + shell_escape(input_file["link"])
+                    + ' | '
+                    + f'docker exec -i {container} {working_dir}/busybox sh -c'
+                    + f' "cat > {working_dir}/input_{i}"'
+                )])
+
+            # Run script to move files into position
+            logger.info("Moving files into position")
+            script = [textwrap.dedent(
+                f'''\
+                set -eu
+
+                # Extract RPZ
+                cd /
+                {working_dir}/rpztar {working_dir}/exp.rpz
+                rm {working_dir}/exp.rpz
+
+                # Move inputs into position
+                '''
+            )]
+            for i, input_file in enumerate(run_info['inputs']):
+                script.append(
+                    'mv'
+                    + ' ' + f'{working_dir}/input_{i}'
+                    + ' ' + shell_escape(input_file["path"])
+                    + '\n'
+                )
+            cmdline = [
+                'docker', 'exec', '--', container,
+                f'{working_dir}/busybox', 'sh', '-c', ''.join(script),
+            ]
+            await subprocess_check_call_async(cmdline)
+
+            # Prepare script to run actual experiment
+            script = ['set -eu\n']
+            for k, cmd in sorted(run_info['parameters'].items()):
+                if k.startswith('cmdline_'):
+                    i = int(k[8:], 10)
+                    run = run_info['rpz_meta']['runs'][i]
+                    # Apply the environment
+                    cmd = f'{working_dir}/busybox env -i ' + ' '.join(
+                        f'{k}={shell_escape(v)}'
+                        for k, v in run['environ'].items()
+                    ) + ' ' + cmd
+                    # Apply uid/gid
+                    uid, gid = run['uid'], run['gid']
+                    cmd = (
+                        f'{working_dir}/rpzsudo "#{uid}" "#{gid}"'
+                        + f' {working_dir}/busybox sh -c ' + shell_escape(cmd)
+                    )
+                    # Change to the working directory
+                    wd = run['workingdir']
+                    cmd = f'cd {shell_escape(wd)} && {cmd}'
+
+                    script.append(cmd + '\n')
 
             # Update status in database
-            logger.info("Starting container")
             await asyncio.gather(
                 self.connector.run_started(run_info['id']),
                 self.connector.run_progress(
@@ -180,11 +181,16 @@ class DockerRunner(BaseRunner):
                 ),
             )
 
-            # Start container and wait until completion
+            # Run command and wait until completion
+            cmdline = [
+                'docker', 'exec', '--', container,
+                f'{working_dir}/busybox', 'sh', '-c', ''.join(script),
+            ]
+            logger.info("Running experiment")
             try:
                 ret = await self.connector.run_cmd_and_log(
                     run_info['id'],
-                    ['docker', 'start', '-ai', '--', container],
+                    cmdline,
                 )
             except IOError:
                 raise ValueError("Got IOError running experiment")
