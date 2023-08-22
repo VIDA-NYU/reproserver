@@ -61,6 +61,9 @@ jobs:
           (eval $(minikube docker-env); docker build -t reproserver_web .)
       - name: Start reproserver on Kubernetes
         run: |
+          # Wait for nginx ingress
+          kubectl -n ingress-nginx wait --timeout=5m --for=condition=Available deploy ingress-nginx-controller
+
           helm install reproserver k8s/helm --namespace default -f k8s/minikube.values.yml
           # Wait for the pods to be available
           if ! kubectl wait --timeout=10m --for=condition=Available deploy --all; then
