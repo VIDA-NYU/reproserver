@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import random
+from reprounzip_docker import select_image
 import shutil
 import subprocess
 import tempfile
@@ -59,9 +60,8 @@ class DockerRunner(BaseRunner):
         # Make build directory
         directory = tempfile.mkdtemp('rpz-run')
 
-        # TODO: Select base image from metadata
-        run_info['rpz_meta']['meta']['distribution']
-        image_name = 'ubuntu:22.04'
+        # Select base image from metadata
+        image_name = select_image(run_info['rpz_meta']['meta'])[1]
 
         try:
             # Use a random directory in the container for our operations
