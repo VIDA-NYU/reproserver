@@ -145,3 +145,6 @@ minio:
 
 postgres:
   enabled: true
+
+registry:
+  enabled: true

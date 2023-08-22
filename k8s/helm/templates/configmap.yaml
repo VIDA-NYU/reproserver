@@ -23,6 +23,9 @@ data:
           - "--host=tcp://127.0.0.1:2375"
           - "--storage-driver={{ .Values.dockerInDocker.storageDriver }}"
           - "--userns-remap=default"
+          {{- if .Values.registry.enabled }}
+          - "--registry-mirror=http://{{ include "reproserver.registryServiceName" . }}:5000"
+          {{- end }}
         resources:
           {{- toYaml .Values.dockerInDocker.resources | nindent 10 }}
       - name: runner
@@ -55,6 +58,8 @@ data:
                 key: connectionToken
           - name: DOCKER_HOST
             value: tcp://127.0.0.1:2375
+          - name: REGISTRY
+            value: {{ include "reproserver.registryServiceName" . }}:5000
         ports:
           - name: proxy
             containerPort: 5597
