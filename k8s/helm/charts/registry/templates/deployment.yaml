@@ -6,6 +6,8 @@ metadata:
     {{- include "registry.labels" . | nindent 4 }}
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "registry.selectorLabels" . | nindent 6 }}
