@@ -5,7 +5,10 @@ from reproserver.objectstore import get_object_store
 
 
 def main():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
 
     DBSession = database.connect()
     db = DBSession()
