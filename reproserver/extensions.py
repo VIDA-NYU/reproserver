@@ -27,15 +27,26 @@ async def process_uploaded_rpz(object_store, db, experiment, local_filename):
                 None,
                 lambda: rpz.extract_extension('web1', tdir),
             )
-            wacz = os.path.join(tdir, 'archive.wacz')
-            extension_files = os.listdir(tdir)
-            if extension_files != ['archive.wacz']:
+            extension_files = set(os.listdir(tdir))
+            if (
+                'archive.wacz' not in extension_files
+                or not extension_files <= {'archive.wacz', 'config.json'}
+            ):
                 logger.warning(
                     "Invalid web1 extension data, files: %r",
                     extension_files,
                 )
             else:
+                # Load the config
+                config_file = os.path.join(tdir, 'config.json')
+                if os.path.exists(config_file):
+                    with open(config_file) as fp:
+                        config = json.load(fp)
+                else:
+                    config = None
+
                 # Hash the WACZ
+                wacz = os.path.join(tdir, 'archive.wacz')
                 hasher = sha256()
                 with open(wacz, 'rb') as fp:
                     chunk = fp.read(4096)
@@ -62,6 +73,7 @@ async def process_uploaded_rpz(object_store, db, experiment, local_filename):
                     data=json.dumps({
                         'filehash': filehash,
                         'filesize': filesize,
+                        'config': config,
                     }),
                 )
                 db.add(extension)
