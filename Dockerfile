@@ -25,7 +25,7 @@ RUN curl -Lo /tmp/docker.tgz https://download.docker.com/linux/static/stable/x86
     rm /tmp/docker.tgz
 
 # Download assets
-COPY scripts/get_assets.sh scripts/get_assets.sh
+COPY scripts scripts
 RUN scripts/get_assets.sh
 
 # Install package

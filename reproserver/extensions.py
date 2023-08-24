@@ -16,7 +16,6 @@ async def process_uploaded_rpz(object_store, db, experiment, local_filename):
     """Do additional processing from uploaded RPZ.
     """
     # TODO: Should probably be rewritten in a plugin manner
-    # TODO: Should also have a way to re-run on existing RPZ files
 
     rpz = RPZPack(local_filename)
 
