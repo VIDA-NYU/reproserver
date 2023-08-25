@@ -53,3 +53,5 @@ storage:
   persistentClaimName: ""
   storageClass: ""
   capacity: 100Gi
+
+  claimAnnotations: {}

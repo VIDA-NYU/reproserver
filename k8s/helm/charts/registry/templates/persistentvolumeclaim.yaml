@@ -5,6 +5,10 @@ metadata:
   name: "{{ .Values.storage.persistentClaimName | default (include "registry.fullname" .) }}"
   labels:
     {{- include "registry.labels" . | nindent 4 }}
+  {{- with .Values.storage.claimAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   storageClassName: {{ .Values.storage.storageClass | quote }}
   accessModes:
