@@ -96,6 +96,9 @@ class ProxyHandler(HideStreamClosedHandler, WebSocketHandler):
         super(ProxyHandler, self).__init__(application, request, **kwargs)
         self.headers = []
 
+    def check_xsrf_cookie(self):
+        pass
+
     def set_default_headers(self):
         self.set_header('Server', 'ReproServer/%s' % __version__)
 
