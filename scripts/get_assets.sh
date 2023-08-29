@@ -33,7 +33,7 @@ set -eu
 
 cd "$(dirname "$0")/.."
 
-download_asset "https://cdn.jsdelivr.net/npm/@webrecorder/archivewebpage@0.11.0/dist/embed/ui.js" "reproserver/web/static/js/archivewebpage-ui.js" "9b1a7edad4ed7f07daf96c3b32a8db8ea08aa155fda87c2ba089d36dc51758a2"
-download_asset "https://cdn.jsdelivr.net/npm/@webrecorder/archivewebpage@0.11.0/dist/embed/replay/sw.js" "reproserver/web/static/replay/sw.js" "bb742cc4cec2e373e9dee9de018f567cd5c10dd3e4a9a9d807841cd9b2e090f2"
+download_asset "https://cdn.jsdelivr.net/npm/@webrecorder/archivewebpage@0.11.1/dist/embed/ui.js" "reproserver/web/static/js/archivewebpage-ui.js" "f4749ddf3cf2cb35493f27ccd25fb9444bd3fdcf1fe87376c8f23bbf8b794e31"
+download_asset "https://cdn.jsdelivr.net/npm/@webrecorder/archivewebpage@0.11.1/dist/embed/replay/sw.js" "reproserver/web/static/replay/sw.js" "83792628953de27586b61eae4e44121a23981a6539404730f3158e2cc48b8db5"
 download_asset "https://cdn.jsdelivr.net/npm/replaywebpage@1.8.6/ui.js" "reproserver/web/static/js/replaywebpage-ui.js" "5644cd2a76b4c9ef0dd73067ba5c509e8246e328f56ef9ff8d8616caeb2f407a"
 download_asset "https://cdn.jsdelivr.net/npm/replaywebpage@1.8.6/sw.js" "reproserver/web/static/replay/rwp-sw.js" "89af3d81c6e3a6c5d650a9fdcb412c416727dc2d954332e24d462cf0269b8952"
