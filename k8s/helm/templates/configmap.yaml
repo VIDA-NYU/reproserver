@@ -23,7 +23,9 @@ data:
           - "--host=tcp://127.0.0.1:2375"
           - "--storage-driver={{ .Values.dockerInDocker.storageDriver }}"
           - "--userns-remap=default"
-          - "--insecure-registry={{ include "reproserver.registryServiceName" . }}:5000"
+          {{- if .Values.registry.enabled }}
+          - "--registry-mirror=http://{{ include "reproserver.registryServiceName" . }}:5000"
+          {{- end }}
         resources:
           {{- toYaml .Values.dockerInDocker.resources | nindent 10 }}
       - name: runner

@@ -28,6 +28,13 @@ RUN curl -Lo /tmp/docker.tgz https://download.docker.com/linux/static/stable/x86
 COPY scripts scripts
 RUN scripts/get_assets.sh
 
+# Add tools
+RUN mkdir /opt/rpz-tools-x86_64 && \
+    curl -Lo /opt/rpz-tools-x86_64/rpztar https://github.com/remram44/rpztar/releases/download/v0-whole-rpz/rpztar-x86_64 && \
+    curl -Lo /opt/rpz-tools-x86_64/rpzsudo https://github.com/remram44/static-sudo/releases/download/current/rpzsudo-x86_64 && \
+    curl -Lo /opt/rpz-tools-x86_64/busybox https://s3.amazonaws.com/reprozip-files/busybox-x86_64 && \
+    chmod +x /opt/rpz-tools-x86_64/*
+
 # Install package
 COPY reproserver /usr/src/app/reproserver
 COPY README.md LICENSE.txt /usr/src/app/
