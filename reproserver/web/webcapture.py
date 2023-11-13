@@ -506,6 +506,7 @@ class CrawlStatus(BaseHandler):
         return self.render(
             'webcapture/crawl_results.html',
             run=run,
+            upload_short_id=upload_short_id,
             experiment_url=self.url_for_upload(run.upload),
             log=run.get_log(0),
             wacz=wacz,
