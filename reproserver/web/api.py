@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 import functools
 import hashlib
 import logging
@@ -148,7 +148,11 @@ class Log(BaseApiHandler):
             self.db.add(database.RunLogLine(
                 run_id=run_id,
                 line=line['msg'],
-                timestamp=datetime.fromisoformat(line['time']),
+                timestamp=(
+                    datetime
+                    .fromisoformat(line['time'])
+                    .replace(tzinfo=timezone.utc)
+                ),
             ))
         self.db.commit()
         self.set_status(204)

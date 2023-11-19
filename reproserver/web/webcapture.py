@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import logging
 import os
@@ -187,8 +187,8 @@ class Preview(BaseHandler):
         experiment = upload.experiment
 
         # Update last access
-        upload.last_access = datetime.utcnow()
-        upload.experiment.last_access = datetime.utcnow()
+        upload.last_access = datetime.now(timezone.utc)
+        upload.experiment.last_access = datetime.now(timezone.utc)
 
         # New run entry
         run = database.Run(experiment_hash=experiment.hash,
@@ -250,8 +250,8 @@ class StartRecord(BaseHandler):
         experiment = upload.experiment
 
         # Update last access
-        upload.last_access = datetime.utcnow()
-        upload.experiment.last_access = datetime.utcnow()
+        upload.last_access = datetime.now(timezone.utc)
+        upload.experiment.last_access = datetime.now(timezone.utc)
 
         # New run entry
         run = database.Run(experiment_hash=experiment.hash,
@@ -404,8 +404,8 @@ class StartCrawl(BaseHandler):
         experiment = upload.experiment
 
         # Update last access
-        upload.last_access = datetime.utcnow()
-        upload.experiment.last_access = datetime.utcnow()
+        upload.last_access = datetime.now(timezone.utc)
+        upload.experiment.last_access = datetime.now(timezone.utc)
 
         # New run entry
         run = database.Run(experiment_hash=experiment.hash,

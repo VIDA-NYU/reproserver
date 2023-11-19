@@ -1,5 +1,5 @@
 from base64 import b64decode, b64encode
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import os
 from sqlalchemy import Column, ForeignKey, create_engine
@@ -32,7 +32,7 @@ class Experiment(Base):
 
     hash = Column(String(64), primary_key=True)
     last_access = Column(DateTime, nullable=False,
-                         default=lambda: datetime.utcnow())
+                         default=lambda: datetime.now(timezone.utc))
     size = Column(Integer, nullable=False)
     info = Column(Text, nullable=False)
 
@@ -85,7 +85,7 @@ class Upload(Base):
     submitted_ip = Column(Text, nullable=True)
     repository_key = Column(Text, nullable=True, index=True)
     timestamp = Column(DateTime, nullable=False,
-                       default=lambda: datetime.utcnow())
+                       default=lambda: datetime.now(timezone.utc))
 
     @property
     def short_id(self):
@@ -172,7 +172,7 @@ class Run(Base):
                                            ondelete='RESTRICT'))
     upload = relationship('Upload', uselist=False)
     submitted = Column(DateTime, nullable=False,
-                       default=lambda: datetime.utcnow())
+                       default=lambda: datetime.now(timezone.utc))
     started = Column(DateTime, nullable=True)
     done = Column(DateTime, nullable=True)
 
@@ -227,7 +227,7 @@ class RunLogLine(Base):
     run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'))
     run = relationship('Run', uselist=False, back_populates='log')
     timestamp = Column(DateTime, nullable=False,
-                       default=lambda: datetime.utcnow())
+                       default=lambda: datetime.now(timezone.utc))
     line = Column(Text, nullable=False)
 
     def __repr__(self):

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from hashlib import sha256
 import json
 import logging
@@ -59,7 +59,7 @@ async def store_uploaded_rpz(
     # Check for existence of experiment
     experiment = db.query(database.Experiment).get(filehash)
     if experiment:
-        experiment.last_access = datetime.utcnow()
+        experiment.last_access = datetime.now(timezone.utc)
         logger.info("File exists in storage")
     else:
         # Insert it in database
@@ -291,10 +291,10 @@ class ReproduceRepo(BaseReproduce):
                 self.set_status(404)
                 return await self.render('setup_badfile.html', message=str(e))
         else:
-            upload.last_access = datetime.utcnow()
+            upload.last_access = datetime.now(timezone.utc)
 
         # Also updates last access
-        upload.experiment.last_access = datetime.utcnow()
+        upload.experiment.last_access = datetime.now(timezone.utc)
         self.db.commit()
 
         repo_name = get_repository_name(repo)
@@ -325,8 +325,8 @@ class ReproduceLocal(BaseReproduce):
             return self.render('setup_notfound.html')
 
         # Also updates last access
-        upload.last_access = datetime.utcnow()
-        upload.experiment.last_access = datetime.utcnow()
+        upload.last_access = datetime.now(timezone.utc)
+        upload.experiment.last_access = datetime.now(timezone.utc)
         self.db.commit()
 
         return self.reproduce(upload)
@@ -358,8 +358,8 @@ class StartRun(BaseHandler):
         experiment = upload.experiment
 
         # Update last access
-        upload.last_access = datetime.utcnow()
-        upload.experiment.last_access = datetime.utcnow()
+        upload.last_access = datetime.now(timezone.utc)
+        upload.experiment.last_access = datetime.now(timezone.utc)
 
         # New run entry
         run = database.Run(experiment_hash=experiment.hash,
@@ -492,7 +492,7 @@ class Results(BaseHandler):
             for extension in run.experiment.extensions
         }
         # Update last access
-        run.experiment.last_access = datetime.utcnow()
+        run.experiment.last_access = datetime.now(timezone.utc)
         self.db.commit()
 
         def get_port_url(port_number):

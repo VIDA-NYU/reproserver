@@ -3,7 +3,7 @@ import contextlib
 import hashlib
 import json
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import os
 from sqlalchemy.orm import joinedload
@@ -269,7 +269,7 @@ class DirectConnector(BaseConnector):
         if run.started:
             logger.warning("Starting run which has already been started")
         else:
-            run.started = datetime.utcnow()
+            run.started = datetime.now(timezone.utc)
             db.commit()
 
     async def run_progress(self, run_id, percent, text):
@@ -285,13 +285,13 @@ class DirectConnector(BaseConnector):
     async def run_done(self, run_id):
         db = self.DBSession()
         run = db.query(database.Run).get(run_id)
-        run.done = datetime.utcnow()
+        run.done = datetime.now(timezone.utc)
         db.commit()
 
     async def run_failed(self, run_id, error):
         db = self.DBSession()
         run = db.query(database.Run).get(run_id)
-        run.done = datetime.utcnow()
+        run.done = datetime.now(timezone.utc)
         db.add(database.RunLogLine(run_id=run.id, line=error))
         db.commit()
 
@@ -577,7 +577,7 @@ class HttpConnector(BaseConnector):
         return self.log_multiple(run_id, [line])
 
     async def log_multiple(self, run_id, lines):
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S')
         await self.http_client.fetch(
             '{0}/runners/run/{1}/log'.format(
                 self.api_endpoint,
