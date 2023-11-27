@@ -248,7 +248,8 @@ class BaseReproduce(BaseHandler):
                 hosts = web1['config']['hosts']
             except KeyError:
                 pass
-            ports.update(host['port'] for host in hosts.values())
+            else:
+                ports.update(host['port'] for host in hosts.values())
 
         return self.render(
             'setup.html',
