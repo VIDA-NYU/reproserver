@@ -15,7 +15,8 @@ COPY reprozip /usr/src/app/reprozip
 
 # Install dependencies
 COPY pyproject.toml poetry.lock /usr/src/app/
-RUN /root/.local/bin/poetry install --no-interaction --only main
+RUN touch README.md && \
+    /root/.local/bin/poetry install --no-interaction --only main --no-root
 
 # Install Docker
 RUN curl -Lo /tmp/docker.tgz https://download.docker.com/linux/static/stable/x86_64/docker-20.10.7.tgz && \
