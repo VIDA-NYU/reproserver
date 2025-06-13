@@ -16,7 +16,7 @@ jobs:
           python-version: "3.10"
       - name: Install Poetry
         run: |
-          curl -sSL https://install.python-poetry.org | python3 -
+          curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.1.3 python3 -
           $HOME/.local/bin/poetry config virtualenvs.create false
       - name: Install dependencies
         run: $HOME/.local/bin/poetry install --no-interaction
@@ -30,28 +30,28 @@ jobs:
     env:
       DOCKER_BUILDKIT: "1"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
       - name: Install Poetry
         run: |
-          curl -sSL https://install.python-poetry.org | python3 -
+          curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.1.3 python3 -
           $HOME/.local/bin/poetry config virtualenvs.create false
       - name: Install dependencies
         run: $HOME/.local/bin/poetry install --no-interaction
       - name: Install minikube
         run: |
           sudo mkdir -p /usr/local/bin
-          sudo curl -Lo /usr/local/bin/minikube https://github.com/kubernetes/minikube/releases/download/v1.31.1/minikube-linux-amd64
+          sudo curl -Lo /usr/local/bin/minikube https://github.com/kubernetes/minikube/releases/download/v1.36.0/minikube-linux-amd64
           sudo chmod +x /usr/local/bin/minikube
-          sudo curl -Lo /usr/local/bin/kubectl https://dl.k8s.io/release/v1.27.4/bin/linux/amd64/kubectl
+          sudo curl -Lo /usr/local/bin/kubectl https://dl.k8s.io/release/v1.32.5/bin/linux/amd64/kubectl
           sudo chmod +x /usr/local/bin/kubectl
       - name: Start Kubernetes cluster
         run: |
-          minikube start --kubernetes-version=1.27.4 --driver=docker --nodes=1 --container-runtime=docker --ports=8000:30808
+          minikube start --kubernetes-version=1.32.5 --driver=docker --nodes=1 --ports=8000:30808
           kubectl describe node
           kubectl apply -f k8s/ingress-nginx.yml
       - name: Build image

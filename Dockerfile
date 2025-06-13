@@ -19,7 +19,7 @@ RUN touch README.md && \
     /root/.local/bin/poetry install --no-interaction --only main --no-root
 
 # Install Docker
-RUN curl -Lo /tmp/docker.tgz https://download.docker.com/linux/static/stable/x86_64/docker-20.10.7.tgz && \
+RUN curl -Lo /tmp/docker.tgz https://download.docker.com/linux/static/stable/x86_64/docker-28.2.2.tgz && \
     tar -xf /tmp/docker.tgz -C /usr/local && \
     mv /usr/local/docker/* /usr/local/bin/ && \
     rmdir /usr/local/docker && \
