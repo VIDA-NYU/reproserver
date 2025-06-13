@@ -17,7 +17,7 @@ You will need [Tilt](https://docs.tilt.dev/install.html), [kubectl](https://kube
 For example, create a local cluster with:
 
 ```
-minikube start --kubernetes-version=1.22.2 --driver=docker --nodes=1 --container-runtime=docker --ports=8000:30808
+minikube start --kubernetes-version=1.32.5 --driver=docker --nodes=1 --ports=8000:30808 --memory=no-limit
 ```
 
 Install the ingress controller using:
