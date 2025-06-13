@@ -45,7 +45,7 @@ boto3 = "^1"
 google-api-python-client = "*"
 google-auth = "*"
 google-auth-httplib2 = "*"
-psycopg2 = "^2.8"
+psycopg2 = "^2.9"
 kubernetes_asyncio = "*"
 PyYAML = "*"
 prometheus_client = "*"
@@ -57,7 +57,7 @@ reprozip-web = { path = "reprozip/reprozip-web", develop=true }
 prometheus-async = "*"
 streaming-form-data = ">=1.10,<2"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 coverage = "*"
 flake8 = "*"
 requests = "*"
