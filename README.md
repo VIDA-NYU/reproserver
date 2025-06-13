@@ -23,7 +23,7 @@ minikube start --kubernetes-version=1.22.2 --driver=docker --nodes=1 --container
 Install the ingress controller using:
 
 ```
-kubectl apply -f k8s/nginx-ingress.k8s-1.22.yml
+kubectl apply -f k8s/nginx-ingress.yml
 ```
 
 Start the application for development using:
