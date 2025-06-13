@@ -105,7 +105,7 @@ class DockerRunner(BaseRunner):
             logger.info("Downloading RPZ into container")
             await subprocess_check_call_async(['sh', '-c', (
                 'curl -fsSL '
-                + shell_escape(run_info["experiment_url"])
+                + shell_escape(self.connector.get_bundle_link(run_info))
                 + ' | '
                 + f'docker exec -i {container} {working_dir}/busybox sh -c'
                 + f' "cat > {working_dir}/exp.rpz"'
