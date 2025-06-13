@@ -40,7 +40,7 @@ services:
     ports:
       - 5000:5000
   postgres:
-    image: postgres:12.6
+    image: postgres:17
     environment:
       PGDATA: /var/lib/postgresql/data/pgdata
       POSTGRES_USER: ${POSTGRES_USER}
