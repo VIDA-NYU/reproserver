@@ -4,6 +4,7 @@ import os
 import random
 from reprounzip_docker import select_image
 import shutil
+import string
 import subprocess
 import tempfile
 import textwrap
@@ -153,6 +154,9 @@ class DockerRunner(BaseRunner):
             script = ['set -eu\n']
             for k, cmd in sorted(run_info['parameters'].items()):
                 if k.startswith('cmdline_'):
+                    if all(c in string.whitespace for c in cmd):
+                        continue
+
                     i = int(k[8:], 10)
                     run = run_info['rpz_meta']['runs'][i]
                     # Apply the environment
